@@ -1,14 +1,19 @@
 project:
   type: manuscript
   output-dir: _output
-  resources:
-    - "_*.qmd"
+
+resources:
+  - "_*.qmd"
 
 manuscript:
   article: capstone.qmd
 
-format: 
+format:
   html:
     theme:
       light: lightly
       dark: darkly
+    mermaid:
+      theme: neutral
+
+number-sections: true
