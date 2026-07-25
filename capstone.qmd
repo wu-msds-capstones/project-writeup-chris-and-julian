@@ -1,12 +1,12 @@
 ---
-title: "Capstone Project"
+title: "How Job Automatability Shapes County Affordability"
 subtitle: Subtitle
 authors:
-  - Bob
-  - Jane
+  - Chris Bell
+  - Julian Pacheco
 bibliography: references.bib
 title-block-banner: true
-format: 
+format:
   html:
     theme:
       light: lightly
