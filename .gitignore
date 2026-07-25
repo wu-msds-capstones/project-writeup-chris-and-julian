@@ -2,3 +2,7 @@
 /_output/
 
 **/*.quarto_ipynb
+.DS_Store
+_output/
+*_files/
+_0*.html
