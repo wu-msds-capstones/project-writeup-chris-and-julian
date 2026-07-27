@@ -1,1 +1,114 @@
-# Analysis
+# Analysis {#sec-analysis}
+
+## Panel regression
+
+The four task group values described in @eq-group sum to one, so all four cannot enter a
+regression together. One serves as the reference category, and we use non routine
+cognitive. Each remaining coefficient reads as the change in affordability salary
+associated with a one percentage point shift out of non routine cognitive work and into
+that group, holding the controls fixed. No coefficient stands alone; every one is a
+comparison against the reference.
+
+Normalizing the four totals by their sum, as @sec-data describes, also resolves a
+collinearity problem that would otherwise make these coefficients unusable. The
+unnormalized totals in @eq-weighted carry variance inflation factors between 13 and 27,
+because occupations differ in how much total O*NET rating mass they hold and that inflates
+all four totals together. Dividing by the four group sum removes the common scale and
+drops the variance inflation factors to roughly 1.
+
+Year indicators absorb conditions common to all counties within a year, including the 2008
+recession, the recovery through the 2010s, and the price movement that affordability
+salary does not itself deflate. Standard errors are clustered by county, since repeated
+observations of the same county across fifteen years are not independent draws.
+
+## Validation before modeling
+
+Before estimating anything we confirm the data support the methods. We check the
+distributions of the four task groups and of affordability salary for skew and outliers,
+confirm county year coverage across the retained panel, and check the overlap between task
+groups to make sure no two carry effectively the same information. @fig-dists shows the
+distributions.
+
+<!-- FIGURE: fig-dists. Histograms of affordability salary and the four task groups,
+     small multiples. Purpose is to justify the modeling choices that follow, not to
+     describe the data for its own sake. -->
+
+Affordability salary is
+right skewed, with most counties between \$40,000 and \$60,000 and a long tail reaching
+toward \$160,000 driven by high income metropolitan counties [TK: confirm against the
+current panel, these figures come from the earlier full frame]. That skew is the reason
+the extremes of the distribution are worth watching in the specification check below.
+
+## Specification check
+
+A linear model assumes the association holds at a constant rate across the range of the
+data. We test that with a RESET test, which adds powers of the fitted values to the
+regression and asks whether they carry explanatory weight. [TK: report the statistic and p
+value.] The linear specification is rejected. @fig-resid-analysis plots residuals against
+fitted values and locates the failure: the association bends at the extremes of the
+affordability distribution rather than holding constant across it.
+
+<!-- FIGURE: fig-resid-analysis. Residuals against fitted values from the linear panel
+     model, reference line at zero. This is the diagnostic that motivates everything
+     after it. Decide whether it lives here as evidence for the specification check or
+     in _05 as a result. -->
+
+That rejection is a result rather than a discarded attempt. The linear model still
+delivers the interpretable effect size we report, and it establishes through its own
+diagnostics that the data hold structure a straight line cannot represent. Binned means
+plots make the shape visible directly, and the flexible models take up what the linear
+model leaves behind.
+
+<!-- FIGURE: possible binned means figure here. Currently planned for _05 as fig-binned.
+     If the argument in this section needs to show the curve rather than assert it, move
+     it up. Otherwise leave it in results and keep this paragraph as the forward
+     pointer. -->
+
+## Variance decomposition
+
+Affordability salary varies both across counties and within a county over time, and the
+two carry different implications. [TK: report the between and within split.] A county's
+task mix moves very little across the panel, which is what makes the associated
+affordability differences durable rather than transient.
+
+<!-- FIGURE: fig-variance. Between and within variance split for affordability salary and
+     for each of the four task groups. A simple grouped bar chart is enough. This is the
+     figure that carries the persistence claim, which the conclusions lean on heavily, so
+     it should not stay as a number in prose. -->
+
+The Census occupation coding change between 2009 and 2010, described in @sec-data, inflates
+apparent within county variation for the routine cognitive group. Because this is a
+feature of how the source data were coded rather than a property of the counties, we
+repeat the main estimates on a panel restricted to 2010 onward.
+
+<!-- FIGURE: optional fig-coding-change. Routine cognitive group mean by year across the
+     full panel, with the 2009 to 2010 boundary marked. Makes the artifact visible rather
+     than asking the reader to take it on faith. Skip if the section is running long. -->
+
+## Machine learning models
+
+[TK: Chris to supply. Random forest and neural network specifications, train and test
+split, tuning procedure, and evaluation metric. Feature importance and partial dependence
+are the two outputs that connect back to the task groups.]
+
+## What these models can and cannot support
+
+Every estimate reported here is associational. Counties are not assigned their mix of
+work, and nothing in this design isolates a causal channel. A county with more routine
+work also differs in industry structure, in the education of its workforce, and in its
+housing market, and any of those could carry part of what we observe. We report which task
+groups relate to affordability and how strongly, not what would follow if a county's mix
+of work changed.
+
+<!--
+TODO analysis
+
+What this section is for:
+1. Cover only the models most important to understanding the results. Sub analyses that
+   add detail without changing the conclusion belong in a supplement or get one line.
+2. Depth is a function of audience. A general reader needs less than a specialist.
+3. If a method's output does not appear in the results, it does not belong here.
+4. Equations must be explained and referenced before they appear, and units stated.
+5. Do not narrate dead ends or the chronology of what we tried.
+
+-->
