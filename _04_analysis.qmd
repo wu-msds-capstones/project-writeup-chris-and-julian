@@ -1,114 +1,169 @@
 # Analysis {#sec-analysis}
 
+```{python}
+#| include: false
+import os
+import pandas as pd
+import numpy as np
+import statsmodels.api as sm
+import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy import stats
+from sqlalchemy import create_engine
+
+engine=create_engine(os.environ["AUTORACK_URL"])
+df=pd.read_sql("""
+select ca.county_fips, ca.year, ca.affordability_salary,
+    cte.routine_cognitive_share, cte.routine_manual_share,
+    cte.non_routine_cognitive_share, cte.non_routine_manual_share,
+    cb.poverty_rate, cb.unemployment_rate, cb.population
+from county_affordability ca
+join county_task_exposure cte on ca.county_fips=cte.county_fips and ca.year=cte.year
+join county_baseline cb on ca.county_fips=cb.county_fips and ca.year=cb.year
+""", engine)
+df["log_population"]=np.log(df["population"])
+```
+
+```{python}
+#| include: false
+# level model: OLS with year indicators, standard errors clustered by county
+reg_cols=["routine_cognitive_share","routine_manual_share","non_routine_manual_share",
+          "poverty_rate","unemployment_rate","log_population"]
+
+reg=df.dropna(subset=reg_cols+["affordability_salary"]).copy()
+
+X=pd.concat([reg[reg_cols],
+             pd.get_dummies(reg["year"], prefix="year", drop_first=True).astype(float)], axis=1)
+X=sm.add_constant(X)
+
+model=sm.OLS(reg["affordability_salary"], X).fit(
+    cov_type="cluster", cov_kwds={"groups": reg["county_fips"]})
+
+reg["fitted"]=model.fittedvalues
+reg["resid"]=model.resid
+
+# log respecification, same design matrix
+reg["actual_log"]=np.log(reg["affordability_salary"])
+model_log=sm.OLS(reg["actual_log"], X).fit(
+    cov_type="cluster", cov_kwds={"groups": reg["county_fips"]})
+reg["resid_log"]=model_log.resid
+```
+
 ## Panel regression
 
-The four task group values described in @eq-group sum to one, so all four cannot enter a
-regression together. One serves as the reference category, and we use non routine
-cognitive. Each remaining coefficient reads as the change in affordability salary
-associated with a one percentage point shift out of non routine cognitive work and into
-that group, holding the controls fixed. No coefficient stands alone; every one is a
-comparison against the reference.
+The four task group values described in @eq-group sum to one, so all four cannot enter a regression together. One serves as the reference category, and we use non routine cognitive. Each remaining coefficient reads as the change in affordability salary associated with a shift out of non routine cognitive work and into that group, holding the controls fixed. No coefficient stands alone. Every one is a comparison against the reference. The group values sit on a zero to one scale. Per percentage point figures reported later therefore divide the estimated coefficients by 100.
 
-Normalizing the four totals by their sum, as @sec-data describes, also resolves a
-collinearity problem that would otherwise make these coefficients unusable. The
-unnormalized totals in @eq-weighted carry variance inflation factors between 13 and 27,
-because occupations differ in how much total O*NET rating mass they hold and that inflates
-all four totals together. Dividing by the four group sum removes the common scale and
-drops the variance inflation factors to roughly 1.
+Normalizing the four totals by their sum, as @sec-data describes, also resolves a collinearity problem. Left unresolved, that problem would make these coefficients unusable. The unnormalized totals in @eq-weighted carry variance inflation factors between 13 and 27. All four are employment counts, so they scale together with county size. Dividing by the four group sum removes that common scale and drops the variance inflation factors to roughly 1.
 
-Year indicators absorb conditions common to all counties within a year, including the 2008
-recession, the recovery through the 2010s, and the price movement that affordability
-salary does not itself deflate. Standard errors are clustered by county, since repeated
-observations of the same county across fifteen years are not independent draws.
+Year indicators absorb conditions common to all counties within a year. These include the 2008 recession, the recovery through the 2010s, and the price movement that affordability salary does not itself deflate. Standard errors are clustered by county. Repeated observations of the same county across fifteen years are not independent draws.
 
 ## Validation before modeling
 
-Before estimating anything we confirm the data support the methods. We check the
-distributions of the four task groups and of affordability salary for skew and outliers,
-confirm county year coverage across the retained panel, and check the overlap between task
-groups to make sure no two carry effectively the same information. @fig-dists shows the
-distributions.
+Before estimating anything we confirm the data support the methods. We check the distributions of the four task groups and of affordability salary for skew and outliers. We confirm county year coverage across the retained panel. We also check the overlap between task groups, so that no two carry effectively the same information. @fig-dists shows the distributions.
 
-<!-- FIGURE: fig-dists. Histograms of affordability salary and the four task groups,
-     small multiples. Purpose is to justify the modeling choices that follow, not to
-     describe the data for its own sake. -->
+```{python}
+#| label: fig-dists
+#| fig-cap: "Distributions across the 12,087 county year panel. Affordability salary is right skewed with a long upper tail; the four task groups each show real cross county spread, with non routine cognitive the largest category."
 
-Affordability salary is
-right skewed, with most counties between \$40,000 and \$60,000 and a long tail reaching
-toward \$160,000 driven by high income metropolitan counties [TK: confirm against the
-current panel, these figures come from the earlier full frame]. That skew is the reason
-the extremes of the distribution are worth watching in the specification check below.
+share_cols=["routine_cognitive_share","routine_manual_share",
+            "non_routine_cognitive_share","non_routine_manual_share"]
 
-## Specification check
+titles=["Routine Cognitive","Routine Manual","Non-Routine Cognitive","Non-Routine Manual"]
 
-A linear model assumes the association holds at a constant rate across the range of the
-data. We test that with a RESET test, which adds powers of the fitted values to the
-regression and asks whether they carry explanatory weight. [TK: report the statistic and p
-value.] The linear specification is rejected. @fig-resid-analysis plots residuals against
-fitted values and locates the failure: the association bends at the extremes of the
-affordability distribution rather than holding constant across it.
+fig, axes=plt.subplots(1, 5, figsize=(16,3))
+sns.histplot(data=df, x="affordability_salary", bins=50, ax=axes[0])
+axes[0].set_title("Affordability Salary ($)")
+axes[0].set_xlabel("")
+for i, (col, title) in enumerate(zip(share_cols, titles), start=1):
+    sns.histplot(data=df, x=col, bins=50, color="#009E73", ax=axes[i])
+    axes[i].set_title(title)
+    axes[i].set_xlabel("")
+    axes[i].set_ylabel("")
+plt.tight_layout()
+plt.show()
+```
 
-<!-- FIGURE: fig-resid-analysis. Residuals against fitted values from the linear panel
-     model, reference line at zero. This is the diagnostic that motivates everything
-     after it. Decide whether it lives here as evidence for the specification check or
-     in _05 as a result. -->
+Affordability salary is right skewed, with a skewness of 1.17. The center sits near
+\$57,000, and a long tail of high purchasing power counties extends above it. That skew
+is why the diagnostics below watch the extremes of the distribution.
 
-That rejection is a result rather than a discarded attempt. The linear model still
-delivers the interpretable effect size we report, and it establishes through its own
-diagnostics that the data hold structure a straight line cannot represent. Binned means
-plots make the shape visible directly, and the flexible models take up what the linear
-model leaves behind.
+## Specification diagnostics
 
-<!-- FIGURE: possible binned means figure here. Currently planned for _05 as fig-binned.
-     If the argument in this section needs to show the curve rather than assert it, move
-     it up. Otherwise leave it in results and keep this paragraph as the forward
-     pointer. -->
+A linear model assumes the association holds at a constant rate across the range of the data. It also assumes errors that scatter symmetrically and evenly around the fit. We check those assumptions with three diagnostics: residuals plotted against fitted values, a QQ plot of the residuals, and variance inflation factors. @fig-resid-analysis shows the first two and locates the failure directly. The smoothed residual line curves rather than tracking zero. The vertical spread widens with fitted values. The model underpredicts both the least and the most affordable counties while fitting the middle well. The QQ plot bends away from normal in the upper tail, which is the graphical form of a residual skew of 1.02.
+
+```{python}
+#| label: fig-resid-analysis
+#| fig-cap: "Level model diagnostics. Left: residuals against fitted values with lowess smoother; the curve away from zero at both ends shows the model underpredicting the least and most affordable counties. Right: QQ plot of residuals; the bend above the line in the upper tail reflects the residual skew of 1.02."
+
+fig, axes=plt.subplots(1, 2, figsize=(13,5))
+
+sns.scatterplot(data=reg, x="fitted", y="resid", alpha=0.1, s=5, color="grey", ax=axes[0])
+sns.regplot(data=reg, x="fitted", y="resid", scatter=False, lowess=True,
+            line_kws={"color":"#D55E00"}, ax=axes[0])
+axes[0].axhline(0, color="black", linewidth=1)
+axes[0].set_title("Residuals Against Fitted Values")
+axes[0].set_xlabel("Affordability Salary ($)")
+axes[0].set_ylabel("Residual ($)")
+
+stats.probplot(reg["resid"], dist="norm", plot=axes[1])
+axes[1].set_title("QQ Plot")
+
+plt.tight_layout()
+plt.show()
+```
+
+That failure is a result rather than a discarded attempt. The level model still delivers the interpretable estimates we report. It also establishes through its own diagnostics that the data hold structure a straight line in dollars cannot represent. Binned means plots in @sec-results put the miss in dollar terms: roughly \$8,000 to \$9,000 of underprediction at each tail.
+
+## Log respecification
+
+Underprediction at both extremes is the signature of a multiplicative process fit on an additive scale. The drivers of affordability act proportionally, so the same shift in an input moves a high affordability county by more dollars than a low one. Logging the target converts proportional effects into the additive form a linear model assumes. We therefore refit the same specification on log affordability salary. The diagnostics respond accordingly, as @fig-log-diag shows. Residual skew falls from 1.02 to 0.09. The spread becomes close to constant across the fitted range. The QQ plot straightens through most of its range. The log linear fit is the baseline the flexible models in the next section are measured against.
+
+```{python}
+#| label: fig-log-diag
+#| fig-cap: "Log model diagnostics, same layout as the level model. The smoother lies close to zero, the spread is near constant, and the QQ plot tracks the diagonal through most of its range, showing the transformation resolves most of the level model's failure."
+
+
+reg["fitted_log"]=model_log.fittedvalues
+
+fig, axes=plt.subplots(1, 2, figsize=(13,5))
+
+sns.scatterplot(data=reg, x="fitted_log", y="resid_log", alpha=0.1, s=5, color="grey", ax=axes[0])
+sns.regplot(data=reg, x="fitted_log", y="resid_log", scatter=False, lowess=True,
+            line_kws={"color":"#009E73"}, ax=axes[0])
+axes[0].axhline(0, color="black", linewidth=1)
+axes[0].set_title("Residuals Against Fitted Values")
+axes[0].set_xlabel("Log Affordability Salary")
+axes[0].set_ylabel("Residual")
+
+stats.probplot(reg["resid_log"], dist="norm", plot=axes[1])
+axes[1].set_title("QQ plot")
+
+plt.tight_layout()
+plt.show()
+```
+
+The smoothed residual line does not lie perfectly flat even after the transformation. The departures that remain are structure a single global transformation cannot absorb, most plausibly interactions among the inputs. They are what motivates the step up in model complexity.
 
 ## Variance decomposition
 
-Affordability salary varies both across counties and within a county over time, and the
-two carry different implications. [TK: report the between and within split.] A county's
-task mix moves very little across the panel, which is what makes the associated
-affordability differences durable rather than transient.
+Affordability salary and the task groups vary both across counties and within a county over time. The two kinds of variation carry different implications. The two manual groups vary almost entirely between counties, at roughly 10 and 25 percent within on the corrected window. That is what makes the associated affordability differences durable rather than transient. Routine cognitive is the one group with genuine within county movement, near half its variance on the corrected window.
 
-<!-- FIGURE: fig-variance. Between and within variance split for affordability salary and
-     for each of the four task groups. A simple grouped bar chart is enough. This is the
-     figure that carries the persistence claim, which the conclusions lean on heavily, so
-     it should not stay as a number in prose. -->
-
-The Census occupation coding change between 2009 and 2010, described in @sec-data, inflates
-apparent within county variation for the routine cognitive group. Because this is a
-feature of how the source data were coded rather than a property of the counties, we
-repeat the main estimates on a panel restricted to 2010 onward.
-
-<!-- FIGURE: optional fig-coding-change. Routine cognitive group mean by year across the
-     full panel, with the 2009 to 2010 boundary marked. Makes the artifact visible rather
-     than asking the reader to take it on faith. Skip if the section is running long. -->
+The Census occupation coding change between 2009 and 2010, described in @sec-data, inflates apparent within county variation for the routine cognitive group. This is a feature of how the source data were coded rather than a property of the counties. We therefore repeat the main estimates on a panel restricted to 2010 onward, and additionally on pre pandemic (2010 to 2019) and post pandemic (2021 to 2023) windows. Coefficient stability across these windows is reported in @sec-results, along with the between versus within exhibits that carry the persistence claim.
 
 ## Machine learning models
 
-[TK: Chris to supply. Random forest and neural network specifications, train and test
-split, tuning procedure, and evaluation metric. Feature importance and partial dependence
-are the two outputs that connect back to the task groups.]
 
-## What these models can and cannot support
+## wrap up summary [tk]
 
-Every estimate reported here is associational. Counties are not assigned their mix of
-work, and nothing in this design isolates a causal channel. A county with more routine
-work also differs in industry structure, in the education of its workforce, and in its
-housing market, and any of those could carry part of what we observe. We report which task
-groups relate to affordability and how strongly, not what would follow if a county's mix
-of work changed.
 
 <!--
 TODO analysis
-
-What this section is for:
-1. Cover only the models most important to understanding the results. Sub analyses that
-   add detail without changing the conclusion belong in a supplement or get one line.
-2. Depth is a function of audience. A general reader needs less than a specialist.
+- add ML section
+- a wrap up summary
+Section rules from the in class template:
+1. Cover only the models most important to understanding the results.
+2. Depth is a function of audience.
 3. If a method's output does not appear in the results, it does not belong here.
 4. Equations must be explained and referenced before they appear, and units stated.
 5. Do not narrate dead ends or the chronology of what we tried.
-
 -->
