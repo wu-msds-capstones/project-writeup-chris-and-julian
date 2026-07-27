@@ -2,48 +2,43 @@
 
 ## Data collection
 
-Data for this analysis were fetched from eight datasets published by four U.S. federal agencies, retrieved via agency APIs and bulk file downloads and loaded into a PostgreSQL database. @tbl-sources reports each source, the number of records retrieved, and the variables it supplies.
+Data for this analysis come from five datasets published by three U.S. federal agencies. Each was retrieved through an agency API or bulk file download and loaded into a PostgreSQL database. @tbl-sources reports each source, record counts, and the variables it supplies.
 
-| Source | Rows retrieved | Variables supplied | Warehouse table |
+| Source | Records retrieved | Variables supplied | Warehouse table |
 |---|---|---|---|
-| Census SAIPE | 50,283 | median household income, poverty rate | county_baseline |
-| ACS 1 year estimates | 15,690 | population, occupation employment weights | county_baseline, county_task_exposure |
-| ACS PUMS | 12,539,733 | occupation employment composition | county_employment_composition |
-| BEA Regional Price Parities | 884 | regional price parities | cbsa_rpp |
-| BLS LAUS | 88,004 | unemployment rate | county_baseline |
-| BLS OEWS | 8,565,666 | [TK: confirm what OEWS supplies] | county_task_exposure |
-| Census CBSA delineation | 387 | county to metropolitan area crosswalk | cbsa |
-| O*NET task ratings | 161,559 | task importance by occupation | county_task_exposure |
+| Census SAIPE | 50,283 | median household income, poverty rate | `county_baseline` |
+| BEA Regional Price Parities | 884 | county price level relative to the national average | `cbsa_rpp` |
+| Census CBSA delineation | 387 | county to metropolitan area crosswalk | `cbsa` |
+| ACS 1 year estimates | 15,690 | population, occupational employment by category | `county_baseline`, `county_task_exposure` |
+| BLS LAUS | 88,004 | unemployment rate | `county_baseline` |
 
 : Federal data sources and variables supplied {#tbl-sources}
 
-Every dataset identifies observations by county FIPS code and year, which together serve as the join key across all eight sources. Regional Price Parities are the one exception. BEA publishes them at the metropolitan area level, so counties are linked to their metropolitan area through the Census CBSA delineation file before joining.
+The five sources arrive at two levels of observation: county by year, and metropolitan area. The pipeline transforms each to a common county by year grain, and county FIPS code and year together serve as the join key across the warehouse. Regional Price Parities require one extra step. BEA publishes them at the metropolitan area level, so counties are linked to their metropolitan area through the Census CBSA delineation file before joining.
 
-The study period spans 2008 to 2023, excluding 2020. ACS suspended its 1 year estimates that year following COVID related disruptions to data collection. Because those estimates supply the employment weights underlying the task group values, no occupation data exist for 2020. This yields 47,340 potential county year observations across 3,156 counties.
+The study period spans 2008 to 2023, excluding 2020. ACS suspended its 1 year estimates that year following COVID related disruptions to data collection. Because those estimates supply the occupational employment counts underlying the task group values, the task groups cannot be constructed for 2020. The 3,156 counties in the Census county reference file observed over fifteen years yield 47,340 potential county year observations.
 
 ## Measuring task structure
 
-Following the task framework introduced in @sec-background, occupations are classified into four task groups: routine cognitive, routine manual, non routine cognitive and non routine manual. O*NET task ratings measure the importance of each task within an occupation, while ACS 1 year occupational estimates provide the county employment weights used to aggregate occupation level values to the county level.
-
-For county $c$, year $t$ and group $g$, the employment weighted task total is the sum across occupations of each occupation's employment weight times the mean O*NET importance of that group's tasks within it, shown in @eq-weighted.
+Following the task framework introduced in @sec-background, each of the broad occupational categories published in ACS 1 year estimates is assigned to one of four task groups: routine cognitive, routine manual, non routine cognitive, and non routine manual. The Census categories carry no such labels, so the assignment follows the classification logic of @autor2013: clerical and sales work as routine cognitive, production and construction work as routine manual, managerial, professional and technical work as non routine cognitive, and service work as non routine manual. For each county and year, the task group totals are the employment sums across the categories assigned to each group, shown in @eq-weighted.
 
 $$
-T_{g,c,t} = \sum_{o} \left( \frac{E_{o,c,t}}{E_{c,t}} \times R_{g,o} \right)
+T_{g,c,t} = \sum_{o \in g} E_{o,c,t}
 $$ {#eq-weighted}
 
-Here $E_{o,c,t}/E_{c,t}$ is the fraction of county employment in occupation $o$ and $R_{g,o}$ is the mean importance rating of group $g$ tasks in that occupation. The four totals are then divided by their sum, as in @eq-group, so that each county year is described by four values on a zero to one scale that sum to one.
+Here $E_{o,c,t}$ is employment in occupational category $o$ in county $c$ during year $t$, and the sum runs over the categories assigned to group $g$. The four totals are then divided by their sum, as in @eq-group, so that each county year is described by four values on a zero to one scale that sum to one.
 
 $$
 G_{g,c,t} = \frac{T_{g,c,t}}{\sum_{g'} T_{g',c,t}}
 $$ {#eq-group}
 
-O*NET assigns different total amounts of rating importance to different occupations. A county concentrated in heavily rated occupations therefore records higher raw totals in @eq-weighted across all four groups at once. Normalizing by the sum removes this common scale and isolates the relative mix, which is the quantity of interest. The implications for estimation are reported in @sec-analysis.
+Normalizing by the four group total converts employment counts into a composition, so counties of very different sizes are described on a common scale and the quantity of interest is the relative mix of work rather than its volume. The implications for estimation are reported in @sec-analysis.
 
 Retaining four separate groups, rather than collapsing them into a single routine intensity index, preserves a distinction that a composite measure erases. Under one index, a county shifting away from clerical work and a county shifting away from assembly work look identical.
 
 ## Measuring affordability
 
-The outcome variable is affordability salary, defined in @eq-afford as county median household income divided by the local Regional Price Parity. BEA publishes parities as an index with the national average set to 100, so dividing by 100 converts the index into a price multiplier. Income comes from the Census SAIPE program.
+The outcome variable is affordability salary, defined in @eq-afford as county median household income, from the Census SAIPE program, divided by the local Regional Price Parity. BEA publishes parities as an index with the national average set to 100, so dividing by 100 converts the index into a price multiplier.
 
 $$
 A_{c,t} = \frac{\text{Median household income}_{c,t}}{\text{RPP}_{c,t} / 100}
@@ -53,19 +48,19 @@ A county with a median household income of \$60,000 and a price parity of 120 ha
 
 The adjustment is spatial rather than temporal. Regional Price Parities correct for price differences across places but not across years, so affordability salary is not deflated to a constant base year. National price movement over the study period is absorbed by the year indicators in the regression rather than by the variable itself.
 
-Counties are mapped to metropolitan areas using the Census CBSA delineation file, and counties outside any metropolitan area take their state parity instead. Roughly 45 percent of county year rows use a metropolitan parity and 55 percent use the state fallback. This is a substantive limitation, since a single state level price index is applied to counties whose actual price levels differ considerably, and it falls disproportionately on rural counties.
+Counties outside any metropolitan area have no published parity of their own and take their state parity instead. Within the analytical panel, 45.5 percent of county year rows use a metropolitan parity and 54.5 percent use the state fallback. This is a substantive limitation, since a single state level price index is applied to counties whose actual price levels differ, and a majority of panel rows carry it. The counties involved are above the 65,000 population threshold but predominantly outside metropolitan statistical areas, where BEA publishes no local parity.
 
 ## Control variables
 
-Three baseline county conditions enter the models as controls. Unemployment rate comes from BLS LAUS and poverty rate from the Census SAIPE program, both measured in percentage points. Total population comes from ACS 1 year estimates. Unemployment and poverty capture labor market slack and material hardship that would otherwise be attributed to task structure, while population accounts for the substantial scale differences across counties in the panel, which range from roughly 70,000 to several million residents.
+Three baseline county conditions enter the models as controls. Unemployment rate comes from BLS LAUS and poverty rate from the Census SAIPE program, both measured in percentage points. Total population comes from ACS 1 year estimates and enters the models in logs. Unemployment and poverty capture labor market slack and material hardship that would otherwise be attributed to task structure. Population accounts for scale differences across counties, which range from the ACS publication threshold of 65,000 to the roughly 10.2 million residents of Los Angeles County.
 
 ## Storage and organization
 
 Data are stored in PostgreSQL across two databases that serve different purposes.
 
-The first is a data lake of roughly 41 tables holding raw retrievals and intermediate results, deliberately left unnormalized. Its purpose is traceability. Any figure in this report can be traced back to the records it came from, and any processing step can be rerun without returning to an agency API.
+The first is a data lake of roughly 41 tables holding raw retrievals and intermediate results, deliberately left unnormalized. Its purpose is traceability. Any figure in this report can be traced back to the records it came from, and any processing step can be rerun without returning to an agency API, including retrievals for analysis branches later scoped out.
 
-The second is the analytical warehouse, which holds only cleaned data in third normal form. All cleaning occurs upstream, so the warehouse is effectively read only from the perspective of the analysis. @fig-erd shows its structure.
+The second is the analytical warehouse of eleven tables, whose analytical core is in third normal form. All cleaning occurs upstream, so the warehouse is effectively read only from the perspective of the analysis. @fig-erd shows the seven tables the analysis reads; a population staging table, a compatibility view, and an employment composition table retained from an earlier analysis branch are omitted.
 
 ```{mermaid}
 %%| label: fig-erd
@@ -106,14 +101,12 @@ erDiagram
         int year PK
         numeric routine_cognitive
         numeric routine_manual
-        numeric nonroutine_cognitive
-        numeric nonroutine_manual
-    }
-    county_employment_composition {
-        bigint county_fips PK,FK
-        int year PK
-        varchar occupation_code PK
-        numeric employment_weight
+        numeric non_routine_cognitive
+        numeric non_routine_manual
+        numeric routine_cognitive_share "generated"
+        numeric routine_manual_share "generated"
+        numeric non_routine_cognitive_share "generated"
+        numeric non_routine_manual_share "generated"
     }
     county_affordability {
         bigint county_fips PK,FK
@@ -123,25 +116,40 @@ erDiagram
     state ||--o{ county : contains
     county ||--o{ county_baseline : ""
     county ||--o{ county_task_exposure : ""
-    county ||--o{ county_employment_composition : ""
     county ||--o{ county_affordability : ""
     county ||--o{ county_cbsa_code : ""
     cbsa ||--o{ county_cbsa_code : ""
     cbsa ||--o{ cbsa_rpp : ""
 ```
 
-The schema centers on a `county` table keyed by FIPS code, with `state` as a reference table. Four fact tables join to `county` on FIPS code and year. `county_baseline` holds population, median household income, poverty rate and unemployment rate, `county_task_exposure` holds the four task group values, `county_employment_composition` holds the occupation employment weights those values are built from, and `county_affordability` holds the outcome variable.
+The schema centers on a `county` table keyed by FIPS code, with `state` as a reference table. Three fact tables join to `county` on FIPS code and year. `county_baseline` holds population, median household income, poverty rate and unemployment rate, `county_task_exposure` holds the four task group totals from @eq-weighted, and `county_affordability` holds the outcome variable. The normalized values from @eq-group are not computed in analysis code but stored as generated columns, which the database derives from the four totals on every write. The equation is enforced in the schema itself, so no analysis can read a stale or inconsistently normalized value.
 
-Price parities require a separate path. Because a county can belong to more than one metropolitan area, the county to CBSA relationship runs through the `county_cbsa_code` junction table, which connects to `cbsa` and from there to `cbsa_rpp`. Storing parities at the CBSA level reflects the level at which BEA measures them and avoids repeating a single value across every county in a metropolitan area.
+Price parities require a separate path. Metropolitan membership is kept out of the `county` table and in the `county_cbsa_code` junction table, so counties outside any metropolitan area carry no null CBSA fields, and the crosswalk stands alone as its own fact. From there `cbsa` connects to `cbsa_rpp`. Storing parities at the CBSA level reflects the level at which BEA measures them and avoids repeating a single value across every county in a metropolitan area.
 
 ## The analytical dataset
 
+The 47,340 potential county year observations described above are the set of records the county table supports, not the set the models estimate on. Two filters reduce it.
+
+Task group coverage is the binding constraint. The occupational employment counts that build the four task groups come from ACS 1 year estimates, which the Census Bureau publishes only for areas with populations above 65,000. Counties below that threshold have no occupational estimates in any year, so no task groups can be constructed for them. This removes 2,308 of the 3,156 counties outright and leaves 12,087 county year observations across 848 counties.
+
+Requiring non missing controls removes a further 104 observations. Every one of the 104 is missing an unemployment rate, giving BLS LAUS a coverage rate of 99.1 percent across the retained counties. Population, median household income and poverty rate are complete. The estimation sample is therefore 11,983 county year observations, and all models reported in @sec-analysis and @sec-results fit on these same rows.
+
+The population threshold shapes what the results can describe. The 848 retained counties hold the large majority of the United States population but a minority of its counties, and they are more metropolitan, more populous and more economically diverse than those dropped. Rural counties are underrepresented as a direct consequence. Findings should be read as applying to counties above 65,000 residents rather than to counties in general. @sec-conclusions returns to this limitation and to one approach for addressing it in future work.
 
 <!--
 TODO data
-- OEWS row in tbl-sources has a TK, confirm what OEWS actually supplies or drop the row
-- related, confirm whether ACS PUMS still feeds anything now that immigration is out
-- fig-funnel cell is empty, move the Graphviz source over from poster_diagrams.qmd
-- verify the 45 / 55 metro vs state RPP split still holds on the current panel
-- confirm 3,156 counties and 47,340 against the live county table one more time
+- decide with Chris: community_social_service is assigned to no task group (four_sum
+  441,661 vs total_employment 452,939 for Multnomah 2019, the ~0.983 shares source).
+  Document the exclusion (one sentence in task structure plus limitations note) or fix
+  the mapping and rerun everything. Fixing changes all task values and coefficients
+- spot check the RPP split join before trusting 45.5/54.5: Multnomah (41051) should
+  classify msa for all fifteen years
+- recompute panel population share with SAIPE denominator on thomas; the 97.3/96.4
+  result used county_baseline population, which is ACS sourced and null for sub 65k
+  counties, inflating the share
+- confirm which script writes county_employment_composition (suspected: ACS category
+  counts, not PUMS)
+- grep all section files for @eq-occscore (removed), "six datasets", "eight datasets",
+  and O*NET claims; shrink O*NET to taxonomy reference in background when written
+- with Chris: his models must fit on the same 11,983 rows, currently his frame differs
 -->
