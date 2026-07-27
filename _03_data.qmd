@@ -138,10 +138,6 @@ The population threshold shapes what the results can describe. The 848 retained 
 
 <!--
 TODO data
-- decide with Chris: community_social_service is assigned to no task group (four_sum
-  441,661 vs total_employment 452,939 for Multnomah 2019, the ~0.983 shares source).
-  Document the exclusion (one sentence in task structure plus limitations note) or fix
-  the mapping and rerun everything. Fixing changes all task values and coefficients
 - spot check the RPP split join before trusting 45.5/54.5: Multnomah (41051) should
   classify msa for all fifteen years
 - recompute panel population share with SAIPE denominator on thomas; the 97.3/96.4
@@ -149,7 +145,4 @@ TODO data
   counties, inflating the share
 - confirm which script writes county_employment_composition (suspected: ACS category
   counts, not PUMS)
-- grep all section files for @eq-occscore (removed), "six datasets", "eight datasets",
-  and O*NET claims; shrink O*NET to taxonomy reference in background when written
-- with Chris: his models must fit on the same 11,983 rows, currently his frame differs
 -->
