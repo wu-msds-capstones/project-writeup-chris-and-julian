@@ -1,52 +1,18 @@
 # Introduction {#sec-intro}
 
-When housing, food, and utility costs outpace wages, families look for an explanation.
-Automation is one of the explanations most often reached for. Gallup finds that the share
-of American workers who worry technology will make their job obsolete rose sharply between
-2021 and 2023, with the increase concentrated among college educated workers
-[@Gallup2023], and Pew reports that Americans expect automation to displace other people's
-jobs more readily than their own [@Pew2017]. That worry is widespread, but it is a
-perception. Whether the underlying exposure tracks anything residents actually experience
-is a separate question, and it is the one we ask here.
+Concern about automation is widespread among American workers. Gallup reports that worry about technology making jobs obsolete rose sharply between 2021 and 2023 [@Gallup2023]. The Pew Research Center finds that Americans anticipate automation will displace other workers' jobs while leaving their own largely unaffected [@Pew2017]. These surveys record what workers believe, not what local labor markets look like. Whether the concentration of automatable work in a county is associated with the economic conditions its residents face has not been established empirically. This paper investigates that association.
 
-Existing macroeconomic indicators are not well positioned to answer it. Equity market
-performance, national unemployment, and aggregate wage growth are built to describe the
-economy in total. They average over the local conditions that determine whether a paycheck
-covers rent, and they report earnings in nominal terms, so a high wage expensive metro and
-a low wage inexpensive county can appear far apart when the purchasing power behind those
-wages is similar. The gap between what headline indicators measure and what families
-experience locally is what motivates a county level analysis.
+Prior research established the framework we use. @autor2003skill demonstrated that computers substitute for routine work and complement non routine work, providing a way to identify which occupations are exposed to automation. @AutorDorn2013 applied that framework to local labor markets and documented polarization in routine intensive areas, where employment grew at the high and low ends of the wage distribution while middle wage employment declined. @AcemogluAutor2011 generalized the approach into a model of how technology reallocates work across skill groups, and it remains the standard framework for empirical work on automation and labor markets.
 
-We ask how much the automatability of local jobs affects whether a county is affordable to
-live in, and whether that relationship holds up once poverty and unemployment are
-accounted for. To answer it we
-build a county by year panel covering 2008 to 2023, excluding 2020, from eight datasets
-published by four federal agencies. Each county year is summarized by four task groups, routine cognitive,
-routine manual, non routine cognitive, and non routine manual, following the task
-framework of @autor2003skill and the occupation taxonomy of @AutorDorn2013. The outcome is
-an affordability salary, county median household income divided by the local price level.
-We estimate a panel regression with year indicators and county clustered standard errors
-to recover an interpretable effect size, use a RESET test to check whether a linear
-specification is adequate, and then turn to random forest and neural network models to
-capture the structure the linear model leaves behind. Every result we report is
-associational.
+Two features of that work leave our question open. First, outcomes are measured in unadjusted wages and employment shares rather than in local purchasing power. A high wage metropolitan area and a low wage rural county can appear far apart in dollar terms even when the goods those wages buy are comparable. Second, the unit of analysis is the commuting zone, which averages over variation across the counties it contains. Neither feature is a flaw in the earlier studies, which were designed for different questions, but both limit what they can say about county level affordability.
+
+Widely reported economic indicators do not close that gap either. Equity market performance, national unemployment, and aggregate wage growth describe the economy in total. Each averages over the local conditions that determine whether household income covers household costs in a given place. A county level analysis addresses that limitation directly.
+
+This paper asks how the automatability of local jobs relates to county affordability, and whether that relationship holds once poverty and unemployment are accounted for. We build a county by year panel covering 2008 to 2023, excluding 2020, drawn from datasets published by federal agencies. Each county year is summarized by four task groups: routine cognitive, routine manual, non routine cognitive, and non routine manual. These follow the task framework of @autor2003skill and the occupation taxonomy of @AutorDorn2013. The outcome is an affordability salary in dollars, defined as county median household income divided by the local price level from the BEA Regional Price Parities.
+
+We first estimate a panel regression with year indicators and county clustered standard errors, which recovers an interpretable estimate of the association. We then check that specification with residual plots, QQ plots, and variance inflation factors. Finally we fit random forest and neural network models to capture structure the linear model leaves behind. Model complexity increases only where diagnostics indicate the simpler specification is inadequate.
 
 <!--
 TODO intro
-
-Tips for intro section based on in class template:
-
-1. First paragraph or two establish scope and importance. The reader should
-   finish knowing what the knowledge gap is and why closing it matters.
-2. What else has been tried. What prior work has accomplished. Not what is wrong with
-   it. No need to be negative.
-3. Nevertheless. The gap prior work leaves. Ours is two part: outcomes measured in
-   nominal terms rather than what income buys, and geography at commuting zone rather
-   than county level.
-4. In this paper we will. Tell the reader what is coming before doing it. Name the data
-   and the outcome, describe the methods in brief with a one sentence justification
-   each. Signposting, not depth.
-
-Still to do:
-
+- unify citation keys with references.bib and the data section.
 -->

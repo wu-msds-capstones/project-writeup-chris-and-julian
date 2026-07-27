@@ -16,4 +16,11 @@ format:
     mermaid:
       theme: neutral
 
+execute:
+  echo: false
+  warning: false
+  freeze: auto
+
+jupyter: python3
+
 number-sections: true
