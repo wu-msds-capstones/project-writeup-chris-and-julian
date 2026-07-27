@@ -1,1 +1,1 @@
-# Background
+# Background and Related Work {#sec-background}
