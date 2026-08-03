@@ -89,7 +89,7 @@ layout=[["afford","afford"],
         ["rc","rm"],
         ["nrc","nrm"]]
 
-fig, axes=plt.subplot_mosaic(layout, figsize=(9,8))
+fig, axes=plt.subplots(figsize=(6.5, 3))
 
 sns.histplot(data=df, x="affordability_salary", bins=50, ax=axes["afford"])
 axes["afford"].set_title("Affordability Salary ($)")
