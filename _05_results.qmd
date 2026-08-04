@@ -2,98 +2,56 @@
 
 ## Where affordability is strained
 
-<!-- FIGURE: fig-affordmap. EXISTS, poster Figure 4. Affordability salary by county,
-     averaged across the study period. Choropleth, darker means income stretches further.
-     Poster version was built on the old full frame, needs rebuilding on the 848 county
-     panel. Purpose is orientation: the outcome has geographic structure before any
-     modeling. -->
+Affordability salary has clear geographic structure before any modeling. The counties where income stretches furthest are not the counties where income is highest, which is the gap the price adjustment is built to close.
 
-<!-- FIGURE: fig-gapmap. EXISTS, poster Figure 1. Median household income minus
-     affordability salary, red where income overstates purchasing power and blue where it
-     understates. Justifies the price adjustment in one image. Poster caption says 3,114
-     counties, so it predates the current panel and needs rebuilding. Decide whether both
-     maps are needed or whether this one alone does the work. -->
+<!-- fig-affordmap. EXISTS poster Fig 4. Rebuild on 848 panel. -->
+
+<!-- fig-gapmap. EXISTS poster Fig 1. Rebuild, poster caption says 3,114 counties.
+     Cut one of the two maps? -->
 
 ## Task groups and affordability
 
-The panel regression returns a negative association between routine intensive work and
-affordability salary that holds after controls. A one percentage point shift toward non
-routine manual work is associated with roughly \$1,041 less in affordability salary
-[TK: confirm sign, magnitude, and standard error against the current model output, and
-state which task group carries the largest coefficient].
+The panel regression returns a negative association between non-routine manual work and affordability salary that holds after controls. A one percentage point shift toward non-routine manual work, and away from the non-routine cognitive reference, is associated with roughly \$1,041 less in affordability salary. Routine cognitive and routine manual follow at \$858 and \$701. @fig-coefplot shows each coefficient with its confidence interval.
 
-@fig-coefplot shows each task group's coefficient with its confidence interval, non
-routine cognitive as the reference.
+<!-- fig-coefplot. NEW. Coefficient plot, task group on y, association with affordability
+     salary on x, non-routine cognitive reference. Priority. -->
 
-<!-- FIGURE: fig-coefplot. NEW, poster has it as an In Progress placeholder only.
-     Coefficient plot, task group on the y axis, association with affordability salary on
-     the x axis, points with error bars, non routine cognitive as the reference. The
-     figure that turns the whole project into one number, so it carries more weight than
-     any other here. -->
+The associations survive the addition of poverty rate and the other baseline controls, so the task groups are not standing in for poverty. @fig-coefcompare puts the coefficients before and after controls side by side.
 
-The associations survive the addition of poverty rate and the other baseline controls, so
-the task groups are not standing in for poverty. @fig-coefcompare puts the coefficients
-before and after controls side by side.
+<!-- fig-coefcompare. NEW. Paired forest plot, each task group before and after adding
+     poverty and baseline controls. -->
 
-<!-- FIGURE: fig-coefcompare. NEW, poster has it as an In Progress placeholder only.
-     Paired coefficient plot or forest plot, each task group before and after adding
-     poverty and the baseline controls. Answers the objection that the task groups are
-     poverty in disguise, which the importance chart invites. -->
+## Beyond a straight line
 
-## Nonlinearity
+The linear specification does not fit equally well across the range. Residuals curve away from zero at both ends and fan outward, and the model underpredicts the least and most affordable counties by roughly \$8,000 to \$9,000 at each tail. @fig-binned shows the same structure directly: binned means of affordability salary across the range of routine cognitive work rise and then fall rather than tracking a straight line.
 
-The RESET test rejects the linear specification [TK: statistic and p value], and
-@fig-binned shows why. Binned means of affordability salary across the range of routine
-cognitive work rise and then fall rather than tracking a straight line.
+<!-- fig-binned. EXISTS poster Fig 5. Rebuild. Actual and RF predicted on same axes.
+     Residual plot also claimed by _04, pick one home. -->
 
-<!-- FIGURE: fig-binned. EXISTS, poster Figure 5. Binned means of affordability salary
-     across the range of routine cognitive, actual and random forest predicted on the same
-     axes. Should port over close to as is. The residual plot that pairs with it is
-     claimed by _04 as well, resolve before building either. -->
+@fig-modelcomp compares held out performance across specifications. [TK: report test R² for each model. The figures in the poster draft, 0.610 OLS, 0.610 ridge, 0.840 random forest, 0.739 neural net, do not match the current run in @sec-analysis. Resolve which set is current before writing this paragraph.]
 
-@fig-modelcomp compares held out performance across specifications. The random forest
-reaches a test R² of 0.840 against 0.610 for ordinary least squares, and the neural
-network 0.739 [TK: confirm all four figures against the current run]. The gap is evidence
-that the relationship has curvature the linear model cannot represent, which is the same
-conclusion the RESET test reaches by a different route.
+<!-- fig-modelcomp. EXISTS poster Fig 3. Rebuild. Merge with fig-binned into one
+     progression figure? -->
 
-<!-- FIGURE: fig-modelcomp. EXISTS, poster Figure 3. Bar chart of held out test R squared
-     for OLS, ridge, random forest, neural net, showing 0.610, 0.610, 0.840, 0.739.
-     Poster draft 4 floats merging this with the binned means into one progression figure,
-     which would make it NEW. Decide before building. -->
+## What the models weigh
 
-## What matters most
+Task groups carry real explanatory weight alongside poverty rate rather than substituting for it, and the ordering is consistent across the regression and the random forest. Poverty rate is the single largest contributor in the forest, which is why the coefficient comparison above matters: it shows the task group associations persist once poverty is in the model.
 
-Poverty rate is the strongest single feature in the random forest, by a wide margin
-(@fig-importance). Task groups follow, with routine cognitive ranked highest among them.
-This ordering is consistent with the regression: poverty carries most of the explanatory
-weight, and the task groups add to it rather than substituting for it.
+<!-- fig-importance. EXISTS poster Fig 6. Rebuild. Retitle to feature importance.
+     Caption: "most associated with", not "strongest predictor". -->
 
-<!-- FIGURE: fig-importance. EXISTS, poster Figure 6. Feature importance, horizontal
-     bars, mean drop in test R squared when shuffled, ordered poverty rate, routine
-     cognitive, non routine manual, unemployment, routine manual. Note the poster titles
-     it "permutation importance", change to feature importance when porting. -->
-
-<!-- FIGURE: fig-pdp. NEW, poster has it as an In Progress placeholder only. Partial
-     dependence for the task groups. Chris to supply. Also referenced from _04, pick one
-     home. -->
+<!-- fig-pdp. NEW. Partial dependence for task groups. Chris. Also referenced in _04,
+     pick one home. -->
 
 ## Stability over time
 
-A county's task mix moves very little across the fifteen year panel [TK: quantify]. This
-matters for interpretation. Because the mix is close to a fixed characteristic of place,
-the affordability differences associated with it do not fade, and they are not something
-residents can be expected to move out from under.
+A county's task composition moves very little across the fifteen year panel. Rank correlations between the first and last observed years run from 0.451 to 0.865 across the four groups, so counties hold their relative position. This matters for interpretation. Because composition is close to a fixed characteristic of place, the affordability differences associated with it do not fade, and they are not something residents can be expected to move out from under.
 
-<!-- FIGURE: fig-stability. NEW, poster has it as an In Progress placeholder only.
-     Stacked area chart, year on the x axis, share of total task weight on the y axis,
-     four bands. Shows the mix holds steady across the panel. Carries the persistence
-     claim the conclusions lean on, so it should not stay as a sentence. -->
+<!-- fig-stability. NEW. Stacked area, year on x, task group share on y, four bands. -->
 
 ## Robustness
 
-Restricting the panel to 2010 onward, which removes the occupation coding change described
-in @sec-data, leaves the main associations intact [TK: report the restricted estimates].
+Restricting the panel to 2010 onward, which removes the occupation coding change described in @sec-data, leaves the main associations intact. Splitting further into pre pandemic and post pandemic windows gives the same picture: non-routine manual is stable within 2.6 percent across eras, routine manual within 6.6 percent, routine cognitive within 12.5 percent, and the ordering of the three is identical in every window.
 
 <!--
 TODO results
@@ -114,21 +72,12 @@ What this section is for:
 
 Still to do:
 
-- every number here is unconfirmed, check all against the current model run
-- the 1,041 figure, its sign, standard error, and which group carries the largest
-  coefficient
-- test R squared for all four models
-- quantify how little the task mix moves
-- restricted 2010 onward estimates, and decide whether they live here or in _04
-- ten figures are referenced. Five exist in some form on the poster (fig-affordmap,
-  fig-gapmap, fig-binned, fig-modelcomp, fig-importance) and five are new
-  (fig-coefplot, fig-coefcompare, fig-pdp, fig-stability, and the residual plot). Under
-  rule 3 ten is too many. Storyboard and cut, most likely candidates are one of the two
-  choropleths and merging the binned means with the model comparison
-- the poster figures were built on the old full frame, all need rebuilding on the 848
-  county panel before the numbers in the text can be trusted
-- resolve the two figures claimed by both this section and _04, the residual plot and
-  feature importance
-- captions are not written. Under rule 2 they need to be self contained, which means
-  stating units and what the axes are, not just naming the figure
+- model comparison R squared: _04 reports 0.766 / 0.871 / 0.913 / RF 0.876, the poster
+  reports 0.610 / 0.610 / 0.840 / 0.739. One set is stale, resolve before writing
+- nine figures referenced, too many under rule 3. Cut candidates: one of the two
+  choropleths, and merging fig-binned with fig-modelcomp
+- poster figures were built on the old full frame, rebuild on the 848 county panel
+- resolve figures claimed by both this section and _04: residual plot, fig-importance,
+  fig-pdp
+- captions not written. Under rule 2 they need units and axes stated, not just a name
 -->
