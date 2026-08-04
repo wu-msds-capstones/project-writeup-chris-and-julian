@@ -674,9 +674,9 @@ predicted values.
 
 ```{python}
 #| include: false
-# perm_imp = permutation_importance(
-#     best_rf, X_test, y_test, n_repeats=20, random_state=42, n_jobs=1
-# )
+perm_imp = permutation_importance(
+    best_rf, X_test, y_test, n_repeats=20, random_state=42, n_jobs=1
+)
 ```
 
 ##### Ablation test
