@@ -48,7 +48,6 @@ Affordability salary has clear geographic structure before any modeling. The cou
 
 ## Task groups and affordability
 
-<<<<<<< HEAD
 ```{python}
 #| include: false
 
@@ -94,16 +93,12 @@ affordability salary that holds after controls. A one percentage point shift tow
 `{python} largest_group` work is associated with roughly
 \$`{python} f"{largest_group_dollar:,.0f}"` (± \$`{python} f"{largest_group_se:,.0f}"`)
 less in affordability salary, evaluated at the panel mean.
-=======
-The panel regression returns a negative association between non-routine manual work and affordability salary that holds after controls. A one percentage point shift toward non-routine manual work, and away from the non-routine cognitive reference, is associated with roughly \$1,041 less in affordability salary. Routine cognitive and routine manual follow at \$858 and \$701. @fig-coefplot shows each coefficient with its confidence interval.
->>>>>>> 091c1d4 (Doc: rewrite results section)
 
 <!-- fig-coefplot. NEW. Coefficient plot, task group on y, association with affordability
      salary on x, non-routine cognitive reference. Priority. -->
 
 The associations survive the addition of poverty rate and the other baseline controls, so the task groups are not standing in for poverty. @fig-coefcompare puts the coefficients before and after controls side by side.
 
-<<<<<<< HEAD
 ```{python}
 #| label: fig-coefplot
 #| fig-cap: "Task group association with affordability salary (log target), non-routine cognitive as reference. Points show coefficients; bars show 95% confidence intervals from county-clustered standard errors."
@@ -124,14 +119,9 @@ plt.show()
 The associations survive the addition of poverty rate and the other baseline controls, so
 the task groups are not standing in for poverty. @fig-coefcompare puts the coefficients
 before and after controls side by side.
-=======
-<!-- fig-coefcompare. NEW. Paired forest plot, each task group before and after adding
-     poverty and baseline controls. -->
->>>>>>> 091c1d4 (Doc: rewrite results section)
 
 ## Beyond a straight line
 
-<<<<<<< HEAD
 ```{python}
 #| label: fig-coefcompare
 #| fig-cap: "Task group coefficients before (baseline) and after (full model) adding poverty and demographic controls. Stable coefficients indicate task groups are not standing in for poverty."
@@ -156,16 +146,12 @@ plt.show()
 ```
 
 ## Nonlinearity
-=======
-The linear specification does not fit equally well across the range. Residuals curve away from zero at both ends and fan outward, and the model underpredicts the least and most affordable counties by roughly \$8,000 to \$9,000 at each tail. @fig-binned shows the same structure directly: binned means of affordability salary across the range of routine cognitive work rise and then fall rather than tracking a straight line.
->>>>>>> 091c1d4 (Doc: rewrite results section)
 
 <!-- fig-binned. EXISTS poster Fig 5. Rebuild. Actual and RF predicted on same axes.
      Residual plot also claimed by _04, pick one home. -->
 
 @fig-modelcomp compares held out performance across specifications. [TK: report test R² for each model. The figures in the poster draft, 0.610 OLS, 0.610 ridge, 0.840 random forest, 0.739 neural net, do not match the current run in @sec-analysis. Resolve which set is current before writing this paragraph.]
 
-<<<<<<< HEAD
 ```{python}
 #| label: fig-binned
 #| fig-cap: "Binned means of affordability salary across routine cognitive employment share, actual vs. Random Forest predicted. The non-monotonic pattern is what a linear model cannot represent."
@@ -206,14 +192,9 @@ for the log-target linear model, and `{python} f"{results.loc[results['model']==
 for the neural network. The gap is evidence
 that the relationship has curvature the linear model cannot represent, which is the same
 conclusion the RESET test reaches by a different route.
-=======
-<!-- fig-modelcomp. EXISTS poster Fig 3. Rebuild. Merge with fig-binned into one
-     progression figure? -->
->>>>>>> 091c1d4 (Doc: rewrite results section)
 
 ## What the models weigh
 
-<<<<<<< HEAD
 ```{python}
 #| label: fig-modelcomp
 #| fig-cap: "Held-out test R² across three model specifications. Random Forest and the log-target linear model perform comparably; both outperform the neural net."
@@ -254,17 +235,17 @@ weight, and the task groups add to it rather than substituting for it.
 #| label: fig-importance
 #| fig-cap: "Random Forest permutation importance: mean drop in test R² when each feature (or feature group) is shuffled. Poverty rate dominates; task-mix shares follow."
 
-# perm_series = pd.Series(perm_imp.importances_mean, index=feature_cols_reg)[core_features].rename(label_map)
-# perm_series["Year (grouped)"] = year_drop
-# perm_series["State (grouped)"] = state_drop
-# perm_series = perm_series.sort_values()
+perm_series = pd.Series(perm_imp.importances_mean, index=feature_cols_reg)[core_features].rename(label_map)
+perm_series["Year (grouped)"] = year_drop
+perm_series["State (grouped)"] = state_drop
+perm_series = perm_series.sort_values()
 
-# plt.figure(figsize=(5.7, 5))
-# plt.barh(perm_series.index, perm_series.values, color="#4C72B0")
-# plt.xlabel("Importance to prediction accuracy")
-# plt.suptitle("Random Forest permutation importance", fontsize=20, y=0.96)
-# plt.subplots_adjust(top=0.88, bottom=0.18)
-# plt.show()
+plt.figure(figsize=(5.7, 5))
+plt.barh(perm_series.index, perm_series.values, color="#4C72B0")
+plt.xlabel("Importance to prediction accuracy")
+plt.suptitle("Random Forest permutation importance", fontsize=20, y=0.96)
+plt.subplots_adjust(top=0.88, bottom=0.18)
+plt.show()
 ```
 
 As shown in @fig-importance, permutation importance for
@@ -276,15 +257,6 @@ largest number here, which is consistent with every model's findings so far.
 <!-- FIGURE: fig-pdp. NEW, poster has it as an In Progress placeholder only. Partial
      dependence for the task groups. Chris to supply. Also referenced from _04, pick one
      home. -->
-=======
-Task groups carry real explanatory weight alongside poverty rate rather than substituting for it, and the ordering is consistent across the regression and the random forest. Poverty rate is the single largest contributor in the forest, which is why the coefficient comparison above matters: it shows the task group associations persist once poverty is in the model.
-
-<!-- fig-importance. EXISTS poster Fig 6. Rebuild. Retitle to feature importance.
-     Caption: "most associated with", not "strongest predictor". -->
-
-<!-- fig-pdp. NEW. Partial dependence for task groups. Chris. Also referenced in _04,
-     pick one home. -->
->>>>>>> 091c1d4 (Doc: rewrite results section)
 
 ```{python}
 #| label: fig-pdp
@@ -345,7 +317,6 @@ Complete:
 
 Still to do:
 
-<<<<<<< HEAD
 - remaining numbers in prose (RESET test statistic and p value) are still unconfirmed,
   check against the current model run
 - quantify how little the task mix moves
@@ -357,14 +328,4 @@ Still to do:
   choropleths and merging the binned means with the model comparison
 - the poster figures were built on the old full frame, all need rebuilding on the 848
   county panel before the numbers in the text can be trusted
-=======
-- model comparison R squared: _04 reports 0.766 / 0.871 / 0.913 / RF 0.876, the poster
-  reports 0.610 / 0.610 / 0.840 / 0.739. One set is stale, resolve before writing
-- nine figures referenced, too many under rule 3. Cut candidates: one of the two
-  choropleths, and merging fig-binned with fig-modelcomp
-- poster figures were built on the old full frame, rebuild on the 848 county panel
-- resolve figures claimed by both this section and _04: residual plot, fig-importance,
-  fig-pdp
-- captions not written. Under rule 2 they need units and axes stated, not just a name
->>>>>>> 091c1d4 (Doc: rewrite results section)
 -->
