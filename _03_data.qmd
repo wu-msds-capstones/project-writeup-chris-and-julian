@@ -16,17 +16,15 @@ Data for this analysis come from five datasets published by three U.S. federal a
 
 The five sources arrive at two levels of observation: county by year, and metropolitan area. The pipeline transforms each to a common county by year grain, and county FIPS code and year together serve as the join key across the warehouse. Regional Price Parities require one extra step. BEA publishes them at the metropolitan area level, so counties are linked to their metropolitan area through the Census CBSA delineation file before joining.
 
-The study period spans 2008 to 2023, excluding 2020. ACS suspended its 1 year estimates that year following COVID related disruptions to data collection. Because those estimates supply the occupational employment counts underlying the task group values, the task groups cannot be constructed for 2020. SAIPE publishes estimates for approximately 3,143 counties per year, giving 47,140 county year observations across the fifteen study years.[^universe]
-
-[^universe]: Two jurisdictions present in SAIPE for all fifteen years, the District of Columbia (FIPS 11001) and Kalawao County, Hawaii (FIPS 15005), are absent from the county reference file and are therefore excluded from the panel. The District of Columbia exceeds the population threshold described below and would otherwise have been retained. Connecticut requires a related note: the state replaced its eight counties with nine planning regions beginning in 2022, and only the legacy counties were ingested, so Connecticut counties exit the panel after 2021 rather than continuing under successor codes.
+The study period spans 2008 to 2023, excluding 2020. ACS suspended its 1 year estimates that year following COVID related disruptions to data collection. Because those estimates supply the occupational employment counts underlying the task group values, the task groups cannot be constructed for 2020. The 3,156 counties in the Census county reference file observed over fifteen years yield 47,340 potential county year observations.
 
 ## Measuring task structure
 
-Following the task framework introduced in @sec-background, each of the broad occupational categories published in ACS 1 year estimates is assigned to one of four task groups: routine cognitive, routine manual, non-routine cognitive, and non-routine manual. The Census categories carry no such labels, so the assignment follows the classification logic of @AutorDorn2013: clerical and sales work as routine cognitive, production and construction work as routine manual, managerial, professional and technical work as non-routine cognitive, and service work as non-routine manual. For each county and year, the task group totals are the employment sums across the categories assigned to each group, shown in @eq-totals.
+Following the task framework introduced in @sec-background, each of the broad occupational categories published in ACS 1 year estimates is assigned to one of four task groups: routine cognitive, routine manual, non routine cognitive, and non routine manual. The Census categories carry no such labels, so the assignment follows the classification logic of @AutorDorn2013: clerical and sales work as routine cognitive, production and construction work as routine manual, managerial, professional and technical work as non routine cognitive, and service work as non routine manual. For each county and year, the task group totals are the employment sums across the categories assigned to each group, shown in @eq-weighted.
 
 $$
 T_{g,c,t} = \sum_{o \in g} E_{o,c,t}
-$$ {#eq-totals}
+$$ {#eq-weighted}
 
 Here $E_{o,c,t}$ is employment in occupational category $o$ in county $c$ during year $t$, and the sum runs over the categories assigned to group $g$. The four totals are then divided by their sum, as in @eq-group, so that each county year is described by four values on a zero to one scale that sum to one.
 
@@ -62,7 +60,7 @@ Data are stored in PostgreSQL across two databases that serve different purposes
 
 The first is a data lake of roughly 41 tables holding raw retrievals and intermediate results, deliberately left unnormalized. Its purpose is traceability. Any figure in this report can be traced back to the records it came from, and any processing step can be rerun without returning to an agency API, including retrievals for analysis branches later scoped out.
 
-The second is the analytical warehouse of eleven tables, whose analytical core is in third normal form. All cleaning occurs upstream, so the warehouse is effectively read only from the perspective of the analysis. @fig-erd shows the eight tables the analysis reads; a population staging table, a compatibility view, and an employment composition table retained from an earlier analysis branch are omitted.
+The second is the analytical warehouse of eleven tables, whose analytical core is in third normal form. All cleaning occurs upstream, so the warehouse is effectively read only from the perspective of the analysis. @fig-erd shows the seven tables the analysis reads; a population staging table, a compatibility view, and an employment composition table retained from an earlier analysis branch are omitted.
 
 ```{mermaid}
 %%| label: fig-erd
@@ -124,15 +122,15 @@ erDiagram
     cbsa ||--o{ cbsa_rpp : ""
 ```
 
-The schema centers on a `county` table keyed by FIPS code, with `state` as a reference table. Three fact tables join to `county` on FIPS code and year. `county_baseline` holds population, median household income, poverty rate and unemployment rate, `county_task_exposure` holds the four task group totals from @eq-totals, and `county_affordability` holds the outcome variable. The normalized values from @eq-group are not computed in analysis code but stored as generated columns, which the database derives from the four totals on every write. The equation is enforced in the schema itself, so no analysis can read a stale or inconsistently normalized value.
+The schema centers on a `county` table keyed by FIPS code, with `state` as a reference table. Three fact tables join to `county` on FIPS code and year. `county_baseline` holds population, median household income, poverty rate and unemployment rate, `county_task_exposure` holds the four task group totals from @eq-weighted, and `county_affordability` holds the outcome variable. The normalized values from @eq-group are not computed in analysis code but stored as generated columns, which the database derives from the four totals on every write. The equation is enforced in the schema itself, so no analysis can read a stale or inconsistently normalized value.
 
 Price parities require a separate path. Metropolitan membership is kept out of the `county` table and in the `county_cbsa_code` junction table, so counties outside any metropolitan area carry no null CBSA fields, and the crosswalk stands alone as its own fact. From there `cbsa` connects to `cbsa_rpp`. Storing parities at the CBSA level reflects the level at which BEA measures them and avoids repeating a single value across every county in a metropolitan area.
 
 ## The analytical dataset
 
-The 47,140 county year observations described above are the set of records the source data support, not the set the models estimate on. Two filters reduce it.
+The 47,340 potential county year observations described above are the set of records the county table supports, not the set the models estimate on. Two filters reduce it.
 
-Task group coverage is the binding constraint. The occupational employment counts that build the four task groups come from ACS 1 year estimates, which the Census Bureau publishes only for areas with populations above 65,000. Counties below that threshold have no occupational estimates in any year, so no task groups can be constructed for them. This leaves 12,087 county year observations across 848 counties.
+Task group coverage is the binding constraint. The occupational employment counts that build the four task groups come from ACS 1 year estimates, which the Census Bureau publishes only for areas with populations above 65,000. Counties below that threshold have no occupational estimates in any year, so no task groups can be constructed for them. This removes 2,308 of the 3,156 counties outright and leaves 12,087 county year observations across 848 counties.
 
 Requiring non missing controls removes a further 104 observations. Every one of the 104 is missing an unemployment rate, giving BLS LAUS a coverage rate of 99.1 percent across the retained counties. Population, median household income and poverty rate are complete. The estimation sample is therefore 11,983 county year observations, and all models reported in @sec-analysis and @sec-results fit on these same rows.
 
@@ -147,9 +145,4 @@ TODO data
   counties, inflating the share
 - confirm which script writes county_employment_composition (suspected: ACS category
   counts, not PUMS)
-- resolve O*NET and OEWS: neither appears in tbl-sources, but O*NET maps to
-  county_task_exposure in the warehouse. Either they contribute nothing and the poster
-  source table needs correcting to match this section, or they contribute something this
-  section is silent about
-- sweep non-routine hyphenation across all seven section files for consistency
 -->
