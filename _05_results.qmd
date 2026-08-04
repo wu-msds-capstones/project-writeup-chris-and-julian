@@ -254,17 +254,17 @@ weight, and the task groups add to it rather than substituting for it.
 #| label: fig-importance
 #| fig-cap: "Random Forest permutation importance: mean drop in test R² when each feature (or feature group) is shuffled. Poverty rate dominates; task-mix shares follow."
 
-perm_series = pd.Series(perm_imp.importances_mean, index=feature_cols_reg)[core_features].rename(label_map)
-perm_series["Year (grouped)"] = year_drop
-perm_series["State (grouped)"] = state_drop
-perm_series = perm_series.sort_values()
+# perm_series = pd.Series(perm_imp.importances_mean, index=feature_cols_reg)[core_features].rename(label_map)
+# perm_series["Year (grouped)"] = year_drop
+# perm_series["State (grouped)"] = state_drop
+# perm_series = perm_series.sort_values()
 
-plt.figure(figsize=(5.7, 5))
-plt.barh(perm_series.index, perm_series.values, color="#4C72B0")
-plt.xlabel("Importance to prediction accuracy")
-plt.suptitle("Random Forest permutation importance", fontsize=20, y=0.96)
-plt.subplots_adjust(top=0.88, bottom=0.18)
-plt.show()
+# plt.figure(figsize=(5.7, 5))
+# plt.barh(perm_series.index, perm_series.values, color="#4C72B0")
+# plt.xlabel("Importance to prediction accuracy")
+# plt.suptitle("Random Forest permutation importance", fontsize=20, y=0.96)
+# plt.subplots_adjust(top=0.88, bottom=0.18)
+# plt.show()
 ```
 
 As shown in @fig-importance, permutation importance for
@@ -284,11 +284,14 @@ largest number here, which is consistent with every model's findings so far.
 from sklearn.inspection import PartialDependenceDisplay
 
 fig, ax = plt.subplots(figsize=(9, 4))
-PartialDependenceDisplay.from_estimator(
+display = PartialDependenceDisplay.from_estimator(
     best_rf, X_test, features=exposure_cols_model,
-    feature_names={c: label_map.get(c, c) for c in exposure_cols_model},
     ax=ax,
 )
+
+for axis, col in zip(display.axes_.ravel(), exposure_cols_model):
+    axis.set_xlabel(label_map.get(col, col))
+    
 plt.tight_layout()
 plt.show()
 ```
