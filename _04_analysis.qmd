@@ -10,6 +10,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
 from sqlalchemy import create_engine
+from dotenv import load_dotenv
+
+load_dotenv()
 
 engine=create_engine(os.environ["AUTORACK_URL"])
 df=pd.read_sql("""
@@ -89,7 +92,7 @@ layout=[["afford","afford"],
         ["rc","rm"],
         ["nrc","nrm"]]
 
-fig, axes=plt.subplots(figsize=(6.5, 3))
+fig, axes=plt.subplot_mosaic(layout, figsize=(6.5, 3))
 
 sns.histplot(data=df, x="affordability_salary", bins=50, ax=axes["afford"])
 axes["afford"].set_title("Affordability Salary ($)")
