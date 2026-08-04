@@ -1,6 +1,6 @@
 ---
-title: "How Job Automatability Relates to County Affordability"
-subtitle: Subtitle
+title: "Automation and Affordability in U.S. Counties"
+subtitle: "Is the task composition of local work associated with what residents can afford?"
 authors:
   - Chris Bell
   - Julian Pacheco

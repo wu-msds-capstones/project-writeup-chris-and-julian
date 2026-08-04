@@ -22,5 +22,3 @@ execute:
   freeze: auto
 
 jupyter: python3
-
-number-sections: true
