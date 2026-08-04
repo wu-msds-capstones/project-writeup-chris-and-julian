@@ -586,40 +586,6 @@ diagnostics above.
 
 ### Random Forest
 
-For a Random Forest (RF), we want to do a grid search using `n_estimators`,
-`max_depth`, and `min_samples_leaf`. We want to give a high number of
-estimators to reduce variance, and we want `max_depth` and `min_samples_leaf`
-to add some potential regularization.
-
-```{python}
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import GridSearchCV, GroupKFold
-from sklearn.inspection import permutation_importance
-
-rf = RandomForestRegressor(random_state=42, n_jobs=-1)
-
-param_grid = {
-    "n_estimators": [600, 1000],
-    "max_depth": [None, 10, 20],
-    "min_samples_leaf": [1, 2, 5],
-    "max_features": [1.0, "sqrt", 0.5],
-}
-
-group_cv = GroupKFold(n_splits=5)
-gcv = GridSearchCV(rf, param_grid, cv=group_cv, scoring="r2", n_jobs=-1)
-gcv.fit(X_train, y_train, groups=groups_train)
-
-best_rf = gcv.best_estimator_
-print("Best params:", gcv.best_params_)
-
-y_pred_rf = best_rf.predict(X_test)
-print("Test R2: ", r2_score(y_test, y_pred_rf))
-print("Test MAE:", mean_absolute_error(y_test, y_pred_rf))
-
-# overfitting check
-print("Train R2:", best_rf.score(X_train, y_train))
-```
-
 For a Random Forest (RF), we performed a grid search using `n_estimators`,
 `max_depth`, `min_samples_leaf`, and `max_features` over the grid shown
 below. Given a high number of estimators to reduce variance, and
@@ -665,7 +631,7 @@ best_params = {
     "n_estimators": 1000,
 }
 
-best_rf = RandomForestRegressor(**best_params, random_state=42, n_jobs=-1)
+best_rf = RandomForestRegressor(**best_params, random_state=42, n_jobs=2)
 best_rf.fit(X_train, y_train)
 
 y_pred_rf = best_rf.predict(X_test)
@@ -708,9 +674,9 @@ predicted values.
 
 ```{python}
 #| include: false
-perm_imp = permutation_importance(
-    best_rf, X_test, y_test, n_repeats=20, random_state=42, n_jobs=-1
-)
+# perm_imp = permutation_importance(
+#     best_rf, X_test, y_test, n_repeats=20, random_state=42, n_jobs=1
+# )
 ```
 
 ##### Ablation test
@@ -720,7 +686,7 @@ feature_cols_no_exposure = [c for c in feature_cols_reg if c not in exposure_col
 X_train_ne = X_train[feature_cols_no_exposure]
 X_test_ne = X_test[feature_cols_no_exposure]
 
-rf_no_exposure = RandomForestRegressor(**gcv.best_params_, random_state=42, n_jobs=-1)
+rf_no_exposure = RandomForestRegressor(**best_params, random_state=42, n_jobs=-1)
 rf_no_exposure.fit(X_train_ne, y_train)
 print("R2 without exposure scores:", rf_no_exposure.score(X_test_ne, y_test))
 ```
@@ -735,7 +701,7 @@ feature_cols_no_econ = [c for c in feature_cols_reg if c not in ["poverty_rate",
 X_train_ne2 = X_train[feature_cols_no_econ]
 X_test_ne2 = X_test[feature_cols_no_econ]
 
-rf_no_econ = RandomForestRegressor(**gcv.best_params_, random_state=42, n_jobs=-1)
+rf_no_econ = RandomForestRegressor(**best_params, random_state=42, n_jobs=-1)
 rf_no_econ.fit(X_train_ne2, y_train)
 print("R2 without poverty/unemployment:", rf_no_econ.score(X_test_ne2, y_test))
 ```
@@ -749,7 +715,7 @@ the full model.
 Logging the target could be good for RF too, so we run that as well.
 
 ```{python}
-rf_log = RandomForestRegressor(**gcv.best_params_, random_state=42, n_jobs=-1)
+rf_log = RandomForestRegressor(**best_params, random_state=42, n_jobs=2)
 rf_log.fit(X_train, y_train_log)
 
 y_pred_rf_log = rf_log.predict(X_test)
@@ -972,7 +938,7 @@ for fold, (tr_idx, val_idx) in enumerate(group_kfold_cv.split(X, y, groups)):
     r2_ols_log_dollars = r2_score(y_val, np.exp(pred_log))  # back-transformed, dollar scale
     cv_results["OLS (log target)"].append(r2_ols_log_dollars)
 
-    rf_fold = RandomForestRegressor(**gcv.best_params_, random_state=42, n_jobs=-1)
+    rf_fold = RandomForestRegressor(**best_params, random_state=42, n_jobs=-1)
     rf_fold.fit(X_tr, y_tr)
     r2_rf = r2_score(y_val, rf_fold.predict(X_val))
     cv_results["Random Forest"].append(r2_rf)
