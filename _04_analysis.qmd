@@ -186,7 +186,7 @@ comparison below.
 #| include: false
 # state_code isn't in the panel regression's df, add it here
 state_lookup = pd.read_sql(
-    "select county_fips, state_code, state_name from county", engine
+    "select county_fips, state_code from county", engine
 )
 df_ml = df.merge(state_lookup, on="county_fips", how="left")
 ```
