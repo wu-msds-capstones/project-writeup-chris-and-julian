@@ -359,10 +359,12 @@ window.Quarto = {
   <ul class="collapse">
   <li><a href="#where-affordability-is-strained" id="toc-where-affordability-is-strained" class="nav-link" data-scroll-target="#where-affordability-is-strained"><span class="header-section-number">5.1</span> Where affordability is strained</a></li>
   <li><a href="#task-groups-and-affordability" id="toc-task-groups-and-affordability" class="nav-link" data-scroll-target="#task-groups-and-affordability"><span class="header-section-number">5.2</span> Task groups and affordability</a></li>
-  <li><a href="#nonlinearity" id="toc-nonlinearity" class="nav-link" data-scroll-target="#nonlinearity"><span class="header-section-number">5.3</span> Nonlinearity</a></li>
-  <li><a href="#what-matters-most" id="toc-what-matters-most" class="nav-link" data-scroll-target="#what-matters-most"><span class="header-section-number">5.4</span> What matters most</a></li>
-  <li><a href="#stability-over-time" id="toc-stability-over-time" class="nav-link" data-scroll-target="#stability-over-time"><span class="header-section-number">5.5</span> Stability over time</a></li>
-  <li><a href="#robustness" id="toc-robustness" class="nav-link" data-scroll-target="#robustness"><span class="header-section-number">5.6</span> Robustness</a></li>
+  <li><a href="#beyond-a-straight-line" id="toc-beyond-a-straight-line" class="nav-link" data-scroll-target="#beyond-a-straight-line"><span class="header-section-number">5.3</span> Beyond a straight line</a></li>
+  <li><a href="#nonlinearity" id="toc-nonlinearity" class="nav-link" data-scroll-target="#nonlinearity"><span class="header-section-number">5.4</span> Nonlinearity</a></li>
+  <li><a href="#what-the-models-weigh" id="toc-what-the-models-weigh" class="nav-link" data-scroll-target="#what-the-models-weigh"><span class="header-section-number">5.5</span> What the models weigh</a></li>
+  <li><a href="#what-matters-most" id="toc-what-matters-most" class="nav-link" data-scroll-target="#what-matters-most"><span class="header-section-number">5.6</span> What matters most</a></li>
+  <li><a href="#stability-over-time" id="toc-stability-over-time" class="nav-link" data-scroll-target="#stability-over-time"><span class="header-section-number">5.7</span> Stability over time</a></li>
+  <li><a href="#robustness" id="toc-robustness" class="nav-link" data-scroll-target="#robustness"><span class="header-section-number">5.8</span> Robustness</a></li>
   </ul></li>
   <li><a href="#sec-conclusions" id="toc-sec-conclusions" class="nav-link" data-scroll-target="#sec-conclusions"><span class="header-section-number">6</span> Conclusions</a>
   <ul class="collapse">
@@ -389,18 +391,21 @@ window.Quarto = {
 
 <section id="sec-intro" class="level1" data-number="1">
 <h1 data-number="1"><span class="header-section-number">1</span> Introduction</h1>
-<p>Concern about automation is prevalent among American workers. According to Gallup, worries about technology rendering jobs obsolete surged significantly between 2021 and 2023 <span class="citation" data-cites="Gallup2023">(<a href="#ref-Gallup2023" role="doc-biblioref">Saad 2023</a>)</span>. Similarly, the Pew Research Center suggests that Americans expect automation to displace jobs held by others while leaving their own largely unaffected <span class="citation" data-cites="Pew2017">(<a href="#ref-Pew2017" role="doc-biblioref">Smith and Anderson 2017</a>)</span>. These surveys capture workers’ beliefs, but they don’t necessarily reflect the actual state of local labor markets. Empirical evidence is lacking to establish whether the concentration of automatable work in a county correlates with the economic conditions faced by its residents. This paper aims to investigate this association.</p>
-<p><span class="citation" data-cites="Autor2003">Autor, Levy, and Murnane (<a href="#ref-Autor2003" role="doc-biblioref">2003</a>)</span> demonstrated that computers replace routine tasks and enhance non-routine tasks, enabling us to identify occupations susceptible to automation. <span class="citation" data-cites="AutorDorn2013">Autor and Dorn (<a href="#ref-AutorDorn2013" role="doc-biblioref">2013</a>)</span> applied this framework to local labor markets, revealing polarization in routine-intensive areas. In these areas, employment grew at both the high and low ends of the wage distribution, while middle-wage employment declined. <span class="citation" data-cites="AcemogluAutor2011">Acemoglu and Autor (<a href="#ref-AcemogluAutor2011" role="doc-biblioref">2011</a>)</span> generalized this approach into a model that explains how technology redistributes work across skill groups. This model remains the standard framework for empirical research on automation and labor markets.</p>
+<p>Concern about automation is prevalent among American workers. According to Gallup, worries about technology rendering jobs obsolete surged between 2021 and 2023 <span class="citation" data-cites="Gallup2023">(<a href="#ref-Gallup2023" role="doc-biblioref">Saad 2023</a>)</span>. Similarly, the Pew Research Center suggests that Americans expect automation to displace jobs held by others while leaving their own largely unaffected <span class="citation" data-cites="Pew2017">(<a href="#ref-Pew2017" role="doc-biblioref">Smith and Anderson 2017</a>)</span>. These surveys capture workers’ beliefs, but they don’t necessarily reflect the actual state of local labor markets. Empirical evidence is lacking to establish whether the concentration of automatable work in a county correlates with the economic conditions faced by its residents. This study investigates that association.</p>
+<p><span class="citation" data-cites="Autor2003">Autor, Levy, and Murnane (<a href="#ref-Autor2003" role="doc-biblioref">2003</a>)</span> demonstrated that computers replace routine tasks and enhance non-routine tasks, enabling us to identify occupations susceptible to automation. <span class="citation" data-cites="AutorDorn2013">Autor and Dorn (<a href="#ref-AutorDorn2013" role="doc-biblioref">2013</a>)</span> applied this framework to local labor markets, revealing polarization in routine intensive areas. In these areas, employment grew at both the high and low ends of the wage distribution, while middle-wage employment declined. <span class="citation" data-cites="AcemogluAutor2011">Acemoglu and Autor (<a href="#ref-AcemogluAutor2011" role="doc-biblioref">2011</a>)</span> generalized this approach into a model that explains how technology redistributes work across skill groups. This model remains the standard framework for empirical research on automation and labor markets.</p>
 <p>None of this work asks what those wages buy where workers live. Outcomes are measured in unadjusted wages and employment shares rather than in local purchasing power. A high wage metropolitan area and a low wage rural county can therefore appear vastly different in dollar terms even when the goods those wages buy are comparable. The unit of analysis is also the commuting zone, which averages over the variation across the counties it contains. Neither feature is a flaw in the earlier studies, which were designed for different questions. Both limit what they can say about county level affordability.</p>
-<p>This study asks how the automatability of local jobs relates to county affordability, and whether that relationship holds once poverty and unemployment are accounted for. We build a county by year panel covering 2008 to 2023, excluding 2020, from datasets published by federal agencies. Each county year is summarized by four task group values: routine cognitive, routine manual, non routine cognitive, and non routine manual. These follow the task framework of <span class="citation" data-cites="Autor2003">Autor, Levy, and Murnane (<a href="#ref-Autor2003" role="doc-biblioref">2003</a>)</span> and the occupation taxonomy of <span class="citation" data-cites="AutorDorn2013">Autor and Dorn (<a href="#ref-AutorDorn2013" role="doc-biblioref">2013</a>)</span>. The outcome is an affordability salary in dollars, defined as county median household income divided by the local price level from the BEA Regional Price Parities.</p>
+<p>This study asks how the automatability of local work relates to county affordability, and whether that relationship holds once poverty and unemployment are accounted for. We build a county by year panel covering 2008 to 2023, excluding 2020, from datasets published by federal agencies. Each county year is summarized by four task group values: routine cognitive, routine manual, non-routine cognitive, and non-routine manual. These follow the task framework of <span class="citation" data-cites="Autor2003">Autor, Levy, and Murnane (<a href="#ref-Autor2003" role="doc-biblioref">2003</a>)</span> and the occupation taxonomy of <span class="citation" data-cites="AutorDorn2013">Autor and Dorn (<a href="#ref-AutorDorn2013" role="doc-biblioref">2013</a>)</span>. The outcome is an affordability salary in dollars, defined as county median household income divided by the local price level from the BEA Regional Price Parities.</p>
 <p>We first estimate a panel regression with year indicators and county clustered standard errors, which gives an interpretable estimate of the association. We then check that specification with residual plots, QQ plots, and variance inflation factors. Finally we fit random forest and neural network models to capture structure the linear model leaves behind. Model complexity increases only where diagnostics indicate the simpler specification is insufficient.</p>
-<!--
-TODO intro
-- unify citation keys with references.bib and the data section.
--->
 </section>
 <section id="sec-background" class="level1" data-number="2">
 <h1 data-number="2"><span class="header-section-number">2</span> Background and Related Work</h1>
+<p>The starting point for this project is a shift in how economists think about what technology displaces. <span class="citation" data-cites="Autor2003">Autor, Levy, and Murnane (<a href="#ref-Autor2003" role="doc-biblioref">2003</a>)</span> argued that technology does not replace occupations entirely, it replaces tasks. Work that adheres to explicit, rule-based procedures can be written down as a program, so computers substitute for it. On the other hand, work that demands judgment, adaptability, or situational response resists this translation and is instead complemented. By categorizing tasks along two axes, routine versus non-routine and cognitive versus manual, we can identify the four groups we use here. This approach transforms a vague concern about automation into a measurable concept.</p>
+<p>Once exposure becomes measurable at the occupational level, it can be measured at the place level as well. This is because places differ in the types of work their residents do. <span class="citation" data-cites="AutorDorn2013">Autor and Dorn (<a href="#ref-AutorDorn2013" role="doc-biblioref">2013</a>)</span> demonstrated this by showing that local labor markets have long-lasting differences in their composition of work, which contributed to the polarization of employment across US commuting zones. Routine intensive areas experienced a decline in middle-wage jobs and an increase in employment at both the low and high ends of the wage distribution. Their occupation taxonomy is the one we use when categorizing occupations into task groups, and their finding that task composition is a persistent characteristic of a place, rather than a temporary feature of its residents, makes a panel design a sensible approach.</p>
+<p><span class="citation" data-cites="AcemogluAutor2011">Acemoglu and Autor (<a href="#ref-AcemogluAutor2011" role="doc-biblioref">2011</a>)</span> provided the formal basis for treating places this way. In their model, tasks serve as the production unit, and skill groups compete to supply them. Technology shifts which group holds the comparative advantage in which task. Consequently, local outcomes are influenced by the tasks performed in a local economy. This framework has become the standard for empirical research on automation and labor markets, and our county-level design incorporates its central assumption.</p>
+<p>What this literature has not asked is what those wages actually buy in the places where workers live. Outcomes are reported in unadjusted wages and employment shares, so a high-wage metropolitan area and a low-wage rural county can appear vastly different in dollar terms even when the goods those wages purchase are comparable. Geography compounds the problem, since the commuting zone averages over the counties it encompasses and obscures the variation that determines whether a paycheck covers rent in any specific county. And because these relationships are typically estimated as linear ones, it remains largely unexplored whether affordability responds to task composition in fixed dollar increments or in a more gradual manner. None of this is a flaw in the previous work, which was intended to address different questions. Together, though, these three limit what it can say about county-level affordability.</p>
+<!--
+
+-->
 </section>
 <section id="sec-data" class="level1" data-number="3">
 <h1 data-number="3"><span class="header-section-number">3</span> Data</h1>
@@ -465,12 +470,12 @@ Table&nbsp;1: Federal data sources and variables supplied
 </figure>
 </div>
 <p>The five sources arrive at two levels of observation: county by year, and metropolitan area. The pipeline transforms each to a common county by year grain, and county FIPS code and year together serve as the join key across the warehouse. Regional Price Parities require one extra step. BEA publishes them at the metropolitan area level, so counties are linked to their metropolitan area through the Census CBSA delineation file before joining.</p>
-<p>The study period spans 2008 to 2023, excluding 2020. ACS suspended its 1 year estimates that year following COVID related disruptions to data collection. Because those estimates supply the occupational employment counts underlying the task group values, the task groups cannot be constructed for 2020. The 3,156 counties in the Census county reference file observed over fifteen years yield 47,340 potential county year observations.</p>
+<p>The study period spans 2008 to 2023, excluding 2020. ACS suspended its 1 year estimates that year following COVID related disruptions to data collection. Because those estimates supply the occupational employment counts underlying the task group values, the task groups cannot be constructed for 2020. SAIPE publishes estimates for approximately 3,143 counties per year, giving 47,140 county year observations across the fifteen study years.<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a></p>
 </section>
 <section id="measuring-task-structure" class="level2" data-number="3.2">
 <h2 data-number="3.2" class="anchored" data-anchor-id="measuring-task-structure"><span class="header-section-number">3.2</span> Measuring task structure</h2>
-<p>Following the task framework introduced in <a href="#sec-background" class="quarto-xref">Section&nbsp;2</a>, each of the broad occupational categories published in ACS 1 year estimates is assigned to one of four task groups: routine cognitive, routine manual, non routine cognitive, and non routine manual. The Census categories carry no such labels, so the assignment follows the classification logic of <span class="citation" data-cites="AutorDorn2013">Autor and Dorn (<a href="#ref-AutorDorn2013" role="doc-biblioref">2013</a>)</span>: clerical and sales work as routine cognitive, production and construction work as routine manual, managerial, professional and technical work as non routine cognitive, and service work as non routine manual. For each county and year, the task group totals are the employment sums across the categories assigned to each group, shown in <a href="#eq-weighted" class="quarto-xref">Equation&nbsp;1</a>.</p>
-<p><span id="eq-weighted"><span class="math display">\[
+<p>Following the task framework introduced in <a href="#sec-background" class="quarto-xref">Section&nbsp;2</a>, each of the broad occupational categories published in ACS 1 year estimates is assigned to one of four task groups: routine cognitive, routine manual, non-routine cognitive, and non-routine manual. The Census categories carry no such labels, so the assignment follows the classification logic of <span class="citation" data-cites="AutorDorn2013">Autor and Dorn (<a href="#ref-AutorDorn2013" role="doc-biblioref">2013</a>)</span>: clerical and sales work as routine cognitive, production and construction work as routine manual, managerial, professional and technical work as non-routine cognitive, and service work as non-routine manual. For each county and year, the task group totals are the employment sums across the categories assigned to each group, shown in <a href="#eq-totals" class="quarto-xref">Equation&nbsp;1</a>.</p>
+<p><span id="eq-totals"><span class="math display">\[
 T_{g,c,t} = \sum_{o \in g} E_{o,c,t}
 \tag{1}\]</span></span></p>
 <p>Here <span class="math inline">\(E_{o,c,t}\)</span> is employment in occupational category <span class="math inline">\(o\)</span> in county <span class="math inline">\(c\)</span> during year <span class="math inline">\(t\)</span>, and the sum runs over the categories assigned to group <span class="math inline">\(g\)</span>. The four totals are then divided by their sum, as in <a href="#eq-group" class="quarto-xref">Equation&nbsp;2</a>, so that each county year is described by four values on a zero to one scale that sum to one.</p>
@@ -498,7 +503,7 @@ A_{c,t} = \frac{\text{Median household income}_{c,t}}{\text{RPP}_{c,t} / 100}
 <h2 data-number="3.5" class="anchored" data-anchor-id="storage-and-organization"><span class="header-section-number">3.5</span> Storage and organization</h2>
 <p>Data are stored in PostgreSQL across two databases that serve different purposes.</p>
 <p>The first is a data lake of roughly 41 tables holding raw retrievals and intermediate results, deliberately left unnormalized. Its purpose is traceability. Any figure in this report can be traced back to the records it came from, and any processing step can be rerun without returning to an agency API, including retrievals for analysis branches later scoped out.</p>
-<p>The second is the analytical warehouse of eleven tables, whose analytical core is in third normal form. All cleaning occurs upstream, so the warehouse is effectively read only from the perspective of the analysis. <a href="#fig-erd" class="quarto-xref">Figure&nbsp;1</a> shows the seven tables the analysis reads; a population staging table, a compatibility view, and an employment composition table retained from an earlier analysis branch are omitted.</p>
+<p>The second is the analytical warehouse of eleven tables, whose analytical core is in third normal form. All cleaning occurs upstream, so the warehouse is effectively read only from the perspective of the analysis. <a href="#fig-erd" class="quarto-xref">Figure&nbsp;1</a> shows the eight tables the analysis reads; a population staging table, a compatibility view, and an employment composition table retained from an earlier analysis branch are omitted.</p>
 <div class="cell" data-layout-align="default">
 <div class="cell-output-display">
 <div id="fig-erd" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -570,13 +575,13 @@ Figure&nbsp;1: Warehouse schema in third normal form
 </div>
 </div>
 </div>
-<p>The schema centers on a <code>county</code> table keyed by FIPS code, with <code>state</code> as a reference table. Three fact tables join to <code>county</code> on FIPS code and year. <code>county_baseline</code> holds population, median household income, poverty rate and unemployment rate, <code>county_task_exposure</code> holds the four task group totals from <a href="#eq-weighted" class="quarto-xref">Equation&nbsp;1</a>, and <code>county_affordability</code> holds the outcome variable. The normalized values from <a href="#eq-group" class="quarto-xref">Equation&nbsp;2</a> are not computed in analysis code but stored as generated columns, which the database derives from the four totals on every write. The equation is enforced in the schema itself, so no analysis can read a stale or inconsistently normalized value.</p>
+<p>The schema centers on a <code>county</code> table keyed by FIPS code, with <code>state</code> as a reference table. Three fact tables join to <code>county</code> on FIPS code and year. <code>county_baseline</code> holds population, median household income, poverty rate and unemployment rate, <code>county_task_exposure</code> holds the four task group totals from <a href="#eq-totals" class="quarto-xref">Equation&nbsp;1</a>, and <code>county_affordability</code> holds the outcome variable. The normalized values from <a href="#eq-group" class="quarto-xref">Equation&nbsp;2</a> are not computed in analysis code but stored as generated columns, which the database derives from the four totals on every write. The equation is enforced in the schema itself, so no analysis can read a stale or inconsistently normalized value.</p>
 <p>Price parities require a separate path. Metropolitan membership is kept out of the <code>county</code> table and in the <code>county_cbsa_code</code> junction table, so counties outside any metropolitan area carry no null CBSA fields, and the crosswalk stands alone as its own fact. From there <code>cbsa</code> connects to <code>cbsa_rpp</code>. Storing parities at the CBSA level reflects the level at which BEA measures them and avoids repeating a single value across every county in a metropolitan area.</p>
 </section>
 <section id="the-analytical-dataset" class="level2" data-number="3.6">
 <h2 data-number="3.6" class="anchored" data-anchor-id="the-analytical-dataset"><span class="header-section-number">3.6</span> The analytical dataset</h2>
-<p>The 47,340 potential county year observations described above are the set of records the county table supports, not the set the models estimate on. Two filters reduce it.</p>
-<p>Task group coverage is the binding constraint. The occupational employment counts that build the four task groups come from ACS 1 year estimates, which the Census Bureau publishes only for areas with populations above 65,000. Counties below that threshold have no occupational estimates in any year, so no task groups can be constructed for them. This removes 2,308 of the 3,156 counties outright and leaves 12,087 county year observations across 848 counties.</p>
+<p>The 47,140 county year observations described above are the set of records the source data support, not the set the models estimate on. Two filters reduce it.</p>
+<p>Task group coverage is the binding constraint. The occupational employment counts that build the four task groups come from ACS 1 year estimates, which the Census Bureau publishes only for areas with populations above 65,000. Counties below that threshold have no occupational estimates in any year, so no task groups can be constructed for them. This leaves 12,087 county year observations across 848 counties.</p>
 <p>Requiring non missing controls removes a further 104 observations. Every one of the 104 is missing an unemployment rate, giving BLS LAUS a coverage rate of 99.1 percent across the retained counties. Population, median household income and poverty rate are complete. The estimation sample is therefore 11,983 county year observations, and all models reported in <a href="#sec-analysis" class="quarto-xref">Section&nbsp;4</a> and <a href="#sec-results" class="quarto-xref">Section&nbsp;5</a> fit on these same rows.</p>
 <p>The population threshold shapes what the results can describe. The 848 retained counties hold the large majority of the United States population but a minority of its counties, and they are more metropolitan, more populous and more economically diverse than those dropped. Rural counties are underrepresented as a direct consequence. Findings should be read as applying to counties above 65,000 residents rather than to counties in general. <a href="#sec-conclusions" class="quarto-xref">Section&nbsp;6</a> returns to this limitation and to one approach for addressing it in future work.</p>
 <!--
@@ -588,6 +593,11 @@ TODO data
   counties, inflating the share
 - confirm which script writes county_employment_composition (suspected: ACS category
   counts, not PUMS)
+- resolve O*NET and OEWS: neither appears in tbl-sources, but O*NET maps to
+  county_task_exposure in the warehouse. Either they contribute nothing and the poster
+  source table needs correcting to match this section, or they contribute something this
+  section is silent about
+- sweep non-routine hyphenation across all seven section files for consistency
 -->
 </section>
 </section>
@@ -596,7 +606,7 @@ TODO data
 <section id="panel-regression" class="level2" data-number="4.1">
 <h2 data-number="4.1" class="anchored" data-anchor-id="panel-regression"><span class="header-section-number">4.1</span> Panel regression</h2>
 <p>The four task group values described in <a href="#eq-group" class="quarto-xref">Equation&nbsp;2</a> sum to one, so all four cannot enter a regression together. One serves as the reference category, and we use non routine cognitive. Each remaining coefficient represents the change in affordability salary associated with a shift out of non routine cognitive work and into that group, holding the controls fixed. Each coefficient is a comparison against the reference category. The group values are measured on a zero to one scale. Per percentage point figures reported later therefore divide the estimated coefficients by 100.</p>
-<p>Normalizing the four totals by their sum, as <a href="#sec-data" class="quarto-xref">Section&nbsp;3</a> describes, also resolves a collinearity issue. Left unresolved, that issue would render these coefficients unusable. The unnormalized totals in <a href="#eq-weighted" class="quarto-xref">Equation&nbsp;1</a> exhibit variance inflation factors ranging from 13 to 27. All four are employment counts, so they scale together with county size. Dividing by the four group sum removes this common scale and reduces the variance inflation factors to approximately 1.</p>
+<p>Normalizing the four totals by their sum, as <a href="#sec-data" class="quarto-xref">Section&nbsp;3</a> describes, also resolves a collinearity issue. Left unresolved, that issue would render these coefficients unusable. The unnormalized totals in <strong>?@eq-weighted</strong> exhibit variance inflation factors ranging from 13 to 27. All four are employment counts, so they scale together with county size. Dividing by the four group sum removes this common scale and reduces the variance inflation factors to approximately 1.</p>
 <p>Year indicators capture conditions common to all counties within a year. These include the 2008 recession, the recovery through the 2010s, and the price movement that affordability salary does not itself account for. Standard errors are clustered by county, because repeated observations of the same county across fifteen years are not independent draws.</p>
 </section>
 <section id="validation-before-modeling" class="level2" data-number="4.2">
@@ -607,7 +617,7 @@ TODO data
 <div id="fig-dists" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-dists-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="capstone_files/figure-html/fig-dists-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="Figure&nbsp;2: Distributions across the 12,087 county year panel. Affordability salary is right skewed with a long upper tail; the four task groups each show real cross county spread, with non routine cognitive the largest category."><img src="capstone_files/figure-html/fig-dists-output-2.png" width="636" height="305" class="figure-img"></a>
+<a href="capstone_files/figure-html/fig-dists-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="Figure&nbsp;2: Distributions across the 12,087 county year panel. Affordability salary is right skewed with a long upper tail; the four task groups each show real cross county spread, with non routine cognitive the largest category."><img src="capstone_files/figure-html/fig-dists-output-1.png" width="614" height="278" class="figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-dists-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;2: Distributions across the 12,087 county year panel. Affordability salary is right skewed with a long upper tail; the four task groups each show real cross county spread, with non routine cognitive the largest category.
@@ -626,7 +636,7 @@ Figure&nbsp;2: Distributions across the 12,087 county year panel. Affordability 
 <div id="fig-resid-analysis" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-resid-analysis-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="capstone_files/figure-html/fig-resid-analysis-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2" title="Figure&nbsp;3: Level model diagnostics. Left: residuals against fitted values with lowess smoother; the curve away from zero at both ends shows the model underpredicting the least and most affordable counties. Right: QQ plot of residuals; the bend above the line in the upper tail reflects the residual skew of 1.02."><img src="capstone_files/figure-html/fig-resid-analysis-output-1.png" width="826" height="346" class="figure-img"></a>
+<a href="capstone_files/figure-html/fig-resid-analysis-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2" title="Figure&nbsp;3: Level model diagnostics. Left: residuals against fitted values with lowess smoother; the curve away from zero at both ends shows the model underpredicting the least and most affordable counties. Right: QQ plot of residuals; the bend above the line in the upper tail reflects the residual skew of 1.02."><img src="capstone_files/figure-html/fig-resid-analysis-output-1.png" width="854" height="374" class="figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-resid-analysis-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;3: Level model diagnostics. Left: residuals against fitted values with lowess smoother; the curve away from zero at both ends shows the model underpredicting the least and most affordable counties. Right: QQ plot of residuals; the bend above the line in the upper tail reflects the residual skew of 1.02.
@@ -645,7 +655,7 @@ Figure&nbsp;3: Level model diagnostics. Left: residuals against fitted values wi
 <div id="fig-log-diag" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-log-diag-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="capstone_files/figure-html/fig-log-diag-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3" title="Figure&nbsp;4: Log model diagnostics, same layout as the level model. The smoother lies close to zero, the spread is near constant, and the QQ plot tracks the diagonal through most of its range, showing the transformation resolves most of the level model’s failure."><img src="capstone_files/figure-html/fig-log-diag-output-1.png" width="826" height="346" class="figure-img"></a>
+<a href="capstone_files/figure-html/fig-log-diag-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3" title="Figure&nbsp;4: Log model diagnostics, same layout as the level model. The smoother lies close to zero, the spread is near constant, and the QQ plot tracks the diagonal through most of its range, showing the transformation resolves most of the level model’s failure."><img src="capstone_files/figure-html/fig-log-diag-output-1.png" width="854" height="374" class="figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-log-diag-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;4: Log model diagnostics, same layout as the level model. The smoother lies close to zero, the spread is near constant, and the QQ plot tracks the diagonal through most of its range, showing the transformation resolves most of the level model’s failure.
@@ -672,7 +682,7 @@ Figure&nbsp;4: Log model diagnostics, same layout as the level model. The smooth
 <h3 data-number="4.6.2" class="anchored" data-anchor-id="year-and-state-dummies"><span class="header-section-number">4.6.2</span> Year and state dummies</h3>
 <p>Running year as a factor, not as numeric, gives each year its own independent coefficient, with no assumption about ordering or spacing between them.</p>
 <p>Leaving one state as a reference state as well, which will be the median affordability state, whatever that may be in our data.</p>
-<div id="2eac1072" class="cell" data-execution_count="8">
+<div id="49fd108d" class="cell" data-execution_count="8">
 <div class="cell-output cell-output-stdout">
 <pre><code>States pooled into 'OTHER' (fewer than 5 counties): ['02', '10', '15', '31', '32', '38', '44', '46', '50', '56']
 state_code_grouped
@@ -730,7 +740,7 @@ Number of state dummy columns: 39</code></pre>
 <div id="fig-state-afford" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-state-afford-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="capstone_files/figure-html/fig-state-afford-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4" title="Figure&nbsp;5: Mean affordability salary by state, sorted ascending, with the panel median marked. Texas sits near the middle of the distribution, supporting its use as the reference state."><img src="capstone_files/figure-html/fig-state-afford-output-1.png" width="1155" height="458" class="figure-img"></a>
+<a href="capstone_files/figure-html/fig-state-afford-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4" title="Figure&nbsp;5: Mean affordability salary by state, sorted ascending, with the panel median marked. Texas sits near the middle of the distribution, supporting its use as the reference state."><img src="capstone_files/figure-html/fig-state-afford-output-1.png" width="1112" height="392" class="figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-state-afford-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;5: Mean affordability salary by state, sorted ascending, with the panel median marked. Texas sits near the middle of the distribution, supporting its use as the reference state.
@@ -745,7 +755,7 @@ Figure&nbsp;5: Mean affordability salary by state, sorted ascending, with the pa
 <h3 data-number="4.6.3" class="anchored" data-anchor-id="collinearity-check"><span class="header-section-number">4.6.3</span> Collinearity check</h3>
 <p>Our four main features — <code>routine_cognitive_share</code>, <code>routine_manual_share</code>, <code>non_routine_cognitive_share</code>, <code>non_routine_manual_share</code> — are shares of a whole, thus we need to remove one in order to maintain independence (as the fourth is deterministic once you know the values of the other three). If we didn’t remove one, then one feature for certain would be a VIF offender.</p>
 <p>The remaining three coefficients become interpretable as: the effect of shifting share toward this category, away from the omitted one.</p>
-<div id="a13dad67" class="cell" data-execution_count="10">
+<div id="1e27c16e" class="cell" data-execution_count="10">
 <div class="cell-output cell-output-stdout">
 <pre><code>Exposure scores entering the model: ['routine_cognitive_share', 'routine_manual_share', 'non_routine_manual_share']</code></pre>
 </div>
@@ -757,7 +767,7 @@ Figure&nbsp;5: Mean affordability salary by state, sorted ascending, with the pa
 Table&nbsp;2: Variance inflation factors for year and state dummies after removing the reference exposure category. All values fall below 5, indicating no remaining collinearity concern.
 </figcaption>
 <div aria-describedby="tbl-vif-ml-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="cell-output cell-output-display" data-execution_count="79">
+<div class="cell-output cell-output-display" data-execution_count="11">
 <div>
 
 
@@ -840,15 +850,15 @@ Table&nbsp;2: Variance inflation factors for year and state dummies after removi
 <p>We report two versions of each linear model throughout this section: a <strong>baseline</strong> (exposure shares + poverty + unemployment only) and a <strong>full</strong> model (baseline + year and state controls). The baseline establishes what the relationship looks like without accounting for time/geography; the full model is what we carry forward as our primary result, as it’s the more rigorous version. Including both lets us demonstrate exactly what changes when time/geography are accounted for, and why.</p>
 <section id="baseline-ols-no-yearstate" class="level4" data-number="4.6.5.1">
 <h4 data-number="4.6.5.1" class="anchored" data-anchor-id="baseline-ols-no-yearstate"><span class="header-section-number">4.6.5.1</span> Baseline OLS (no year/state)</h4>
-<div id="dcb09840" class="cell" data-execution_count="14">
+<div id="862820aa" class="cell" data-execution_count="14">
 <div class="cell-output cell-output-stdout">
 <pre><code>                             OLS Regression Results                             
 ================================================================================
 Dep. Variable:     affordability_salary   R-squared:                       0.766
 Model:                              OLS   Adj. R-squared:                  0.766
 Method:                   Least Squares   F-statistic:                     6249.
-Date:                  Mon, 03 Aug 2026   Prob (F-statistic):               0.00
-Time:                          19:06:07   Log-Likelihood:                -99712.
+Date:                  Tue, 04 Aug 2026   Prob (F-statistic):               0.00
+Time:                          14:13:33   Log-Likelihood:                -99712.
 No. Observations:                  9565   AIC:                         1.994e+05
 Df Residuals:                      9559   BIC:                         1.995e+05
 Df Model:                             5                                         
@@ -878,7 +888,7 @@ Notes:
 </section>
 <section id="full-ols-with-yearstate-controls" class="level4" data-number="4.6.5.2">
 <h4 data-number="4.6.5.2" class="anchored" data-anchor-id="full-ols-with-yearstate-controls"><span class="header-section-number">4.6.5.2</span> Full OLS (with year/state controls)</h4>
-<div id="dfd06d32" class="cell" data-execution_count="15">
+<div id="8fd40e81" class="cell" data-execution_count="15">
 <div class="cell-output cell-output-stdout">
 <pre><code>routine_cognitive_share    -87421.198221
 routine_manual_share       -81143.308583
@@ -896,7 +906,7 @@ R-squared: 0.870637303564147</code></pre>
 <div id="fig-ols-diag" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-ols-diag-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="capstone_files/figure-html/fig-ols-diag-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-5" title="Figure&nbsp;6: Full raw-target OLS diagnostics. Left: residuals against fitted values; the U-shaped pattern shows the model underpredicting at both extremes. Right: QQ plot of residuals, deviating from normality in the upper tail."><img src="capstone_files/figure-html/fig-ols-diag-output-1.png" width="804" height="346" class="figure-img"></a>
+<a href="capstone_files/figure-html/fig-ols-diag-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-5" title="Figure&nbsp;6: Full raw-target OLS diagnostics. Left: residuals against fitted values; the U-shaped pattern shows the model underpredicting at both extremes. Right: QQ plot of residuals, deviating from normality in the upper tail."><img src="capstone_files/figure-html/fig-ols-diag-output-1.png" width="854" height="374" class="figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-ols-diag-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;6: Full raw-target OLS diagnostics. Left: residuals against fitted values; the U-shaped pattern shows the model underpredicting at both extremes. Right: QQ plot of residuals, deviating from normality in the upper tail.
@@ -910,7 +920,7 @@ Figure&nbsp;6: Full raw-target OLS diagnostics. Left: residuals against fitted v
 <section id="full-ols-with-yearstate-controls-and-log-target" class="level4" data-number="4.6.5.3">
 <h4 data-number="4.6.5.3" class="anchored" data-anchor-id="full-ols-with-yearstate-controls-and-log-target"><span class="header-section-number">4.6.5.3</span> Full OLS (with year/state controls) and log target</h4>
 <p>The binned affordability salary vs.&nbsp;affordability salary graphs showed an approximate exponential pattern, so we will investigate whether logging the target will make a linear model more appropriate.</p>
-<div id="f1ce85c0" class="cell" data-execution_count="17">
+<div id="3866c011" class="cell" data-execution_count="17">
 <div class="cell-output cell-output-stdout">
 <pre><code>Any zero/negative affordability values? 0
 Skew, original: 1.2324330032097133
@@ -920,8 +930,8 @@ Skew, logged:   0.458530959523057
 Dep. Variable:     affordability_salary   R-squared:                       0.913
 Model:                              OLS   Adj. R-squared:                  0.912
 Method:                   Least Squares   F-statistic:                     1718.
-Date:                  Mon, 03 Aug 2026   Prob (F-statistic):               0.00
-Time:                          19:06:08   Log-Likelihood:                 10999.
+Date:                  Tue, 04 Aug 2026   Prob (F-statistic):               0.00
+Time:                          14:13:34   Log-Likelihood:                 10999.
 No. Observations:                  9565   AIC:                        -2.188e+04
 Df Residuals:                      9506   BIC:                        -2.146e+04
 Df Model:                            58                                         
@@ -1005,7 +1015,7 @@ Notes:
 <div id="fig-ols-log-diag" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-ols-log-diag-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="capstone_files/figure-html/fig-ols-log-diag-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-6" title="Figure&nbsp;7: Log-target OLS diagnostics, same layout as the raw-target model. The residual spread is roughly constant across fitted values and the QQ plot tracks the diagonal much more closely."><img src="capstone_files/figure-html/fig-ols-log-diag-output-1.png" width="826" height="346" class="figure-img"></a>
+<a href="capstone_files/figure-html/fig-ols-log-diag-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-6" title="Figure&nbsp;7: Log-target OLS diagnostics, same layout as the raw-target model. The residual spread is roughly constant across fitted values and the QQ plot tracks the diagonal much more closely."><img src="capstone_files/figure-html/fig-ols-log-diag-output-1.png" width="854" height="374" class="figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-ols-log-diag-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;7: Log-target OLS diagnostics, same layout as the raw-target model. The residual spread is roughly constant across fitted values and the QQ plot tracks the diagonal much more closely.
@@ -1015,7 +1025,7 @@ Figure&nbsp;7: Log-target OLS diagnostics, same layout as the raw-target model. 
 </div>
 </div>
 <p>The residual plot looks uniformly distributed and the QQ plot follows a straight line pattern, so with a logged target we can use a linear model.</p>
-<div id="bd892302" class="cell" data-execution_count="19">
+<div id="03473569" class="cell" data-execution_count="19">
 <div class="cell-output cell-output-stdout">
 <pre><code>R-squared (log target, in-sample): 0.9128887327038346
 Test R2 (log space): 0.8894251280521438
@@ -1034,7 +1044,7 @@ Test MAE (back-transformed to $): 3635.5329144913035</code></pre>
 Table&nbsp;3: Coefficients across the baseline, full raw-target, and full log-target OLS specifications, with log-target coefficients also converted to percent change per one-point shift.
 </figcaption>
 <div aria-describedby="tbl-ols-comparison-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="cell-output cell-output-display" data-execution_count="88">
+<div class="cell-output cell-output-display" data-execution_count="20">
 <div>
 
 
@@ -1109,7 +1119,7 @@ Table&nbsp;3: Coefficients across the baseline, full raw-target, and full log-ta
 Table&nbsp;4: R-squared by specification stage: baseline, full raw-target (diagnostics failed), and full log-target.
 </figcaption>
 <div aria-describedby="tbl-ols-r2-summary-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="cell-output cell-output-display" data-execution_count="89">
+<div class="cell-output cell-output-display" data-execution_count="21">
 <div>
 
 
@@ -1159,7 +1169,7 @@ Table&nbsp;4: R-squared by specification stage: baseline, full raw-target (diagn
 <div id="fig-rf-resid" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-rf-resid-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="capstone_files/figure-html/fig-rf-resid-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-7" title="Figure&nbsp;8: Random Forest residuals against predicted values on the held-out test set. No systematic curve or trend is visible across the range of predictions."><img src="capstone_files/figure-html/fig-rf-resid-output-1.png" width="672" height="442" class="figure-img"></a>
+<a href="capstone_files/figure-html/fig-rf-resid-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-7" title="Figure&nbsp;8: Random Forest residuals against predicted values on the held-out test set. No systematic curve or trend is visible across the range of predictions."><img src="capstone_files/figure-html/fig-rf-resid-output-1.png" width="662" height="470" class="figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-rf-resid-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;8: Random Forest residuals against predicted values on the held-out test set. No systematic curve or trend is visible across the range of predictions.
@@ -1171,16 +1181,16 @@ Figure&nbsp;8: Random Forest residuals against predicted values on the held-out 
 <p>Unlike the raw-target OLS residuals, Figure <a href="#fig-rf-resid" class="quarto-xref">Figure&nbsp;8</a> shows Random Forest’s residuals with no systematic curve or trend across the range of predicted values.</p>
 <section id="ablation-test" class="level5" data-number="4.6.6.0.1">
 <h5 data-number="4.6.6.0.1" class="anchored" data-anchor-id="ablation-test"><span class="header-section-number">4.6.6.0.1</span> Ablation test</h5>
-<div id="2a7aac79" class="cell" data-execution_count="26">
+<div id="44a3934e" class="cell" data-execution_count="26">
 <div class="cell-output cell-output-stdout">
-<pre><code>R2 without exposure scores: 0.8339992605886773</code></pre>
+<pre><code>R2 without exposure scores: 0.8339992605886772</code></pre>
 </div>
 </div>
 <p>Without accounting for automatability at all, the same Random Forest achieves an R² of 0.834.</p>
 </section>
 <section id="reverse-ablation-test" class="level5" data-number="4.6.6.0.2">
 <h5 data-number="4.6.6.0.2" class="anchored" data-anchor-id="reverse-ablation-test"><span class="header-section-number">4.6.6.0.2</span> Reverse ablation test</h5>
-<div id="8b8b0035" class="cell" data-execution_count="27">
+<div id="8f6850d1" class="cell" data-execution_count="27">
 <div class="cell-output cell-output-stdout">
 <pre><code>R2 without poverty/unemployment: 0.6983607085809014</code></pre>
 </div>
@@ -1190,9 +1200,9 @@ Figure&nbsp;8: Random Forest residuals against predicted values on the held-out 
 <section id="testing-rf-with-logged-target" class="level5" data-number="4.6.6.0.3">
 <h5 data-number="4.6.6.0.3" class="anchored" data-anchor-id="testing-rf-with-logged-target"><span class="header-section-number">4.6.6.0.3</span> Testing RF with logged target</h5>
 <p>Logging the target could be good for RF too, so we run that as well.</p>
-<div id="2c5b9cb7" class="cell" data-execution_count="28">
+<div id="2543141d" class="cell" data-execution_count="28">
 <div class="cell-output cell-output-stdout">
-<pre><code>Test R2 (log space): 0.8781823460727236
+<pre><code>Test R2 (log space): 0.8781823460727237
 Test R2 (back-transformed to $): 0.8768487377842192
 Test MAE (back-transformed to $): 3916.409028061873</code></pre>
 </div>
@@ -1202,14 +1212,14 @@ Test MAE (back-transformed to $): 3916.409028061873</code></pre>
 <section id="grouped-permutation-the-actual-combination-question" class="level4" data-number="4.6.6.1">
 <h4 data-number="4.6.6.1" class="anchored" data-anchor-id="grouped-permutation-the-actual-combination-question"><span class="header-section-number">4.6.6.1</span> Grouped permutation — the actual “combination” question</h4>
 <p>To see what the four exposure scores do together, rather than one at a time diluting each other, we permute all four jointly and compare the drop in R² to permuting them individually.</p>
-<div id="badef59d" class="cell" data-execution_count="29">
+<div id="6173cd48" class="cell" data-execution_count="29">
 <div class="cell-output cell-output-stdout">
 <pre><code>Baseline R2: 0.8762409382895193
 Drop from permuting all exposure scores together: 0.1531310972084307
-Drop from permuting routine_cognitive_share alone: 0.025615576618095576
+Drop from permuting routine_cognitive_share alone: 0.02561557661809557
 Drop from permuting routine_manual_share alone: 0.03706460532391171
 Drop from permuting non_routine_manual_share alone: 0.048090402537186584
-Drop from permuting year (jointly): 0.12740689943244296
+Drop from permuting year (jointly): 0.127406899432443
 Drop from permuting state (jointly): 0.008320346919784616</code></pre>
 </div>
 </div>
@@ -1221,24 +1231,25 @@ Drop from permuting state (jointly): 0.008320346919784616</code></pre>
 <section id="simple-neural-net" class="level3" data-number="4.6.7">
 <h3 data-number="4.6.7" class="anchored" data-anchor-id="simple-neural-net"><span class="header-section-number">4.6.7</span> Simple neural net</h3>
 <p>We will build a simple neural net. As it is likely already a bit overkill, we will keep it shallow and the layers narrow. We are still doing a regression and our target is continuous, so we will have a single linear output unit.</p>
-<div id="e876baff" class="cell" data-execution_count="30">
+<div id="b2fec635" class="cell" data-execution_count="30">
 <div class="cell-output cell-output-stdout">
 <div class="ansi-escaped-output">
-<pre><span class="ansi-bold"> 1/76</span> <span class="ansi-white-fg">━━━━━━━━━━━━━━━━━━━━</span> <span class="ansi-bold">4s</span> 63ms/step
+<pre>WARNING:tensorflow:TensorFlow GPU support is not available on native Windows for TensorFlow &gt;= 2.11. Even if CUDA/cuDNN are installed, GPU will not be used. Please use WSL2 or the TensorFlow-DirectML plugin.
+
+
+<span class="ansi-bold"> 1/76</span> <span class="ansi-white-fg">━━━━━━━━━━━━━━━━━━━━</span> <span class="ansi-bold">2s</span> 36ms/step
 
-<span class="ansi-bold">42/76</span> <span class="ansi-green-fg">━━━━━━━━━━━</span><span class="ansi-white-fg">━━━━━━━━━</span> <span class="ansi-bold">0s</span> 1ms/step 
-
-<span class="ansi-bold">76/76</span> <span class="ansi-green-fg">━━━━━━━━━━━━━━━━━━━━</span> <span class="ansi-bold">0s</span> 2ms/step
-
-<span class="ansi-bold">76/76</span> <span class="ansi-green-fg">━━━━━━━━━━━━━━━━━━━━</span> <span class="ansi-bold">0s</span> 2ms/step
+<span class="ansi-bold">76/76</span> <span class="ansi-green-fg">━━━━━━━━━━━━━━━━━━━━</span> <span class="ansi-bold">0s</span> 804us/step
+
+<span class="ansi-bold">76/76</span> <span class="ansi-green-fg">━━━━━━━━━━━━━━━━━━━━</span> <span class="ansi-bold">0s</span> 968us/step
 
-Test R2:  0.8432590928458205
+Test R2:  0.8328476744410954
 
-Test MAE: 4607.2755303970225
+Test MAE: 4767.494044277295
 
-Stopped at epoch: 18
+Stopped at epoch: 17
 
-Best val_loss achieved: 0.24777477979660034
+Best val_loss achieved: 0.25107139348983765
 </pre>
 </div>
 </div>
@@ -1248,7 +1259,7 @@ Best val_loss achieved: 0.24777477979660034
 <div id="fig-nn-curve-initial" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-nn-curve-initial-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="capstone_files/figure-html/fig-nn-curve-initial-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-8" title="Figure&nbsp;9: Training and validation loss for the initial, unregularized neural net. Training loss plateaus below 0.1 while validation loss falls to roughly 0.2 before rising to about 0.5, indicating overfitting."><img src="capstone_files/figure-html/fig-nn-curve-initial-output-1.png" width="609" height="453" class="figure-img"></a>
+<a href="capstone_files/figure-html/fig-nn-curve-initial-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-8" title="Figure&nbsp;9: Training and validation loss for the initial, unregularized neural net. Training loss plateaus below 0.1 while validation loss falls to roughly 0.2 before rising to about 0.5, indicating overfitting."><img src="capstone_files/figure-html/fig-nn-curve-initial-output-1.png" width="571" height="431" class="figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-nn-curve-initial-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;9: Training and validation loss for the initial, unregularized neural net. Training loss plateaus below 0.1 while validation loss falls to roughly 0.2 before rising to about 0.5, indicating overfitting.
@@ -1258,24 +1269,23 @@ Figure&nbsp;9: Training and validation loss for the initial, unregularized neura
 </div>
 </div>
 <p>Figure <a href="#fig-nn-curve-initial" class="quarto-xref">Figure&nbsp;9</a> shows training loss decreasing steadily and plateauing below 0.1, while validation loss initially decreases to approximately 0.2 before rising to roughly 0.5, a clear indication of overfitting. We address this with L2 weight regularization, increased dropout, and a shorter early-stopping patience.</p>
-<div id="f2e01cf6" class="cell" data-execution_count="32">
+<div id="7393e659" class="cell" data-execution_count="32">
 <div class="cell-output cell-output-stdout">
 <div class="ansi-escaped-output">
-<pre>Stopped at epoch: 48
+<pre>Stopped at epoch: 35
 
-Best val_loss achieved: 0.17765924334526062
+Best val_loss achieved: 0.18639172613620758
 
 
-<span class="ansi-bold"> 1/76</span> <span class="ansi-white-fg">━━━━━━━━━━━━━━━━━━━━</span> <span class="ansi-bold">3s</span> 47ms/step
+<span class="ansi-bold"> 1/76</span> <span class="ansi-white-fg">━━━━━━━━━━━━━━━━━━━━</span> <span class="ansi-bold">2s</span> 34ms/step
 
-<span class="ansi-bold">62/76</span> <span class="ansi-green-fg">━━━━━━━━━━━━━━━━</span><span class="ansi-white-fg">━━━━</span> <span class="ansi-bold">0s</span> 822us/step
+<span class="ansi-bold">76/76</span> <span class="ansi-green-fg">━━━━━━━━━━━━━━━━━━━━</span> <span class="ansi-bold">0s</span> 756us/step
 
-<span class="ansi-bold">76/76</span> <span class="ansi-green-fg">━━━━━━━━━━━━━━━━━━━━</span> <span class="ansi-bold">0s</span> 1ms/step  
+<span class="ansi-bold">76/76</span> <span class="ansi-green-fg">━━━━━━━━━━━━━━━━━━━━</span> <span class="ansi-bold">0s</span> 926us/step
 
-Test R2: 
- 0.8726706021904944
+Test R2:  0.8678145191396361
 
-Test MAE: 4024.4236937810174
+Test MAE: 4126.305870037221
 </pre>
 </div>
 </div>
@@ -1285,7 +1295,7 @@ Test MAE: 4024.4236937810174
 <div id="fig-nn-curve-regularized" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-nn-curve-regularized-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="capstone_files/figure-html/fig-nn-curve-regularized-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-9" title="Figure&nbsp;10: Training and validation loss after adding L2 regularization, increased dropout, and shorter early-stopping patience. The train/validation gap narrows relative to the initial model."><img src="capstone_files/figure-html/fig-nn-curve-regularized-output-1.png" width="592" height="453" class="figure-img"></a>
+<a href="capstone_files/figure-html/fig-nn-curve-regularized-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-9" title="Figure&nbsp;10: Training and validation loss after adding L2 regularization, increased dropout, and shorter early-stopping patience. The train/validation gap narrows relative to the initial model."><img src="capstone_files/figure-html/fig-nn-curve-regularized-output-1.png" width="571" height="431" class="figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-nn-curve-regularized-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;10: Training and validation loss after adding L2 regularization, increased dropout, and shorter early-stopping patience. The train/validation gap narrows relative to the initial model.
@@ -1313,7 +1323,7 @@ Fold 4: OLS(log)=0.893 RF=0.902</code></pre>
 Table&nbsp;5: Mean and standard deviation of held-out R-squared across 5-fold grouped cross-validation for log-target OLS and Random Forest.
 </figcaption>
 <div aria-describedby="tbl-cv-summary-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="cell-output cell-output-display" data-execution_count="101">
+<div class="cell-output cell-output-display" data-execution_count="33">
 <div>
 
 
@@ -1374,26 +1384,17 @@ Section rules from the in class template:
 <h1 data-number="5"><span class="header-section-number">5</span> Results</h1>
 <section id="where-affordability-is-strained" class="level2" data-number="5.1">
 <h2 data-number="5.1" class="anchored" data-anchor-id="where-affordability-is-strained"><span class="header-section-number">5.1</span> Where affordability is strained</h2>
-<!-- FIGURE: fig-affordmap. EXISTS, poster Figure 4. Affordability salary by county,
-     averaged across the study period. Choropleth, darker means income stretches further.
-     Poster version was built on the old full frame, needs rebuilding on the 848 county
-     panel. Purpose is orientation: the outcome has geographic structure before any
-     modeling. -->
-<!-- FIGURE: fig-gapmap. EXISTS, poster Figure 1. Median household income minus
-     affordability salary, red where income overstates purchasing power and blue where it
-     understates. Justifies the price adjustment in one image. Poster caption says 3,114
-     counties, so it predates the current panel and needs rebuilding. Decide whether both
-     maps are needed or whether this one alone does the work. -->
+<p>Affordability salary has clear geographic structure before any modeling. The counties where income stretches furthest are not the counties where income is highest, which is the gap the price adjustment is built to close.</p>
+<!-- fig-affordmap. EXISTS poster Fig 4. Rebuild on 848 panel. -->
+<!-- fig-gapmap. EXISTS poster Fig 1. Rebuild, poster caption says 3,114 counties.
+     Cut one of the two maps? -->
 </section>
 <section id="task-groups-and-affordability" class="level2" data-number="5.2">
 <h2 data-number="5.2" class="anchored" data-anchor-id="task-groups-and-affordability"><span class="header-section-number">5.2</span> Task groups and affordability</h2>
 <p>The panel regression returns a negative association between routine intensive work and affordability salary that holds after controls. A one percentage point shift toward Nonroutine Manual work is associated with roughly $846 (± $38) less in affordability salary, evaluated at the panel mean.</p>
-<p><a href="#fig-coefplot" class="quarto-xref">Figure&nbsp;11</a> shows each task group’s coefficient with its confidence interval, non routine cognitive as the reference.</p>
-<!-- FIGURE: fig-coefplot. NEW, poster has it as an In Progress placeholder only.
-     Coefficient plot, task group on the y axis, association with affordability salary on
-     the x axis, points with error bars, non routine cognitive as the reference. The
-     figure that turns the whole project into one number, so it carries more weight than
-     any other here. -->
+<!-- fig-coefplot. NEW. Coefficient plot, task group on y, association with affordability
+     salary on x, non-routine cognitive reference. Priority. -->
+<p>The associations survive the addition of poverty rate and the other baseline controls, so the task groups are not standing in for poverty. <a href="#fig-coefcompare" class="quarto-xref">Figure&nbsp;12</a> puts the coefficients before and after controls side by side.</p>
 <div id="cell-fig-coefplot" class="cell" data-execution_count="39">
 <div class="cell-output cell-output-display">
 <div id="fig-coefplot" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -1409,10 +1410,9 @@ Figure&nbsp;11: Task group association with affordability salary (log target), n
 </div>
 </div>
 <p>The associations survive the addition of poverty rate and the other baseline controls, so the task groups are not standing in for poverty. <a href="#fig-coefcompare" class="quarto-xref">Figure&nbsp;12</a> puts the coefficients before and after controls side by side.</p>
-<!-- FIGURE: fig-coefcompare. NEW, poster has it as an In Progress placeholder only.
-     Paired coefficient plot or forest plot, each task group before and after adding
-     poverty and the baseline controls. Answers the objection that the task groups are
-     poverty in disguise, which the importance chart invites. -->
+</section>
+<section id="beyond-a-straight-line" class="level2" data-number="5.3">
+<h2 data-number="5.3" class="anchored" data-anchor-id="beyond-a-straight-line"><span class="header-section-number">5.3</span> Beyond a straight line</h2>
 <div id="cell-fig-coefcompare" class="cell" data-execution_count="40">
 <div class="cell-output cell-output-display">
 <div id="fig-coefcompare" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -1428,13 +1428,11 @@ Figure&nbsp;12: Task group coefficients before (baseline) and after (full model)
 </div>
 </div>
 </section>
-<section id="nonlinearity" class="level2" data-number="5.3">
-<h2 data-number="5.3" class="anchored" data-anchor-id="nonlinearity"><span class="header-section-number">5.3</span> Nonlinearity</h2>
-<p>The RESET test rejects the linear specification [TK: statistic and p value], and <a href="#fig-binned" class="quarto-xref">Figure&nbsp;13</a> shows why. Binned means of affordability salary across the range of routine cognitive work rise and then fall rather than tracking a straight line.</p>
-<!-- FIGURE: fig-binned. EXISTS, poster Figure 5. Binned means of affordability salary
-     across the range of routine cognitive, actual and random forest predicted on the same
-     axes. Should port over close to as is. The residual plot that pairs with it is
-     claimed by _04 as well, resolve before building either. -->
+<section id="nonlinearity" class="level2" data-number="5.4">
+<h2 data-number="5.4" class="anchored" data-anchor-id="nonlinearity"><span class="header-section-number">5.4</span> Nonlinearity</h2>
+<!-- fig-binned. EXISTS poster Fig 5. Rebuild. Actual and RF predicted on same axes.
+     Residual plot also claimed by _04, pick one home. -->
+<p><a href="#fig-modelcomp" class="quarto-xref">Figure&nbsp;14</a> compares held out performance across specifications. <a href="#sec-analysis" class="quarto-xref">TK: report test R² for each model. The figures in the poster draft, 0.610 OLS, 0.610 ridge, 0.840 random forest, 0.739 neural net, do not match the current run in&nbsp;4</a></p>
 <div id="cell-fig-binned" class="cell" data-execution_count="41">
 <div class="cell-output cell-output-display">
 <div id="fig-binned" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -1449,11 +1447,10 @@ Figure&nbsp;13: Binned means of affordability salary across routine cognitive em
 </div>
 </div>
 </div>
-<p><a href="#fig-modelcomp" class="quarto-xref">Figure&nbsp;14</a> compares held out performance across specifications. The random forest reaches a test R² of 0.877 against 0.896 for the log-target linear model, and 0.873 for the neural network. The gap is evidence that the relationship has curvature the linear model cannot represent, which is the same conclusion the RESET test reaches by a different route.</p>
-<!-- FIGURE: fig-modelcomp. EXISTS, poster Figure 3. Bar chart of held out test R squared
-     for OLS, ridge, random forest, neural net, showing 0.610, 0.610, 0.840, 0.739.
-     Poster draft 4 floats merging this with the binned means into one progression figure,
-     which would make it NEW. Decide before building. -->
+<p><a href="#fig-modelcomp" class="quarto-xref">Figure&nbsp;14</a> compares held out performance across specifications. The random forest reaches a test R² of 0.877 against 0.896 for the log-target linear model, and 0.868 for the neural network. The gap is evidence that the relationship has curvature the linear model cannot represent, which is the same conclusion the RESET test reaches by a different route.</p>
+</section>
+<section id="what-the-models-weigh" class="level2" data-number="5.5">
+<h2 data-number="5.5" class="anchored" data-anchor-id="what-the-models-weigh"><span class="header-section-number">5.5</span> What the models weigh</h2>
 <div id="cell-fig-modelcomp" class="cell" data-execution_count="42">
 <div class="cell-output cell-output-display">
 <div id="fig-modelcomp" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -1469,24 +1466,26 @@ Figure&nbsp;14: Held-out test R² across three model specifications. Random Fore
 </div>
 </div>
 </section>
-<section id="what-matters-most" class="level2" data-number="5.4">
-<h2 data-number="5.4" class="anchored" data-anchor-id="what-matters-most"><span class="header-section-number">5.4</span> What matters most</h2>
+<section id="what-matters-most" class="level2" data-number="5.6">
+<h2 data-number="5.6" class="anchored" data-anchor-id="what-matters-most"><span class="header-section-number">5.6</span> What matters most</h2>
 <p>Poverty rate is the strongest single feature in the random forest, by a wide margin (<a href="#fig-importance" class="quarto-xref">Figure&nbsp;15</a>). Task groups follow, with non routine manual ranked highest among them. This ordering is consistent with the regression: poverty carries most of the explanatory weight, and the task groups add to it rather than substituting for it.</p>
 <!-- FIGURE: fig-importance. EXISTS, poster Figure 6. Feature importance, horizontal
      bars, mean drop in test R squared when shuffled, ordered poverty rate, routine
      cognitive, non routine manual, unemployment, routine manual. Note the poster titles
      it "permutation importance", change to feature importance when porting. -->
-<div id="fig-importance" class="cell quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="43">
+<div id="cell-fig-importance" class="cell" data-execution_count="43">
+<div class="cell-output cell-output-display">
+<div id="fig-importance" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-importance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div>
-
+<a href="capstone_files/figure-html/fig-importance-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-14" title="Figure&nbsp;15: Random Forest permutation importance: mean drop in test R² when each feature (or feature group) is shuffled. Poverty rate dominates; task-mix shares follow."><img src="capstone_files/figure-html/fig-importance-output-1.png" width="755" height="460" class="figure-img"></a>
 </div>
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig quarto-uncaptioned" id="fig-importance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;15
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-importance-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;15: Random Forest permutation importance: mean drop in test R² when each feature (or feature group) is shuffled. Poverty rate dominates; task-mix shares follow.
 </figcaption>
 </figure>
+</div>
+</div>
 </div>
 <p>As shown in <a href="#fig-importance" class="quarto-xref">Figure&nbsp;15</a>, permutation importance for <code>poverty_rate</code> at 0.625 is overwhelmingly the largest number here, which is consistent with every model’s findings so far. <code>non_routine_manual_share</code> is the highest of our task-mix categories, with <code>routine_manual_share</code> next, and <code>routine_cognitive_share</code> last.</p>
 <!-- FIGURE: fig-pdp. NEW, poster has it as an In Progress placeholder only. Partial
@@ -1497,7 +1496,7 @@ Figure&nbsp;15
 <div id="fig-pdp" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-pdp-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="capstone_files/figure-html/fig-pdp-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-14" title="Figure&nbsp;16: Partial dependence of predicted affordability salary (raw dollars) on each task group’s employment share, holding other features at their observed distribution."><img src="capstone_files/figure-html/fig-pdp-output-1.png" width="826" height="346" class="figure-img"></a>
+<a href="capstone_files/figure-html/fig-pdp-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-15" title="Figure&nbsp;16: Partial dependence of predicted affordability salary (raw dollars) on each task group’s employment share, holding other features at their observed distribution."><img src="capstone_files/figure-html/fig-pdp-output-1.png" width="826" height="346" class="figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pdp-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;16: Partial dependence of predicted affordability salary (raw dollars) on each task group’s employment share, holding other features at their observed distribution.
@@ -1507,17 +1506,14 @@ Figure&nbsp;16: Partial dependence of predicted affordability salary (raw dollar
 </div>
 </div>
 </section>
-<section id="stability-over-time" class="level2" data-number="5.5">
-<h2 data-number="5.5" class="anchored" data-anchor-id="stability-over-time"><span class="header-section-number">5.5</span> Stability over time</h2>
-<p>A county’s task mix moves very little across the fifteen year panel [TK: quantify]. This matters for interpretation. Because the mix is close to a fixed characteristic of place, the affordability differences associated with it do not fade, and they are not something residents can be expected to move out from under.</p>
-<!-- FIGURE: fig-stability. NEW, poster has it as an In Progress placeholder only.
-     Stacked area chart, year on the x axis, share of total task weight on the y axis,
-     four bands. Shows the mix holds steady across the panel. Carries the persistence
-     claim the conclusions lean on, so it should not stay as a sentence. -->
+<section id="stability-over-time" class="level2" data-number="5.7">
+<h2 data-number="5.7" class="anchored" data-anchor-id="stability-over-time"><span class="header-section-number">5.7</span> Stability over time</h2>
+<p>A county’s task composition moves very little across the fifteen year panel. Rank correlations between the first and last observed years run from 0.451 to 0.865 across the four groups, so counties hold their relative position. This matters for interpretation. Because composition is close to a fixed characteristic of place, the affordability differences associated with it do not fade, and they are not something residents can be expected to move out from under.</p>
+<!-- fig-stability. NEW. Stacked area, year on x, task group share on y, four bands. -->
 </section>
-<section id="robustness" class="level2" data-number="5.6">
-<h2 data-number="5.6" class="anchored" data-anchor-id="robustness"><span class="header-section-number">5.6</span> Robustness</h2>
-<p>Restricting the panel to 2010 onward, which removes the occupation coding change described in <a href="#sec-data" class="quarto-xref">Section&nbsp;3</a>, leaves the main associations intact [TK: report the restricted estimates].</p>
+<section id="robustness" class="level2" data-number="5.8">
+<h2 data-number="5.8" class="anchored" data-anchor-id="robustness"><span class="header-section-number">5.8</span> Robustness</h2>
+<p>Restricting the panel to 2010 onward, which removes the occupation coding change described in <a href="#sec-data" class="quarto-xref">Section&nbsp;3</a>, leaves the main associations intact. Splitting further into pre pandemic and post pandemic windows gives the same picture: non-routine manual is stable within 2.6 percent across eras, routine manual within 6.6 percent, routine cognitive within 12.5 percent, and the ordering of the three is identical in every window.</p>
 <!--
 TODO results
 
@@ -1654,7 +1650,13 @@ Smith, Aaron, and Monica Anderson. 2017. <span>“Automation in Everyday Life.�
 </div>
 </section>
 
-</main>
+
+<div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>Two jurisdictions present in SAIPE for all fifteen years, the District of Columbia (FIPS 11001) and Kalawao County, Hawaii (FIPS 15005), are absent from the county reference file and are therefore excluded from the panel. The District of Columbia exceeds the population threshold described below and would otherwise have been retained. Connecticut requires a related note: the state replaced its eight counties with nine planning regions beginning in 2022, and only the legacy counties were ingested, so Connecticut counties exit the panel after 2021 rather than continuing under successor codes.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section></div></main>
 <!-- /main column -->
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
