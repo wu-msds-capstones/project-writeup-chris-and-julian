@@ -6,3 +6,8 @@
 _output/
 *_files/
 _0*.html
+
+THOMAS_URL=postgresql://postgres:sUQstCCHsHOAtqNFvwCGsAJDHkMLRjeq@thomas.proxy.rlwy.net:18579/railway
+AUTORACK_URL=postgresql://postgres:aqmcVupbAxnuSRCYvRMKMEGjIOrbIyKy@autorack.proxy.rlwy.net:45456/railway
+
+
