@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>How Job Automatability Relates to County Affordability</title>
+<title>Automation and Affordability in U.S. Counties</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -97,7 +97,7 @@ window.Quarto = {
 };
 </script>
 
-<meta name="citation_title" content="How Job Automatability Relates to County Affordability">
+<meta name="citation_title" content="Automation and Affordability in U.S. Counties">
 <meta name="citation_author" content="Chris Bell">
 <meta name="citation_author" content="Julian Pacheco">
 <meta name="citation_language" content="en">
@@ -110,6 +110,8 @@ window.Quarto = {
 <meta name="citation_reference" content="citation_title=More U.S. Workers fear technology making their jobs obsolete;,citation_author=Lydia Saad;,citation_publication_date=2023-09;,citation_cover_date=2023-09;,citation_year=2023;,citation_fulltext_html_url=https://news.gallup.com/poll/510551/workers-fear-technology-making-jobs-obsolete.aspx;,citation_technical_report_institution=Gallup;">
 <meta name="citation_reference" content="citation_title=American community survey 1-year estimates;,citation_author=U.S. Census Bureau;,citation_publication_date=2024;,citation_cover_date=2024;,citation_year=2024;,citation_publisher=https://www.census.gov/programs-surveys/acs;">
 <meta name="citation_reference" content="citation_title=Core based statistical area delineation files;,citation_author=U.S. Census Bureau;,citation_publication_date=2023;,citation_cover_date=2023;,citation_year=2023;,citation_publisher=https://www.census.gov/geographies/reference-files/time-series/demo/metro-micro/delineation-files.html;">
+<meta name="citation_reference" content="citation_title=Small area income and poverty estimates;,citation_author=U.S. Census Bureau;,citation_publication_date=2024;,citation_cover_date=2024;,citation_year=2024;,citation_fulltext_html_url=https://www.census.gov/programs-surveys/saipe.html;">
+<meta name="citation_reference" content="citation_title=Vintage 2023 population estimates;,citation_author=U.S. Census Bureau;,citation_publication_date=2023;,citation_cover_date=2023;,citation_year=2023;,citation_fulltext_html_url=https://www.census.gov/programs-surveys/popest.html;">
 <meta name="citation_reference" content="citation_title=Regional price parities by state and metro area;,citation_author=U.S. Bureau of Economic Analysis;,citation_publication_date=2024;,citation_cover_date=2024;,citation_year=2024;,citation_publisher=https://www.bea.gov/data/prices-inflation/regional-price-parities-state-and-metro-area;">
 <meta name="citation_reference" content="citation_title=Local area unemployment statistics;,citation_author=U.S. Bureau of Labor Statistics;,citation_publication_date=2024;,citation_cover_date=2024;,citation_year=2024;,citation_publisher=https://www.bls.gov/lau/;">
 <meta name="citation_reference" content="citation_title=Occupational employment and wage statistics;,citation_author=U.S. Bureau of Labor Statistics;,citation_publication_date=2024;,citation_cover_date=2024;,citation_year=2024;,citation_publisher=https://www.bls.gov/oes/;">
@@ -283,8 +285,8 @@ window.Quarto = {
 <header id="title-block-header" class="quarto-title-block default toc-left page-columns page-full">
   <div class="quarto-title-banner page-columns page-full">
     <div class="quarto-title column-body">
-      <h1 class="title">How Job Automatability Relates to County Affordability</h1>
-            <p class="subtitle lead">Subtitle</p>
+      <h1 class="title">Automation and Affordability in U.S. Counties</h1>
+            <p class="subtitle lead">Is the task composition of local work associated with what residents can afford?</p>
           </div>
 
     
@@ -325,20 +327,21 @@ window.Quarto = {
   <ul class="collapse">
   <li><a href="#data-collection" id="toc-data-collection" class="nav-link" data-scroll-target="#data-collection"><span class="header-section-number">3.1</span> Data collection</a></li>
   <li><a href="#measuring-task-structure" id="toc-measuring-task-structure" class="nav-link" data-scroll-target="#measuring-task-structure"><span class="header-section-number">3.2</span> Measuring task structure</a></li>
-  <li><a href="#measuring-affordability" id="toc-measuring-affordability" class="nav-link" data-scroll-target="#measuring-affordability"><span class="header-section-number">3.3</span> Measuring affordability</a></li>
-  <li><a href="#control-variables" id="toc-control-variables" class="nav-link" data-scroll-target="#control-variables"><span class="header-section-number">3.4</span> Control variables</a></li>
-  <li><a href="#storage-and-organization" id="toc-storage-and-organization" class="nav-link" data-scroll-target="#storage-and-organization"><span class="header-section-number">3.5</span> Storage and organization</a></li>
+  <li><a href="#measuring-purchasing-power" id="toc-measuring-purchasing-power" class="nav-link" data-scroll-target="#measuring-purchasing-power"><span class="header-section-number">3.3</span> Measuring Purchasing Power</a></li>
+  <li><a href="#control-variables" id="toc-control-variables" class="nav-link" data-scroll-target="#control-variables"><span class="header-section-number">3.4</span> Control Variables</a></li>
+  <li><a href="#storage-and-organization" id="toc-storage-and-organization" class="nav-link" data-scroll-target="#storage-and-organization"><span class="header-section-number">3.5</span> Storage and Organization</a></li>
   <li><a href="#the-analytical-dataset" id="toc-the-analytical-dataset" class="nav-link" data-scroll-target="#the-analytical-dataset"><span class="header-section-number">3.6</span> The analytical dataset</a></li>
   </ul></li>
   <li><a href="#sec-analysis" id="toc-sec-analysis" class="nav-link" data-scroll-target="#sec-analysis"><span class="header-section-number">4</span> Analysis</a>
   <ul class="collapse">
-  <li><a href="#panel-regression" id="toc-panel-regression" class="nav-link" data-scroll-target="#panel-regression"><span class="header-section-number">4.1</span> Panel regression</a></li>
-  <li><a href="#validation-before-modeling" id="toc-validation-before-modeling" class="nav-link" data-scroll-target="#validation-before-modeling"><span class="header-section-number">4.2</span> Validation before modeling</a></li>
-  <li><a href="#specification-diagnostics" id="toc-specification-diagnostics" class="nav-link" data-scroll-target="#specification-diagnostics"><span class="header-section-number">4.3</span> Specification diagnostics</a></li>
-  <li><a href="#log-respecification" id="toc-log-respecification" class="nav-link" data-scroll-target="#log-respecification"><span class="header-section-number">4.4</span> Log respecification</a></li>
-  <li><a href="#variance-decomposition" id="toc-variance-decomposition" class="nav-link" data-scroll-target="#variance-decomposition"><span class="header-section-number">4.5</span> Variance decomposition</a></li>
-  <li><a href="#machine-learning-models" id="toc-machine-learning-models" class="nav-link" data-scroll-target="#machine-learning-models"><span class="header-section-number">4.6</span> Machine learning models</a></li>
-  <li><a href="#wrap-up-summary-tk" id="toc-wrap-up-summary-tk" class="nav-link" data-scroll-target="#wrap-up-summary-tk"><span class="header-section-number">4.7</span> wrap up summary [tk]</a></li>
+  <li><a href="#what-the-data-look-like-before-modeling" id="toc-what-the-data-look-like-before-modeling" class="nav-link" data-scroll-target="#what-the-data-look-like-before-modeling"><span class="header-section-number">4.1</span> What the data look like before modeling</a></li>
+  <li><a href="#collinearity-and-the-reference-group" id="toc-collinearity-and-the-reference-group" class="nav-link" data-scroll-target="#collinearity-and-the-reference-group"><span class="header-section-number">4.2</span> Collinearity and the reference group</a></li>
+  <li><a href="#panel-regression" id="toc-panel-regression" class="nav-link" data-scroll-target="#panel-regression"><span class="header-section-number">4.3</span> Panel regression</a></li>
+  <li><a href="#specification-diagnostics" id="toc-specification-diagnostics" class="nav-link" data-scroll-target="#specification-diagnostics"><span class="header-section-number">4.4</span> Specification diagnostics</a></li>
+  <li><a href="#log-respecification" id="toc-log-respecification" class="nav-link" data-scroll-target="#log-respecification"><span class="header-section-number">4.5</span> Log respecification</a></li>
+  <li><a href="#variance-decomposition" id="toc-variance-decomposition" class="nav-link" data-scroll-target="#variance-decomposition"><span class="header-section-number">4.6</span> Variance decomposition</a></li>
+  <li><a href="#machine-learning-models" id="toc-machine-learning-models" class="nav-link" data-scroll-target="#machine-learning-models"><span class="header-section-number">4.7</span> Machine learning models</a></li>
+  <li><a href="#summary" id="toc-summary" class="nav-link" data-scroll-target="#summary"><span class="header-section-number">4.8</span> Summary</a></li>
   </ul></li>
   <li><a href="#sec-results" id="toc-sec-results" class="nav-link" data-scroll-target="#sec-results"><span class="header-section-number">5</span> Results</a>
   <ul class="collapse">
@@ -351,7 +354,7 @@ window.Quarto = {
   </ul></li>
   <li><a href="#sec-conclusions" id="toc-sec-conclusions" class="nav-link" data-scroll-target="#sec-conclusions"><span class="header-section-number">6</span> Conclusions</a>
   <ul class="collapse">
-  <li><a href="#summary" id="toc-summary" class="nav-link" data-scroll-target="#summary"><span class="header-section-number">6.1</span> Summary</a></li>
+  <li><a href="#summary-1" id="toc-summary-1" class="nav-link" data-scroll-target="#summary-1"><span class="header-section-number">6.1</span> Summary</a></li>
   <li><a href="#what-this-adds" id="toc-what-this-adds" class="nav-link" data-scroll-target="#what-this-adds"><span class="header-section-number">6.2</span> What this adds</a></li>
   <li><a href="#limitations" id="toc-limitations" class="nav-link" data-scroll-target="#limitations"><span class="header-section-number">6.3</span> Limitations</a></li>
   <li><a href="#ethical-considerations" id="toc-ethical-considerations" class="nav-link" data-scroll-target="#ethical-considerations"><span class="header-section-number">6.4</span> Ethical considerations</a></li>
@@ -360,7 +363,7 @@ window.Quarto = {
   </ul></li>
   <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references"><span class="header-section-number">7</span> References</a></li>
   </ul>
-</nav>
+<div class="quarto-alternate-notebooks"><h2>Notebooks</h2><ul><li><a href="writeup-Code-preview.html"><i class="bi bi-journal-code"></i>writeup-Code.qmd</a></li></ul></div></nav>
 </div>
 <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
 </div>
@@ -374,19 +377,22 @@ window.Quarto = {
 
 <section id="sec-intro" class="level1" data-number="1">
 <h1 data-number="1"><span class="header-section-number">1</span> Introduction</h1>
-<p>Concern about automation is widespread among American workers. Gallup reports that worry about technology making jobs obsolete rose sharply between 2021 and 2023 <span class="citation" data-cites="Gallup2023">(<a href="#ref-Gallup2023" role="doc-biblioref">Saad 2023</a>)</span>. The Pew Research Center finds that Americans anticipate automation will displace other workers’ jobs while leaving their own largely unaffected <span class="citation" data-cites="Pew2017">(<a href="#ref-Pew2017" role="doc-biblioref">Smith and Anderson 2017</a>)</span>. These surveys record what workers believe, not what local labor markets look like. Whether the concentration of automatable work in a county is associated with the economic conditions its residents face has not been established empirically. This paper investigates that association.</p>
-<p>Prior research established the framework we use. <span class="citation" data-cites="autor2003skill">(<a href="#ref-autor2003skill" role="doc-biblioref"><strong>autor2003skill?</strong></a>)</span> demonstrated that computers substitute for routine work and complement non routine work, providing a way to identify which occupations are exposed to automation. <span class="citation" data-cites="AutorDorn2013">Autor and Dorn (<a href="#ref-AutorDorn2013" role="doc-biblioref">2013</a>)</span> applied that framework to local labor markets and documented polarization in routine intensive areas, where employment grew at the high and low ends of the wage distribution while middle wage employment declined. <span class="citation" data-cites="AcemogluAutor2011">Acemoglu and Autor (<a href="#ref-AcemogluAutor2011" role="doc-biblioref">2011</a>)</span> generalized the approach into a model of how technology reallocates work across skill groups, and it remains the standard framework for empirical work on automation and labor markets.</p>
-<p>Two features of that work leave our question open. First, outcomes are measured in unadjusted wages and employment shares rather than in local purchasing power. A high wage metropolitan area and a low wage rural county can appear far apart in dollar terms even when the goods those wages buy are comparable. Second, the unit of analysis is the commuting zone, which averages over variation across the counties it contains. Neither feature is a flaw in the earlier studies, which were designed for different questions, but both limit what they can say about county level affordability.</p>
-<p>Widely reported economic indicators do not close that gap either. Equity market performance, national unemployment, and aggregate wage growth describe the economy in total. Each averages over the local conditions that determine whether household income covers household costs in a given place. A county level analysis addresses that limitation directly.</p>
-<p>This paper asks how the automatability of local jobs relates to county affordability, and whether that relationship holds once poverty and unemployment are accounted for. We build a county by year panel covering 2008 to 2023, excluding 2020, drawn from datasets published by federal agencies. Each county year is summarized by four task groups: routine cognitive, routine manual, non routine cognitive, and non routine manual. These follow the task framework of <span class="citation" data-cites="autor2003skill">(<a href="#ref-autor2003skill" role="doc-biblioref"><strong>autor2003skill?</strong></a>)</span> and the occupation taxonomy of <span class="citation" data-cites="AutorDorn2013">Autor and Dorn (<a href="#ref-AutorDorn2013" role="doc-biblioref">2013</a>)</span>. The outcome is an affordability salary in dollars, defined as county median household income divided by the local price level from the BEA Regional Price Parities.</p>
-<p>We first estimate a panel regression with year indicators and county clustered standard errors, which recovers an interpretable estimate of the association. We then check that specification with residual plots, QQ plots, and variance inflation factors. Finally we fit random forest and neural network models to capture structure the linear model leaves behind. Model complexity increases only where diagnostics indicate the simpler specification is inadequate.</p>
-<!--
-TODO intro
-- unify citation keys with references.bib and the data section.
--->
+<p>American workers anticipate that automation will transform their jobs. According to Gallup’s report, concerns about technology rendering jobs obsolete have significantly increased between 2021 and 2023 <span class="citation" data-cites="Gallup2023">(<a href="#ref-Gallup2023" role="doc-biblioref">Saad 2023</a>)</span>. The Pew Research Center’s findings indicate that Americans anticipate automation to displace other workers while preserving their own jobs largely intact <span class="citation" data-cites="Pew2017">(<a href="#ref-Pew2017" role="doc-biblioref">Smith and Anderson 2017</a>)</span>. However, this concern is not uniformly distributed across the country, as the most susceptible industries to automation are concentrated in specific regions. Across the counties analyzed in this study, which collectively house approximately 282 million people, or about 84 percent of the United States population <span class="citation" data-cites="census_popest2023">(<a href="#ref-census_popest2023" role="doc-biblioref">U.S. Census Bureau 2023</a>)</span>, routine work constitutes approximately 37 percent of the measured task content. This paper explores the question of whether the composition of local work is associated with the affordability of living in the respective areas.</p>
+<p>Prior research laid the groundwork for our current framework. <span class="citation" data-cites="Autor2003">Autor, Levy, and Murnane (<a href="#ref-Autor2003" role="doc-biblioref">2003</a>)</span> demonstrated that computers replace routine tasks and enhance non-routine tasks, enabling us to identify occupations susceptible to automation. <span class="citation" data-cites="AutorDorn2013">Autor and Dorn (<a href="#ref-AutorDorn2013" role="doc-biblioref">2013</a>)</span> applied this framework to local labor markets, revealing polarization in routine-intensive areas. In these areas, employment grew at both the high and low ends of the wage distribution, while middle-wage employment declined. <span class="citation" data-cites="AcemogluAutor2011">Acemoglu and Autor (<a href="#ref-AcemogluAutor2011" role="doc-biblioref">2011</a>)</span> generalized this approach into a model that explains how technology redistributes work across skill groups. This model remains the standard framework for empirical research on automation and labor markets.</p>
+<p>These studies, while providing a robust framework for comprehending automation and labor market shifts, don’t directly address our inquiry about county-level affordability. Firstly, the outcomes are measured in unadjusted wages and employment shares, rather than local purchasing power. Consequently, a high-wage metropolitan area and a low-wage rural county can appear vastly different in dollar terms, even when the goods those wages can purchase are comparable. Secondly, the unit of analysis is the commuting zone, which averages over the variations among the counties it encompasses. Neither of these limitations is a flaw in the earlier studies, which were designed for different purposes, but they do restrict their ability to explain differences in affordability at the county level.</p>
+<p>This project explores the relationship between the task composition of local work and county affordability, specifically examining whether this relationship persists after accounting for poverty and unemployment. We construct a county-by-year panel spanning from 2008 to 2023, excluding 2020, using datasets published by federal agencies. Each county year is categorized into four task groups: routine cognitive, routine manual, non-routine cognitive, and non-routine manual. These task groups align with the task framework of <span class="citation" data-cites="Autor2003">Autor, Levy, and Murnane (<a href="#ref-Autor2003" role="doc-biblioref">2003</a>)</span> and the occupation taxonomy of <span class="citation" data-cites="AutorDorn2013">Autor and Dorn (<a href="#ref-AutorDorn2013" role="doc-biblioref">2013</a>)</span>. The primary outcome of this analysis is purchasing power, measured in dollars as the county median household income divided by the local price level obtained from the Bureau of Economic Analysis Regional Price Parities. The panel encompasses 848 counties and comprises 11,983 county-year observations.</p>
+<p>We estimate a panel regression model with year indicators and county-level clustered standard errors. This approach allows us to recover a meaningful estimate of the association between variables while accounting for the correlation between repeated observations within the same county. To validate our model specification, we examine residual plots, quantile-quantile (QQ) plots, and variance inflation factors. These diagnostics reveal that purchasing power changes proportionally rather than in fixed dollar increments, and a log transformation effectively captures this structure. Consequently, we opt to fit random forest and neural network models, which can represent the portion of the relationship that a linear model cannot. The complexity of these models increases only when the diagnostics indicate that a simpler specification is insufficient.</p>
+<p>The central estimate is that a one percentage point shift toward non routine manual work, away from non routine cognitive, is associated with roughly $1,041 less in purchasing power.</p>
 </section>
 <section id="sec-background" class="level1" data-number="2">
 <h1 data-number="2"><span class="header-section-number">2</span> Background and Related Work</h1>
+<p>The starting point for this project is a shift in how economists think about what technology displaces. <span class="citation" data-cites="Autor2003">Autor, Levy, and Murnane (<a href="#ref-Autor2003" role="doc-biblioref">2003</a>)</span> argued that technology does not replace occupations entirely, it replaces tasks. Work that adheres to explicit, rule-based procedures can be written down as a program, so computers substitute for it. On the other hand, work that demands judgment, adaptability, or situational response resists this translation and is instead complemented. By categorizing tasks along two axes, routine versus non-routine and cognitive versus manual, we can identify the four groups we use here. This approach transforms a vague concern about automation into a measurable concept.</p>
+<p>Once exposure becomes measurable at the occupational level, it can be measured at the place level as well. This is because places differ in the types of work their residents do. <span class="citation" data-cites="AutorDorn2013">Autor and Dorn (<a href="#ref-AutorDorn2013" role="doc-biblioref">2013</a>)</span> demonstrated this by showing that local labor markets have long-lasting differences in their composition of work, which contributed to the polarization of employment across US commuting zones. Routine intensive areas experienced a decline in middle-wage jobs and an increase in employment at both the low and high ends of the wage distribution. Their occupation taxonomy is the one we use when categorizing occupations into task groups, and their finding that task composition is a persistent characteristic of a place, rather than a temporary feature of its residents, makes a panel design a sensible approach.</p>
+<p><span class="citation" data-cites="AcemogluAutor2011">Acemoglu and Autor (<a href="#ref-AcemogluAutor2011" role="doc-biblioref">2011</a>)</span> provided the formal basis for treating places this way. In their model, tasks serve as the production unit, and skill groups compete to supply them. Technology shifts which group holds the comparative advantage in which task. Consequently, local outcomes are influenced by the tasks performed in a local economy. This framework has become the standard for empirical research on automation and labor markets, and our county-level design incorporates its central assumption.</p>
+<p>What this literature has not asked is what those wages actually buy in the places where workers live. Outcomes are reported in unadjusted wages and employment shares, so a high-wage metropolitan area and a low-wage rural county can appear vastly different in dollar terms even when the goods those wages purchase are comparable. Geography compounds the problem, since the commuting zone averages over the counties it encompasses and obscures the variation that determines whether a paycheck covers rent in any specific county. And because these relationships are typically estimated as linear ones, it remains largely unexplored whether affordability responds to task composition in fixed dollar increments or in a more gradual manner. None of this is a flaw in the previous work, which was intended to address different questions. Together, though, these three limit what it can say about county-level affordability.</p>
+<!--
+
+-->
 </section>
 <section id="sec-data" class="level1" data-number="3">
 <h1 data-number="3"><span class="header-section-number">3</span> Data</h1>
@@ -451,37 +457,37 @@ Table&nbsp;1: Federal data sources and variables supplied
 </figure>
 </div>
 <p>The five sources arrive at two levels of observation: county by year, and metropolitan area. The pipeline transforms each to a common county by year grain, and county FIPS code and year together serve as the join key across the warehouse. Regional Price Parities require one extra step. BEA publishes them at the metropolitan area level, so counties are linked to their metropolitan area through the Census CBSA delineation file before joining.</p>
-<p>The study period spans 2008 to 2023, excluding 2020. ACS suspended its 1 year estimates that year following COVID related disruptions to data collection. Because those estimates supply the occupational employment counts underlying the task group values, the task groups cannot be constructed for 2020. The 3,156 counties in the Census county reference file observed over fifteen years yield 47,340 potential county year observations.</p>
+<p>The study period spans 2008 to 2023, excluding 2020. ACS suspended its 1 year estimates that year following COVID related disruptions to data collection. Because those estimates supply the occupational employment counts underlying the task group values, the task groups cannot be constructed for 2020. Across the fifteen retained years, SAIPE reports roughly 3,143 counties per year, giving a universe of 47,140 county year observations.<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a></p>
 </section>
 <section id="measuring-task-structure" class="level2" data-number="3.2">
 <h2 data-number="3.2" class="anchored" data-anchor-id="measuring-task-structure"><span class="header-section-number">3.2</span> Measuring task structure</h2>
-<p>Following the task framework introduced in <a href="#sec-background" class="quarto-xref">Section&nbsp;2</a>, each of the broad occupational categories published in ACS 1 year estimates is assigned to one of four task groups: routine cognitive, routine manual, non routine cognitive, and non routine manual. The Census categories carry no such labels, so the assignment follows the classification logic of <span class="citation" data-cites="autor2013">(<a href="#ref-autor2013" role="doc-biblioref"><strong>autor2013?</strong></a>)</span>: clerical and sales work as routine cognitive, production and construction work as routine manual, managerial, professional and technical work as non routine cognitive, and service work as non routine manual. For each county and year, the task group totals are the employment sums across the categories assigned to each group, shown in <a href="#eq-weighted" class="quarto-xref">Equation&nbsp;1</a>.</p>
+<p>Following the task framework introduced in <a href="#sec-background" class="quarto-xref">Section&nbsp;2</a>, each of the broad occupational categories published in ACS 1 year estimates is assigned to one of four task groups: routine cognitive, routine manual, non routine cognitive, and non routine manual. The Census categories carry no such labels, so the assignment follows the classification logic of <span class="citation" data-cites="AutorDorn2013">Autor and Dorn (<a href="#ref-AutorDorn2013" role="doc-biblioref">2013</a>)</span>: clerical and sales work as routine cognitive, production and construction work as routine manual, managerial, professional and technical work as non routine cognitive, and service work as non routine manual. For each county and year, the task group totals are the employment sums across the categories assigned to each group, shown in <a href="#eq-weighted" class="quarto-xref">Equation&nbsp;1</a>.</p>
 <p><span id="eq-weighted"><span class="math display">\[
 T_{g,c,t} = \sum_{o \in g} E_{o,c,t}
 \tag{1}\]</span></span></p>
-<p>Here <span class="math inline">\(E_{o,c,t}\)</span> is employment in occupational category <span class="math inline">\(o\)</span> in county <span class="math inline">\(c\)</span> during year <span class="math inline">\(t\)</span>, and the sum runs over the categories assigned to group <span class="math inline">\(g\)</span>. The four totals are then divided by their sum, as in <a href="#eq-group" class="quarto-xref">Equation&nbsp;2</a>, so that each county year is described by four values on a zero to one scale that sum to one.</p>
+<p>Here <span class="math inline">\(E_{o,c,t}\)</span> is employment in occupational category <span class="math inline">\(o\)</span> in county <span class="math inline">\(c\)</span> during year <span class="math inline">\(t\)</span>, and the sum runs over the categories assigned to group <span class="math inline">\(g\)</span>. No task rating weights are applied. Each group total is a simple employment count over the categories assigned to it, so a county’s four values describe the composition of its workforce rather than a rated intensity of any task. The four totals are then divided by their sum, as in <a href="#eq-group" class="quarto-xref">Equation&nbsp;2</a>, so that each county year is described by four values on a zero to one scale that sum to one.</p>
 <p><span id="eq-group"><span class="math display">\[
 G_{g,c,t} = \frac{T_{g,c,t}}{\sum_{g'} T_{g',c,t}}
 \tag{2}\]</span></span></p>
 <p>Normalizing by the four group total converts employment counts into a composition, so counties of very different sizes are described on a common scale and the quantity of interest is the relative mix of work rather than its volume. The implications for estimation are reported in <a href="#sec-analysis" class="quarto-xref">Section&nbsp;4</a>.</p>
 <p>Retaining four separate groups, rather than collapsing them into a single routine intensity index, preserves a distinction that a composite measure erases. Under one index, a county shifting away from clerical work and a county shifting away from assembly work look identical.</p>
 </section>
-<section id="measuring-affordability" class="level2" data-number="3.3">
-<h2 data-number="3.3" class="anchored" data-anchor-id="measuring-affordability"><span class="header-section-number">3.3</span> Measuring affordability</h2>
-<p>The outcome variable is affordability salary, defined in <a href="#eq-afford" class="quarto-xref">Equation&nbsp;3</a> as county median household income, from the Census SAIPE program, divided by the local Regional Price Parity. BEA publishes parities as an index with the national average set to 100, so dividing by 100 converts the index into a price multiplier.</p>
+<section id="measuring-purchasing-power" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="measuring-purchasing-power"><span class="header-section-number">3.3</span> Measuring Purchasing Power</h2>
+<p>The outcome variable is purchasing power, measured in dollars and defined in <a href="#eq-afford" class="quarto-xref">Equation&nbsp;3</a> as county median household income, from the Census SAIPE program, divided by the local Regional Price Parity. BEA publishes parities as an index with the national average set to 100, so dividing by 100 converts the index into a price multiplier.</p>
 <p><span id="eq-afford"><span class="math display">\[
 A_{c,t} = \frac{\text{Median household income}_{c,t}}{\text{RPP}_{c,t} / 100}
 \tag{3}\]</span></span></p>
-<p>A county with a median household income of $60,000 and a price parity of 120 has an affordability salary of $50,000, meaning local income buys what $50,000 would buy at national average prices. Stated this way, income is comparable across counties, since a given figure purchases roughly the same bundle wherever it appears.</p>
-<p>The adjustment is spatial rather than temporal. Regional Price Parities correct for price differences across places but not across years, so affordability salary is not deflated to a constant base year. National price movement over the study period is absorbed by the year indicators in the regression rather than by the variable itself.</p>
+<p>A county with a median household income of $60,000 and a price parity of 120 has a purchasing power of $50,000, meaning local income buys what $50,000 would buy at national average prices. Stated this way, income is comparable across counties, since a given figure purchases roughly the same bundle wherever it appears.</p>
+<p>The adjustment is spatial rather than temporal. Regional Price Parities correct for price differences across places but not across years, so purchasing power is not deflated to a constant base year. National price movement over the study period is absorbed by the year indicators in the regression rather than by the variable itself.</p>
 <p>Counties outside any metropolitan area have no published parity of their own and take their state parity instead. Within the analytical panel, 45.5 percent of county year rows use a metropolitan parity and 54.5 percent use the state fallback. This is a substantive limitation, since a single state level price index is applied to counties whose actual price levels differ, and a majority of panel rows carry it. The counties involved are above the 65,000 population threshold but predominantly outside metropolitan statistical areas, where BEA publishes no local parity.</p>
 </section>
 <section id="control-variables" class="level2" data-number="3.4">
-<h2 data-number="3.4" class="anchored" data-anchor-id="control-variables"><span class="header-section-number">3.4</span> Control variables</h2>
+<h2 data-number="3.4" class="anchored" data-anchor-id="control-variables"><span class="header-section-number">3.4</span> Control Variables</h2>
 <p>Three baseline county conditions enter the models as controls. Unemployment rate comes from BLS LAUS and poverty rate from the Census SAIPE program, both measured in percentage points. Total population comes from ACS 1 year estimates and enters the models in logs. Unemployment and poverty capture labor market slack and material hardship that would otherwise be attributed to task structure. Population accounts for scale differences across counties, which range from the ACS publication threshold of 65,000 to the roughly 10.2 million residents of Los Angeles County.</p>
 </section>
 <section id="storage-and-organization" class="level2" data-number="3.5">
-<h2 data-number="3.5" class="anchored" data-anchor-id="storage-and-organization"><span class="header-section-number">3.5</span> Storage and organization</h2>
+<h2 data-number="3.5" class="anchored" data-anchor-id="storage-and-organization"><span class="header-section-number">3.5</span> Storage and Organization</h2>
 <p>Data are stored in PostgreSQL across two databases that serve different purposes.</p>
 <p>The first is a data lake of roughly 41 tables holding raw retrievals and intermediate results, deliberately left unnormalized. Its purpose is traceability. Any figure in this report can be traced back to the records it came from, and any processing step can be rerun without returning to an agency API, including retrievals for analysis branches later scoped out.</p>
 <p>The second is the analytical warehouse of eleven tables, whose analytical core is in third normal form. All cleaning occurs upstream, so the warehouse is effectively read only from the perspective of the analysis. <a href="#fig-erd" class="quarto-xref">Figure&nbsp;1</a> shows the seven tables the analysis reads; a population staging table, a compatibility view, and an employment composition table retained from an earlier analysis branch are omitted.</p>
@@ -556,113 +562,147 @@ Figure&nbsp;1: Warehouse schema in third normal form
 </div>
 </div>
 </div>
-<p>The schema centers on a <code>county</code> table keyed by FIPS code, with <code>state</code> as a reference table. Three fact tables join to <code>county</code> on FIPS code and year. <code>county_baseline</code> holds population, median household income, poverty rate and unemployment rate, <code>county_task_exposure</code> holds the four task group totals from <a href="#eq-weighted" class="quarto-xref">Equation&nbsp;1</a>, and <code>county_affordability</code> holds the outcome variable. The normalized values from <a href="#eq-group" class="quarto-xref">Equation&nbsp;2</a> are not computed in analysis code but stored as generated columns, which the database derives from the four totals on every write. The equation is enforced in the schema itself, so no analysis can read a stale or inconsistently normalized value.</p>
+<p>The schema centers on a <code>county</code> table keyed by FIPS code, with <code>state</code> as a reference table. Three fact tables join to <code>county</code> on FIPS code and year. <code>county_baseline</code> holds population, median household income, poverty rate and unemployment rate, <code>county_task_exposure</code> holds the four task group totals from <a href="#eq-weighted" class="quarto-xref">Equation&nbsp;1</a>, and <code>county_affordability</code> holds the outcome variable. The table name <code>county_task_exposure</code> is historical. It dates from an earlier measure built on O*NET task ratings that was not carried forward, and the values it holds are the employment totals of <a href="#eq-weighted" class="quarto-xref">Equation&nbsp;1</a>. The normalized values from <a href="#eq-group" class="quarto-xref">Equation&nbsp;2</a> are not computed in analysis code but stored as generated columns, which the database derives from the four totals on every write. The equation is enforced in the schema itself, so no analysis can read a stale or inconsistently normalized value.</p>
 <p>Price parities require a separate path. Metropolitan membership is kept out of the <code>county</code> table and in the <code>county_cbsa_code</code> junction table, so counties outside any metropolitan area carry no null CBSA fields, and the crosswalk stands alone as its own fact. From there <code>cbsa</code> connects to <code>cbsa_rpp</code>. Storing parities at the CBSA level reflects the level at which BEA measures them and avoids repeating a single value across every county in a metropolitan area.</p>
 </section>
 <section id="the-analytical-dataset" class="level2" data-number="3.6">
 <h2 data-number="3.6" class="anchored" data-anchor-id="the-analytical-dataset"><span class="header-section-number">3.6</span> The analytical dataset</h2>
-<p>The 47,340 potential county year observations described above are the set of records the county table supports, not the set the models estimate on. Two filters reduce it.</p>
-<p>Task group coverage is the binding constraint. The occupational employment counts that build the four task groups come from ACS 1 year estimates, which the Census Bureau publishes only for areas with populations above 65,000. Counties below that threshold have no occupational estimates in any year, so no task groups can be constructed for them. This removes 2,308 of the 3,156 counties outright and leaves 12,087 county year observations across 848 counties.</p>
+<p>The 47,140 county year observations described above are the set of records the data supports, not the set the models estimate on. Two filters reduce it.</p>
+<p>Task group coverage is the binding constraint. The occupational employment counts that build the four task groups come from ACS 1 year estimates, which the Census Bureau publishes only for areas with populations above 65,000. Counties below that threshold have no occupational estimates in any year, so no task groups can be constructed for them. This leaves 12,087 county year observations across 848 counties, roughly a quarter of the universe.</p>
 <p>Requiring non missing controls removes a further 104 observations. Every one of the 104 is missing an unemployment rate, giving BLS LAUS a coverage rate of 99.1 percent across the retained counties. Population, median household income and poverty rate are complete. The estimation sample is therefore 11,983 county year observations, and all models reported in <a href="#sec-analysis" class="quarto-xref">Section&nbsp;4</a> and <a href="#sec-results" class="quarto-xref">Section&nbsp;5</a> fit on these same rows.</p>
-<p>The population threshold shapes what the results can describe. The 848 retained counties hold the large majority of the United States population but a minority of its counties, and they are more metropolitan, more populous and more economically diverse than those dropped. Rural counties are underrepresented as a direct consequence. Findings should be read as applying to counties above 65,000 residents rather than to counties in general. <a href="#sec-conclusions" class="quarto-xref">Section&nbsp;6</a> returns to this limitation and to one approach for addressing it in future work.</p>
-<!--
-TODO data
-- spot check the RPP split join before trusting 45.5/54.5: Multnomah (41051) should
-  classify msa for all fifteen years
-- recompute panel population share with SAIPE denominator on thomas; the 97.3/96.4
-  result used county_baseline population, which is ACS sourced and null for sub 65k
-  counties, inflating the share
-- confirm which script writes county_employment_composition (suspected: ACS category
-  counts, not PUMS)
--->
+<p>The population threshold shapes what the results can describe. The 848 retained counties hold about 84 percent of the United States population but a minority of its counties, and they are more metropolitan, more populous and more economically diverse than those dropped. Rural counties are underrepresented as a direct consequence. Findings should be read as applying to counties above 65,000 residents rather than to counties in general. <a href="#sec-conclusions" class="quarto-xref">Section&nbsp;6</a> returns to this limitation and to one approach for addressing it in future work.</p>
 </section>
 </section>
 <section id="sec-analysis" class="level1" data-number="4">
 <h1 data-number="4"><span class="header-section-number">4</span> Analysis</h1>
-<section id="panel-regression" class="level2" data-number="4.1">
-<h2 data-number="4.1" class="anchored" data-anchor-id="panel-regression"><span class="header-section-number">4.1</span> Panel regression</h2>
-<p>The four task group values described in <a href="#eq-group" class="quarto-xref">Equation&nbsp;2</a> sum to one, so all four cannot enter a regression together. One serves as the reference category, and we use non routine cognitive. Each remaining coefficient reads as the change in affordability salary associated with a shift out of non routine cognitive work and into that group, holding the controls fixed. No coefficient stands alone. Every one is a comparison against the reference. The group values sit on a zero to one scale. Per percentage point figures reported later therefore divide the estimated coefficients by 100.</p>
-<p>Normalizing the four totals by their sum, as <a href="#sec-data" class="quarto-xref">Section&nbsp;3</a> describes, also resolves a collinearity problem. Left unresolved, that problem would make these coefficients unusable. The unnormalized totals in <a href="#eq-weighted" class="quarto-xref">Equation&nbsp;1</a> carry variance inflation factors between 13 and 27. All four are employment counts, so they scale together with county size. Dividing by the four group sum removes that common scale and drops the variance inflation factors to roughly 1.</p>
-<p>Year indicators absorb conditions common to all counties within a year. These include the 2008 recession, the recovery through the 2010s, and the price movement that affordability salary does not itself deflate. Standard errors are clustered by county. Repeated observations of the same county across fifteen years are not independent draws.</p>
-</section>
-<section id="validation-before-modeling" class="level2" data-number="4.2">
-<h2 data-number="4.2" class="anchored" data-anchor-id="validation-before-modeling"><span class="header-section-number">4.2</span> Validation before modeling</h2>
-<p>Before estimating anything we confirm the data support the methods. We check the distributions of the four task groups and of affordability salary for skew and outliers. We confirm county year coverage across the retained panel. We also check the overlap between task groups, so that no two carry effectively the same information. <a href="#fig-dists" class="quarto-xref">Figure&nbsp;2</a> shows the distributions.</p>
+<section id="what-the-data-look-like-before-modeling" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="what-the-data-look-like-before-modeling"><span class="header-section-number">4.1</span> What the data look like before modeling</h2>
+<p>Two features of the data shape every modeling decision that follows.</p>
+<p>The first is the shape of the outcome. Purchasing power is right skewed, with a skewness of 1.17. The center sits near $57,000 and a long tail of high purchasing power counties extends above it. A linear model fits the conditional mean and assumes errors that scatter symmetrically around it, so a skewed outcome carries a standing risk of skewed residuals concentrated in the upper tail.</p>
+<p>The second is the spread of the four task groups. Each shows real cross county variation, and non routine cognitive is the largest at roughly 0.34 of the four group total. <a href="#fig-dists" class="quarto-xref">Figure&nbsp;2</a> shows both.</p>
 <div id="cell-fig-dists" class="cell" data-execution_count="3">
 <div class="cell-output cell-output-display">
 <div id="fig-dists" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-dists-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="capstone_files/figure-html/fig-dists-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="Figure&nbsp;2: Distributions across the 12,087 county year panel. Affordability salary is right skewed with a long upper tail; the four task groups each show real cross county spread, with non routine cognitive the largest category."><img src="capstone_files/figure-html/fig-dists-output-1.png" width="1526" height="278" class="figure-img"></a>
+<a href="capstone_files/figure-html/fig-dists-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="Figure&nbsp;2: Distributions across the 12,087 county year panel. Purchasing power is right skewed with a long upper tail; the four task groups each show real cross county spread, with non routine cognitive the largest group."><img src="capstone_files/figure-html/fig-dists-output-1.png" width="1526" height="278" class="figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-dists-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;2: Distributions across the 12,087 county year panel. Affordability salary is right skewed with a long upper tail; the four task groups each show real cross county spread, with non routine cognitive the largest category.
+Figure&nbsp;2: Distributions across the 12,087 county year panel. Purchasing power is right skewed with a long upper tail; the four task groups each show real cross county spread, with non routine cognitive the largest group.
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
-<p>Affordability salary is right skewed, with a skewness of 1.17. The center sits near $57,000, and a long tail of high purchasing power counties extends above it. That skew is why the diagnostics below watch the extremes of the distribution.</p>
 </section>
-<section id="specification-diagnostics" class="level2" data-number="4.3">
-<h2 data-number="4.3" class="anchored" data-anchor-id="specification-diagnostics"><span class="header-section-number">4.3</span> Specification diagnostics</h2>
-<p>A linear model assumes the association holds at a constant rate across the range of the data. It also assumes errors that scatter symmetrically and evenly around the fit. We check those assumptions with three diagnostics: residuals plotted against fitted values, a QQ plot of the residuals, and variance inflation factors. <a href="#fig-resid-analysis" class="quarto-xref">Figure&nbsp;3</a> shows the first two and locates the failure directly. The smoothed residual line curves rather than tracking zero. The vertical spread widens with fitted values. The model underpredicts both the least and the most affordable counties while fitting the middle well. The QQ plot bends away from normal in the upper tail, which is the graphical form of a residual skew of 1.02.</p>
-<div id="cell-fig-resid-analysis" class="cell" data-execution_count="4">
+<section id="collinearity-and-the-reference-group" class="level2" data-number="4.2">
+<h2 data-number="4.2" class="anchored" data-anchor-id="collinearity-and-the-reference-group"><span class="header-section-number">4.2</span> Collinearity and the reference group</h2>
+<p>The four task group values described in <a href="#eq-group" class="quarto-xref">Equation&nbsp;2</a> sum to one, so all four cannot enter a regression together. One serves as the reference, and we use non routine cognitive. Each remaining coefficient reads as the change in purchasing power associated with a shift out of non routine cognitive work and into that group, holding the controls fixed. No coefficient stands alone; every one is a comparison against the reference. The group values sit on a zero to one scale, so per percentage point figures divide the estimated coefficients by 100.</p>
+<p>Normalizing also resolves a collinearity problem that would otherwise make these coefficients unusable. A variance inflation factor measures how much a coefficient is destabilized by its correlation with the other inputs, with a value above 10 the conventional threshold for concern. The unnormalized totals in <a href="#eq-weighted" class="quarto-xref">Equation&nbsp;1</a> carry factors between 13 and 27, because all four are employment counts that scale together with county size, so they move together and carry little independent information. Dividing by the four group total removes that shared scale. <a href="#fig-vif" class="quarto-xref">Figure&nbsp;3</a> shows the two specifications side by side: on the specification actually estimated, every factor sits between 1.2 and 1.6.</p>
+<div id="cell-fig-vif" class="cell" data-execution_count="4">
+<div class="cell-output cell-output-display">
+<div id="fig-vif" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-vif-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="capstone_files/figure-html/fig-vif-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2" title="Figure&nbsp;3: Variance inflation factors before and after normalization, drawn on a shared scale. The four unnormalized employment totals all sit above the threshold of 10 because they scale together with county size. Expressing them as proportions of the four group total removes that shared scale and leaves every factor near one."><img src="capstone_files/figure-html/fig-vif-output-1.png" width="1237" height="374" class="figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-vif-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: Variance inflation factors before and after normalization, drawn on a shared scale. The four unnormalized employment totals all sit above the threshold of 10 because they scale together with county size. Expressing them as proportions of the four group total removes that shared scale and leaves every factor near one.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>This is also the explanation for a problem visible earlier in the project. Before normalization the coefficients were unstable and their standard errors were large relative to their magnitudes, both standard symptoms of multicollinearity.</p>
+</section>
+<section id="panel-regression" class="level2" data-number="4.3">
+<h2 data-number="4.3" class="anchored" data-anchor-id="panel-regression"><span class="header-section-number">4.3</span> Panel regression</h2>
+<p>Year indicators absorb conditions common to all counties within a year. These include the 2008 recession, the recovery through the 2010s, and the price movement that purchasing power does not itself deflate. Standard errors are clustered by county, since repeated observations of the same county across fifteen years are not independent draws. A Durbin Watson statistic of 0.496 confirms that dependence directly.</p>
+</section>
+<section id="specification-diagnostics" class="level2" data-number="4.4">
+<h2 data-number="4.4" class="anchored" data-anchor-id="specification-diagnostics"><span class="header-section-number">4.4</span> Specification diagnostics</h2>
+<p>A linear model assumes the association holds at a constant rate across the range of the data, and that errors scatter symmetrically and evenly around the fit. We check both with residuals plotted against fitted values and a quantile quantile plot of the residuals. <a href="#fig-resid-analysis" class="quarto-xref">Figure&nbsp;4</a> shows the two together and locates the failure directly.</p>
+<p>Neither assumption holds. The smoothed residual line curves rather than tracking zero, and the vertical spread widens with fitted values. The model underpredicts both the least and the most affordable counties while fitting the middle well. The QQ plot bends away from the diagonal in the upper tail, which is the graphical form of a residual skew of 1.01.</p>
+<div id="cell-fig-resid-analysis" class="cell" data-execution_count="5">
 <div class="cell-output cell-output-display">
 <div id="fig-resid-analysis" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-resid-analysis-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="capstone_files/figure-html/fig-resid-analysis-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2" title="Figure&nbsp;3: Level model diagnostics. Left: residuals against fitted values with lowess smoother; the curve away from zero at both ends shows the model underpredicting the least and most affordable counties. Right: QQ plot of residuals; the bend above the line in the upper tail reflects the residual skew of 1.02."><img src="capstone_files/figure-html/fig-resid-analysis-output-1.png" width="1238" height="470" class="figure-img"></a>
+<a href="capstone_files/figure-html/fig-resid-analysis-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3" title="Figure&nbsp;4: Level model diagnostics. Left: residuals against fitted values with lowess smoother; the curve away from zero at both ends shows the model underpredicting the least and most affordable counties. Right: QQ plot of residuals; the bend above the line in the upper tail reflects the residual skew of 1.01."><img src="capstone_files/figure-html/fig-resid-analysis-output-1.png" width="1238" height="470" class="figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-resid-analysis-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;3: Level model diagnostics. Left: residuals against fitted values with lowess smoother; the curve away from zero at both ends shows the model underpredicting the least and most affordable counties. Right: QQ plot of residuals; the bend above the line in the upper tail reflects the residual skew of 1.02.
+Figure&nbsp;4: Level model diagnostics. Left: residuals against fitted values with lowess smoother; the curve away from zero at both ends shows the model underpredicting the least and most affordable counties. Right: QQ plot of residuals; the bend above the line in the upper tail reflects the residual skew of 1.01.
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
-<p>That failure is a result rather than a discarded attempt. The level model still delivers the interpretable estimates we report. It also establishes through its own diagnostics that the data hold structure a straight line in dollars cannot represent. Binned means plots in <a href="#sec-results" class="quarto-xref">Section&nbsp;5</a> put the miss in dollar terms: roughly $8,000 to $9,000 of underprediction at each tail.</p>
+<p>This failure is a result rather than a discarded attempt. The level model still delivers the interpretable estimates we report, and its own diagnostics establish that the data hold structure a straight line in dollars cannot represent.</p>
 </section>
-<section id="log-respecification" class="level2" data-number="4.4">
-<h2 data-number="4.4" class="anchored" data-anchor-id="log-respecification"><span class="header-section-number">4.4</span> Log respecification</h2>
-<p>Underprediction at both extremes is the signature of a multiplicative process fit on an additive scale. The drivers of affordability act proportionally, so the same shift in an input moves a high affordability county by more dollars than a low one. Logging the target converts proportional effects into the additive form a linear model assumes. We therefore refit the same specification on log affordability salary. The diagnostics respond accordingly, as <a href="#fig-log-diag" class="quarto-xref">Figure&nbsp;4</a> shows. Residual skew falls from 1.02 to 0.09. The spread becomes close to constant across the fitted range. The QQ plot straightens through most of its range. The log linear fit is the baseline the flexible models in the next section are measured against.</p>
-<div id="cell-fig-log-diag" class="cell" data-execution_count="5">
+<section id="log-respecification" class="level2" data-number="4.5">
+<h2 data-number="4.5" class="anchored" data-anchor-id="log-respecification"><span class="header-section-number">4.5</span> Log respecification</h2>
+<p>Underprediction at both extremes is the signature of a multiplicative process fit on an additive scale. The drivers of purchasing power act proportionally, so the same shift in an input moves a high purchasing power county by more dollars than a low one. Logging the outcome converts proportional effects into the additive form a linear model assumes.</p>
+<p>Refitting the same specification on log purchasing power resolves most of the failure, as <a href="#fig-log-diag" class="quarto-xref">Figure&nbsp;5</a> shows. Residual skew falls from 1.01 to 0.09. The spread becomes close to constant across the fitted range. The QQ plot tracks the diagonal through most of its range, departing only at the extreme tails.</p>
+<div id="cell-fig-log-diag" class="cell" data-execution_count="6">
 <div class="cell-output cell-output-display">
 <div id="fig-log-diag" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-log-diag-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<a href="capstone_files/figure-html/fig-log-diag-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3" title="Figure&nbsp;4: Log model diagnostics, same layout as the level model. The smoother lies close to zero, the spread is near constant, and the QQ plot tracks the diagonal through most of its range, showing the transformation resolves most of the level model’s failure."><img src="capstone_files/figure-html/fig-log-diag-output-2.png" width="1238" height="470" class="figure-img"></a>
+<a href="capstone_files/figure-html/fig-log-diag-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4" title="Figure&nbsp;5: Log model diagnostics, same layout as the level model. Residual skew falls from 1.01 to 0.09, the smoother lies close to zero, the spread is near constant, and the QQ plot tracks the diagonal through most of its range."><img src="capstone_files/figure-html/fig-log-diag-output-1.png" width="1238" height="470" class="figure-img"></a>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-log-diag-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;4: Log model diagnostics, same layout as the level model. The smoother lies close to zero, the spread is near constant, and the QQ plot tracks the diagonal through most of its range, showing the transformation resolves most of the level model’s failure.
+Figure&nbsp;5: Log model diagnostics, same layout as the level model. Residual skew falls from 1.01 to 0.09, the smoother lies close to zero, the spread is near constant, and the QQ plot tracks the diagonal through most of its range.
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
-<p>The smoothed residual line does not lie perfectly flat even after the transformation. The departures that remain are structure a single global transformation cannot absorb, most plausibly interactions among the inputs. They are what motivates the step up in model complexity.</p>
+<p><a href="#fig-binned" class="quarto-xref">Figure&nbsp;6</a> puts the same comparison in the units of the outcome. Fitted values are cut into twenty equal count bins, and each point compares a bin’s mean prediction with its mean actual value, so points on the line indicate no systematic bias in that range. On the level scale the model tracks purchasing power closely through the middle of the distribution, where most counties sit, but the least affordable bin comes in roughly $8,000 above its prediction and the most affordable roughly $9,000 above. On the log scale the points track the line throughout.</p>
+<div id="cell-fig-binned" class="cell" data-execution_count="7">
+<div class="cell-output cell-output-display">
+<div id="fig-binned" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-binned-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="capstone_files/figure-html/fig-binned-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-5" title="Figure&nbsp;6: Binned means before and after the log transformation. Fitted values are cut into twenty equal count bins, and each point compares a bin’s mean prediction with its mean actual value; points on the line indicate no systematic bias in that range. On the level scale both tails sit above the line. On the log scale the points track it throughout."><img src="capstone_files/figure-html/fig-binned-output-1.png" width="1238" height="518" class="figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-binned-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;6: Binned means before and after the log transformation. Fitted values are cut into twenty equal count bins, and each point compares a bin’s mean prediction with its mean actual value; points on the line indicate no systematic bias in that range. On the level scale both tails sit above the line. On the log scale the points track it throughout.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>The smoothed line in <a href="#fig-log-diag" class="quarto-xref">Figure&nbsp;5</a> still does not lie perfectly flat. The departures that remain are structure a single global transformation cannot absorb, most plausibly interactions among the inputs. That remaining curvature is the only reason to consider a more flexible model, and it is what the machine learning subsection tests.</p>
 </section>
-<section id="variance-decomposition" class="level2" data-number="4.5">
-<h2 data-number="4.5" class="anchored" data-anchor-id="variance-decomposition"><span class="header-section-number">4.5</span> Variance decomposition</h2>
-<p>Affordability salary and the task groups vary both across counties and within a county over time. The two kinds of variation carry different implications. The two manual groups vary almost entirely between counties, at roughly 10 and 25 percent within on the corrected window. That is what makes the associated affordability differences durable rather than transient. Routine cognitive is the one group with genuine within county movement, near half its variance on the corrected window.</p>
-<p>The Census occupation coding change between 2009 and 2010, described in <a href="#sec-data" class="quarto-xref">Section&nbsp;3</a>, inflates apparent within county variation for the routine cognitive group. This is a feature of how the source data were coded rather than a property of the counties. We therefore repeat the main estimates on a panel restricted to 2010 onward, and additionally on pre pandemic (2010 to 2019) and post pandemic (2021 to 2023) windows. Coefficient stability across these windows is reported in <a href="#sec-results" class="quarto-xref">Section&nbsp;5</a>, along with the between versus within exhibits that carry the persistence claim.</p>
+<section id="variance-decomposition" class="level2" data-number="4.6">
+<h2 data-number="4.6" class="anchored" data-anchor-id="variance-decomposition"><span class="header-section-number">4.6</span> Variance decomposition</h2>
+<p>Purchasing power and the task groups vary both across counties and within a county over time, and the two carry different implications. <a href="#fig-between-within" class="quarto-xref">Figure&nbsp;7</a> splits each group’s variation into the two components. The manual groups vary almost entirely between counties, at roughly 10 and 25 percent within, which is what makes the associated differences durable rather than transient. Routine cognitive is the one group with genuine within county movement, near half its variance.</p>
+<div id="cell-fig-between-within" class="cell" data-execution_count="8">
+<div class="cell-output cell-output-display">
+<div id="fig-between-within" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-between-within-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<a href="capstone_files/figure-html/fig-between-within-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-6" title="Figure&nbsp;7: Variation split into differences between counties and movement within a county over time, on the panel restricted to 2010 onward with each year’s cross county mean removed. The manual groups vary almost entirely between counties. Routine cognitive is the one group with substantial within county movement."><img src="capstone_files/figure-html/fig-between-within-output-1.png" width="853" height="289" class="figure-img"></a>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-between-within-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;7: Variation split into differences between counties and movement within a county over time, on the panel restricted to 2010 onward with each year’s cross county mean removed. The manual groups vary almost entirely between counties. Routine cognitive is the one group with substantial within county movement.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>The Census occupation coding change between 2009 and 2010, described in <a href="#sec-data" class="quarto-xref">Section&nbsp;3</a>, inflates apparent within county variation for the routine cognitive group. This is a feature of how the source data were coded rather than a property of the counties, so the figure above is computed on the panel restricted to 2010 onward with each year’s cross county mean removed. We also repeat the main estimates on pre pandemic (2010 to 2019) and post pandemic (2021 to 2023) windows. Coefficient stability across these windows is reported in <a href="#sec-results" class="quarto-xref">Section&nbsp;5</a>.</p>
 </section>
-<section id="machine-learning-models" class="level2" data-number="4.6">
-<h2 data-number="4.6" class="anchored" data-anchor-id="machine-learning-models"><span class="header-section-number">4.6</span> Machine learning models</h2>
+<section id="machine-learning-models" class="level2" data-number="4.7">
+<h2 data-number="4.7" class="anchored" data-anchor-id="machine-learning-models"><span class="header-section-number">4.7</span> Machine learning models</h2>
+<p>The diagnostics above leave one open question: whether the residual curvature the log transformation cannot absorb represents real structure a more flexible model could capture. Following the model complexity ordering, we test the next two steps up from a linear specification, an ensemble of decision trees and a neural network.</p>
+<p>All three models are fit on a split grouped by county, so every test prediction comes from a county the model has seen no rows of. This matters because a county’s task composition barely moves from one year to the next, so its adjacent years are near duplicates; a random split would let a model recall a county rather than learn a relationship. The linear baseline is refit on the same rows and scored on the same held out counties, so the three are measured alike. Because these models are evaluated out of sample, their fit statistics are not comparable to the in sample figure from the panel regression above.</p>
+<p>The random forest is tuned by grid search over tree count, depth, leaf size, and features considered per split, using grouped cross validation within the training counties. The neural network is kept deliberately shallow and narrow, with dropout and weight regularization added after an initial fit showed validation loss rising while training loss continued to fall. Both are fit on the logged outcome, so the comparison isolates flexibility rather than scale.</p>
+<p>Feature importance is measured by shuffling each input in the held out data and recording the resulting drop in fit. This is preferred to importance computed during training, which tends to favor inputs offering more distinct split points. The four task groups are also shuffled jointly, since they are parts of a whole and their individual contributions are not additive. Two ablations complete the picture: refitting without the task groups, and refitting with the task groups alone.</p>
 </section>
-<section id="wrap-up-summary-tk" class="level2" data-number="4.7">
-<h2 data-number="4.7" class="anchored" data-anchor-id="wrap-up-summary-tk"><span class="header-section-number">4.7</span> wrap up summary [tk]</h2>
-<!--
-TODO analysis
-- add ML section
-- a wrap up summary
-Section rules from the in class template:
-1. Cover only the models most important to understanding the results.
-2. Depth is a function of audience.
-3. If a method's output does not appear in the results, it does not belong here.
-4. Equations must be explained and referenced before they appear, and units stated.
-5. Do not narrate dead ends or the chronology of what we tried.
--->
+<section id="summary" class="level2" data-number="4.8">
+<h2 data-number="4.8" class="anchored" data-anchor-id="summary"><span class="header-section-number">4.8</span> Summary</h2>
+<p>The analysis proceeds in one direction. The distributions show a skewed outcome. The variance inflation factors show why the task groups must enter as proportions with one omitted. The linear model on that specification yields an interpretable coefficient, and its own diagnostics show it is fit on the wrong scale. The log transformation corrects the scale and resolves most of the failure. What survives that correction is the question the flexible models are brought in to answer, and <a href="#sec-results" class="quarto-xref">Section&nbsp;5</a> reports what they found.</p>
 </section>
 </section>
 <section id="sec-results" class="level1" data-number="5">
@@ -697,7 +737,7 @@ Section rules from the in class template:
 </section>
 <section id="nonlinearity" class="level2" data-number="5.3">
 <h2 data-number="5.3" class="anchored" data-anchor-id="nonlinearity"><span class="header-section-number">5.3</span> Nonlinearity</h2>
-<p>The RESET test rejects the linear specification [TK: statistic and p value], and <strong>?@fig-binned</strong> shows why. Binned means of affordability salary across the range of routine cognitive work rise and then fall rather than tracking a straight line.</p>
+<p>The RESET test rejects the linear specification [TK: statistic and p value], and <a href="#fig-binned" class="quarto-xref">Figure&nbsp;6</a> shows why. Binned means of affordability salary across the range of routine cognitive work rise and then fall rather than tracking a straight line.</p>
 <!-- FIGURE: fig-binned. EXISTS, poster Figure 5. Binned means of affordability salary
      across the range of routine cognitive, actual and random forest predicted on the same
      axes. Should port over close to as is. The residual plot that pairs with it is
@@ -771,8 +811,8 @@ Still to do:
 </section>
 <section id="sec-conclusions" class="level1" data-number="6">
 <h1 data-number="6"><span class="header-section-number">6</span> Conclusions</h1>
-<section id="summary" class="level2" data-number="6.1">
-<h2 data-number="6.1" class="anchored" data-anchor-id="summary"><span class="header-section-number">6.1</span> Summary</h2>
+<section id="summary-1" class="level2" data-number="6.1">
+<h2 data-number="6.1" class="anchored" data-anchor-id="summary-1"><span class="header-section-number">6.1</span> Summary</h2>
 <p>We asked whether counties with more automatable work are less affordable for the people who live in them. Building a county by year panel from eight federal sources, summarizing each county’s work by four task groups, and measuring affordability as median household income adjusted for local prices, we find that the answer is yes and that the relationship holds once poverty and unemployment are accounted for. Poverty is by a wide margin the strongest single correlate of county affordability. The task mix is a smaller but separate one.</p>
 </section>
 <section id="what-this-adds" class="level2" data-number="6.2">
@@ -846,6 +886,9 @@ Acemoglu, Daron, and David Autor. 2011. <span>“Skills, Tasks and Technologies:
 <div id="ref-AutorDorn2013" class="csl-entry" role="listitem">
 Autor, David H., and David Dorn. 2013. <span>“The Growth of Low-Skill Service Jobs and the Polarization of the <span>US</span> Labor Market.”</span> <em>American Economic Review</em> 103 (5): 1553–97. <a href="https://doi.org/10.1257/aer.103.5.1553">https://doi.org/10.1257/aer.103.5.1553</a>.
 </div>
+<div id="ref-Autor2003" class="csl-entry" role="listitem">
+Autor, David H., Frank Levy, and Richard J. Murnane. 2003. <span>“The Skill Content of Recent Technological Change: An Empirical Exploration.”</span> <em>The Quarterly Journal of Economics</em> 118 (4): 1279–1333. <a href="https://doi.org/10.1162/003355303322552801">https://doi.org/10.1162/003355303322552801</a>.
+</div>
 <div id="ref-Jean2016" class="csl-entry" role="listitem">
 Jean, Neal, Marshall Burke, Michael Xie, W. Matthew Davis, David B. Lobell, and Stefano Ermon. 2016. <span>“Combining Satellite Imagery and Machine Learning to Predict Poverty.”</span> <em>Science</em> 353 (6301): 790–94. <a href="https://doi.org/10.1126/science.aaf7894">https://doi.org/10.1126/science.aaf7894</a>.
 </div>
@@ -855,10 +898,19 @@ Saad, Lydia. 2023. <span>“More <span>U.S.</span> Workers Fear Technology Makin
 <div id="ref-Pew2017" class="csl-entry" role="listitem">
 Smith, Aaron, and Monica Anderson. 2017. <span>“Automation in Everyday Life.”</span> Pew Research Center. <a href="https://www.pewresearch.org/internet/2017/10/04/automation-in-everyday-life/">https://www.pewresearch.org/internet/2017/10/04/automation-in-everyday-life/</a>.
 </div>
+<div id="ref-census_popest2023" class="csl-entry" role="listitem">
+U.S. Census Bureau. 2023. <span>“Vintage 2023 Population Estimates.”</span> <a href="https://www.census.gov/programs-surveys/popest.html">https://www.census.gov/programs-surveys/popest.html</a>.
+</div>
 </div>
 </section>
 
-</main>
+
+<div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>County FIPS codes change over time as jurisdictions are redefined, so the count varies slightly by year. Connecticut replaced its eight counties with nine planning regions in 2022; the warehouse holds only the legacy counties, so Connecticut leaves the panel after 2021. The District of Columbia and Kalawao County, Hawaii, appear in SAIPE but not in the county reference file and are absent from the panel throughout.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section></div></main>
 <!-- /main column -->
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
