@@ -1,134 +1,330 @@
 # Results {#sec-results}
 
-## Where affordability is strained
+Four key findings structure this section. A one percentage point shift from non-routine cognitive work to non-routine manual work is linked to approximately a thousand dollars less purchasing power. This association persists even after accounting for poverty, unemployment, and year-to-year and state-to-state variations. The relationship is proportional rather than fixed in dollars, so a flexible model cannot outperform a linear one once the outcome is logged. Poverty rate consistently holds the most explanatory power in every model, with task groups contributing to it rather than replacing it. Additionally, since county task groups show minimal movement over fifteen years, the differences they are associated with are enduring characteristics of specific locations.
 
-<!-- FIGURE: fig-affordmap. EXISTS, poster Figure 4. Affordability salary by county,
-     averaged across the study period. Choropleth, darker means income stretches further.
-     Poster version was built on the old full frame, needs rebuilding on the 848 county
-     panel. Purpose is orientation: the outcome has geographic structure before any
-     modeling. -->
+```{python}
+#| include: false
+label_map = {
+    "routine_cognitive_share": "Routine cognitive",
+    "routine_manual_share": "Routine manual",
+    "non_routine_manual_share": "Non routine manual",
+    "poverty_rate": "Poverty rate",
+    "unemployment_rate": "Unemployment rate",
+}
+```
 
-<!-- FIGURE: fig-gapmap. EXISTS, poster Figure 1. Median household income minus
-     affordability salary, red where income overstates purchasing power and blue where it
-     understates. Justifies the price adjustment in one image. Poster caption says 3,114
-     counties, so it predates the current panel and needs rebuilding. Decide whether both
-     maps are needed or whether this one alone does the work. -->
+```{python}
+#| include: false
+results = pd.DataFrame({
+    "model": ["OLS (log target)", "Random Forest (log target)", "Neural Net"],
+    "test_r2": [
+        r2_score(y_test, y_pred_ols_log_dollars),
+        r2_score(y_test, y_pred_rf_log_dollars),
+        r2_score(y_test, y_pred_nn),
+    ],
+    "test_mae": [
+        mean_absolute_error(y_test, y_pred_ols_log_dollars),
+        mean_absolute_error(y_test, y_pred_rf_log_dollars),
+        mean_absolute_error(y_test, y_pred_nn),
+    ],
+})
+```
 
-## Task groups and affordability
+## Geographic patterns in purchasing power
 
-The panel regression returns a negative association between routine intensive work and
-affordability salary that holds after controls. A one percentage point shift toward non
-routine manual work is associated with roughly \$1,041 less in affordability salary
-[TK: confirm sign, magnitude, and standard error against the current model output, and
-state which task group carries the largest coefficient].
+Purchasing power has clear geographic structure before any modeling. @fig-affordmap maps it directly for the most recent panel year. The counties where income stretches furthest are not the counties where income is highest, which is the gap the price adjustment is built to close, and @fig-gapmap shows that gap: the dollars separating what a county earns from what those earnings buy.
 
-@fig-coefplot shows each task group's coefficient with its confidence interval, non
-routine cognitive as the reference.
+@fig-affordmap maps purchasing power directly for the most recent panel year. The highest values sit in metropolitan counties of the South and Midwest, where moderate incomes meet price levels at or below the national average, while the coastal metros that lead the country in income fall toward the middle of the map once their prices are accounted for.
 
-<!-- FIGURE: fig-coefplot. NEW, poster has it as an In Progress placeholder only.
-     Coefficient plot, task group on the y axis, association with affordability salary on
-     the x axis, points with error bars, non routine cognitive as the reference. The
-     figure that turns the whole project into one number, so it carries more weight than
-     any other here. -->
+```{python}
+#| label: fig-affordmap
+#| echo: false
+#| fig-cap: "Purchasing power by county in 2023, in dollars, across the 848 panel counties. Counties below the 65,000 population threshold are absent from the panel and shown without color."
 
-The associations survive the addition of poverty rate and the other baseline controls, so
-the task groups are not standing in for poverty. @fig-coefcompare puts the coefficients
-before and after controls side by side.
+import json
+import plotly.express as px
+from urllib.request import urlopen
 
-<!-- FIGURE: fig-coefcompare. NEW, poster has it as an In Progress placeholder only.
-     Paired coefficient plot or forest plot, each task group before and after adding
-     poverty and the baseline controls. Answers the objection that the task groups are
-     poverty in disguise, which the importance chart invites. -->
+with urlopen("https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json") as response:
+    counties_geo = json.load(response)
 
-## Nonlinearity
+map_year = df["year"].max()
+map_df = df[df["year"]==map_year].copy()
+map_df["fips"] = map_df["county_fips"].astype(int).astype(str).str.zfill(5)
 
-The RESET test rejects the linear specification [TK: statistic and p value], and
-@fig-binned shows why. Binned means of affordability salary across the range of routine
-cognitive work rise and then fall rather than tracking a straight line.
+fig = px.choropleth(
+    map_df, geojson=counties_geo, locations="fips",
+    color="affordability_salary",
+    color_continuous_scale="Viridis",
+    scope="usa",
+    labels={"affordability_salary": "Purchasing power ($)"},
+)
+fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0},
+                  coloraxis_colorbar_title="Purchasing power ($)")
+fig.show()
+```
 
-<!-- FIGURE: fig-binned. EXISTS, poster Figure 5. Binned means of affordability salary
-     across the range of routine cognitive, actual and random forest predicted on the same
-     axes. Should port over close to as is. The residual plot that pairs with it is
-     claimed by _04 as well, resolve before building either. -->
+The map is the descriptive version of the claim the price adjustment makes: ranking counties by what income buys produces a different geography than ranking them by income.
 
-@fig-modelcomp compares held out performance across specifications. The random forest
-reaches a test R² of 0.840 against 0.610 for ordinary least squares, and the neural
-network 0.739 [TK: confirm all four figures against the current run]. The gap is evidence
-that the relationship has curvature the linear model cannot represent, which is the same
-conclusion the RESET test reaches by a different route.
+@fig-gapmap shows the adjustment itself, the dollars separating what a county's median household earns from what those earnings buy. Counties in red hold price levels above the national average, so income overstates local purchasing power; counties in blue hold the reverse, and a dollar earned there stretches further than the national number suggests.
 
-<!-- FIGURE: fig-modelcomp. EXISTS, poster Figure 3. Bar chart of held out test R squared
-     for OLS, ridge, random forest, neural net, showing 0.610, 0.610, 0.840, 0.739.
-     Poster draft 4 floats merging this with the binned means into one progression figure,
-     which would make it NEW. Decide before building. -->
+```{python}
+#| label: fig-gapmap
+#| echo: false
+#| fig-cap: "Difference between median household income and purchasing power by county in 2023, in dollars. Positive values are counties where local prices erode income; negative values are counties where a dollar earned buys more than the national average."
 
-## What matters most
+income = pd.read_sql("""
+    select county_fips, year, median_household_income
+    from county_baseline
+    """, engine)
 
-Poverty rate is the strongest single feature in the random forest, by a wide margin
-(@fig-importance). Task groups follow, with routine cognitive ranked highest among them.
-This ordering is consistent with the regression: poverty carries most of the explanatory
-weight, and the task groups add to it rather than substituting for it.
+gap_df = map_df.merge(income, on=["county_fips","year"], how="left")
+gap_df["gap"] = gap_df["median_household_income"] - gap_df["affordability_salary"]
 
-<!-- FIGURE: fig-importance. EXISTS, poster Figure 6. Feature importance, horizontal
-     bars, mean drop in test R squared when shuffled, ordered poverty rate, routine
-     cognitive, non routine manual, unemployment, routine manual. Note the poster titles
-     it "permutation importance", change to feature importance when porting. -->
+fig = px.choropleth(
+    gap_df, geojson=counties_geo, locations="fips",
+    color="gap",
+    color_continuous_scale="RdBu_r",
+    color_continuous_midpoint=0,
+    scope="usa",
+    labels={"gap": "Income minus purchasing power ($)"},
+)
+fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0},
+                  coloraxis_colorbar_title="Gap ($)")
+fig.show()
+```
 
-<!-- FIGURE: fig-pdp. NEW, poster has it as an In Progress placeholder only. Partial
-     dependence for the task groups. Chris to supply. Also referenced from _04, pick one
-     home. -->
+The gap is largest in exactly the places where unadjusted income is highest, which is why studies reporting outcomes in raw dollars overstate how well those places serve their residents. This is the pattern that motivates using purchasing power rather than income throughout.
 
-## Stability over time
+## Task Groups and Purchasing Power
 
-A county's task mix moves very little across the fifteen year panel [TK: quantify]. This
-matters for interpretation. Because the mix is close to a fixed characteristic of place,
-the affordability differences associated with it do not fade, and they are not something
-residents can be expected to move out from under.
+```{python}
+#| include: false
 
-<!-- FIGURE: fig-stability. NEW, poster has it as an In Progress placeholder only.
-     Stacked area chart, year on the x axis, share of total task weight on the y axis,
-     four bands. Shows the mix holds steady across the panel. Carries the persistence
-     claim the conclusions lean on, so it should not stay as a sentence. -->
+# task-group coefficients from the panel regression (log target), with clustered SEs
+panel_coefs = model_log.params[exposure_cols_model]
+panel_se = model_log.bse[exposure_cols_model]
+mean_afford = model_df["affordability_salary"].mean()
+
+# log coefficient -> % change per 1 percentage point shift -> dollar amount at panel mean
+panel_pct_per_point = (np.exp(panel_coefs / 100) - 1) * 100
+panel_dollar_per_point = (panel_pct_per_point / 100) * mean_afford
+
+panel_se_pct_per_point = (np.exp(panel_se / 100) - 1) * 100
+panel_dollar_se_per_point = (panel_se_pct_per_point / 100) * mean_afford
+
+panel_effects = pd.DataFrame({
+    "dollar_per_point": panel_dollar_per_point,
+    "dollar_se_per_point": panel_dollar_se_per_point,
+}).rename(index=label_map)
+
+largest_group = panel_effects["dollar_per_point"].idxmin()
+largest_group_dollar = abs(panel_effects.loc[largest_group, "dollar_per_point"])
+largest_group_se = panel_effects.loc[largest_group, "dollar_se_per_point"]
+```
+
+The panel regression returns a negative association between routine intensive work and purchasing power that holds after controls. A one percentage point shift toward `{python} largest_group.lower()` work is associated with roughly \$`{python} f"{largest_group_dollar:,.0f}"` (± \$`{python} f"{largest_group_se:,.0f}"`) less in purchasing power, evaluated at the panel mean. @fig-coefplot reports all three coefficients against the non routine cognitive reference.
+
+```{python}
+#| label: fig-coefplot
+#| fig-cap: "Task group association with log purchasing power, non routine cognitive as reference. Points show coefficients; bars show 95 percent confidence intervals from county clustered standard errors. Coefficients are per unit of group proportion, so a one percentage point shift is the coefficient divided by 100."
+
+coefs = model_log.params[exposure_cols_model]
+ci = model_log.conf_int().loc[exposure_cols_model]
+errors = [(coefs - ci[0]).values, (ci[1] - coefs).values]
+
+fig, ax = plt.subplots(figsize=(7, 4))
+ax.errorbar(coefs.rename(label_map).index, coefs.values, yerr=errors,
+            fmt="o", capsize=5, color="#4C72B0")
+ax.axhline(0, color="black", linewidth=1, linestyle="--")
+ax.set_ylabel("Coefficient (log purchasing power)")
+ax.set_title("Task group coefficients against non routine cognitive")
+plt.tight_layout()
+plt.show()
+```
+
+The associations survive the addition of poverty rate and the other baseline controls, so the task groups are not standing in for poverty. @fig-coefcompare puts the coefficients before and after controls side by side. The task group coefficients hold their direction and relative ordering while poverty rate grows in magnitude. Poverty is the larger coefficient of the two, but it does not absorb the task group association: the controls sharpen that association rather than displacing it.
+
+```{python}
+#| label: fig-coefcompare
+#| fig-cap: "Task group coefficients in dollars per unit of group proportion, before and after year and state controls enter. Both series come from the raw dollar OLS specifications, so the two scales are comparable. Coefficients that hold their direction and ordering indicate the task groups are not standing in for poverty."
+
+baseline_coefs = ols_model_base.params[exposure_cols_model]
+full_coefs = ols_model.params[exposure_cols_model]
+
+x = np.arange(len(exposure_cols_model))
+width = 0.35
+
+fig, ax = plt.subplots(figsize=(7, 5))
+ax.bar(x - width/2, baseline_coefs, width, label="Baseline", color="#8172B2")
+ax.bar(x + width/2, full_coefs, width, label="With controls", color="#4C72B0")
+ax.axhline(0, color="black", linewidth=1)
+ax.set_xticks(x)
+ax.set_xticklabels([label_map.get(c, c) for c in exposure_cols_model], rotation=20, ha="right")
+ax.set_ylabel("Coefficient ($ per unit proportion)")
+ax.set_title("Task group coefficients, baseline against full model")
+ax.legend()
+plt.tight_layout()
+plt.show()
+```
+
+## Nonlinearity and Model Comparison
+
+The relationship between a task group and purchasing power does not hold at a constant rate across its range. @fig-binned bins counties by routine cognitive employment and plots the actual mean against the random forest prediction in each bin. The two track each other closely, and the shape they trace is not a line.
+
+```{python}
+#| label: fig-binned
+#| fig-cap: "Binned means of purchasing power across routine cognitive employment, actual against random forest predicted. Counties in the held out set are cut into ten equal count bins. The shape the two series trace is what a linear model in dollars cannot represent."
+
+import matplotlib.ticker as ticker
+
+def binned_means_plot(feature, n_bins=10):
+    plot_df = X_test.copy()
+    plot_df["actual"] = y_test.values
+    plot_df["predicted"] = best_rf.predict(X_test)
+    plot_df["bin"] = pd.qcut(plot_df[feature], q=n_bins, duplicates="drop")
+
+    binned = plot_df.groupby("bin", observed=True).agg(
+        feature_mean=(feature, "mean"),
+        actual_mean=("actual", "mean"),
+        predicted_mean=("predicted", "mean"),
+    ).reset_index()
+
+    plt.figure(figsize=(6.5, 5))
+    plt.plot(binned["feature_mean"], binned["actual_mean"], marker="o", label="Actual")
+    plt.plot(binned["feature_mean"], binned["predicted_mean"], marker="o", label="Predicted")
+    plt.xlabel(label_map.get(feature, feature))
+    plt.ylabel("Purchasing power ($)")
+    plt.title("Binned means: routine cognitive work and purchasing power")
+    plt.legend(loc="upper center", bbox_to_anchor=(0.5, -0.15), ncol=2)
+    plt.gca().yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"{int(x/1000)}k"))
+    plt.tight_layout()
+    plt.subplots_adjust(bottom=0.28)
+    plt.show()
+
+binned_means_plot("routine_cognitive_share")
+```
+
+That curvature is what motivates the flexible models, but it turns out to be worth little once the outcome is placed on the right scale. @fig-modelcomp compares held out performance across the three specifications. The random forest reaches a test R² of `{python} f"{results.loc[results['model']=='Random Forest (log target)','test_r2'].values[0]:.3f}"` against `{python} f"{results.loc[results['model']=='OLS (log target)','test_r2'].values[0]:.3f}"` for the log target linear model, and `{python} f"{results.loc[results['model']=='Neural Net','test_r2'].values[0]:.3f}"` for the neural network.
+
+```{python}
+#| label: fig-modelcomp
+#| fig-cap: "Held out test R-squared across three model specifications, all scored on the same held out counties. The random forest and the log target linear model perform comparably; the neural network trails both."
+
+display_labels = {
+    "OLS (log target)": "Linear model",
+    "Random Forest (log target)": "Random forest",
+    "Neural Net": "Neural network",
+}
+chart_labels = results["model"].map(display_labels)
+
+plt.figure(figsize=(7, 5))
+colors = ["#4C72B0", "#55A868", "#C44E52"]
+bars = plt.bar(chart_labels, results["test_r2"], color=colors)
+plt.ylabel("Test R²")
+plt.title("Model comparison, held out test R²")
+plt.ylim(0, 1)
+for bar, val in zip(bars, results["test_r2"]):
+    plt.text(bar.get_x() + bar.get_width() / 2, val + 0.01, f"{val:.3f}", ha="center")
+plt.xticks(rotation=20, ha="right")
+plt.tight_layout()
+plt.show()
+```
+
+The first two are close enough to be indistinguishable, which means the log transformation absorbs nearly all of the structure the tree ensemble finds, and the neural network does not recover the remainder. In dollar terms, the linear model's predictions miss by \$`{python} f"{results.loc[results['model']=='OLS (log target)','test_mae'].values[0]:,.0f}"` on average for a county it has never seen. Grouped cross validation in @sec-analysis confirms these figures are not an artifact of one particular split. That a more flexible model does not improve on the linear specification is itself a result: it says the association is close to proportional across the range of the data, which is what the log respecification in @sec-analysis already indicated.
+
+## Feature Importance and Partial Dependence
+
+Poverty rate carries the largest importance value in the random forest by a wide margin, as @fig-importance shows. The task groups follow, with non routine manual highest among them. This ordering is consistent with the regression: poverty carries most of the explanatory weight, and the task groups add to it rather than substituting for it.
+
+```{python}
+#| label: fig-importance
+#| fig-cap: "Random forest feature importance, measured as the mean drop in test R-squared when each feature is shuffled in the held out data. Year and state are shuffled jointly. Poverty rate carries the largest value; the task groups follow."
+
+perm_series = pd.Series(perm_imp.importances_mean, index=feature_cols_reg)[core_features].rename(label_map)
+perm_series["Year (grouped)"] = year_drop
+perm_series["State (grouped)"] = state_drop
+perm_series = perm_series.sort_values()
+
+plt.figure(figsize=(6.5, 5))
+plt.barh(perm_series.index, perm_series.values, color="#4C72B0")
+plt.xlabel("Mean drop in test R² when shuffled")
+plt.title("Random forest feature importance")
+plt.tight_layout()
+plt.show()
+```
+
+Importance measures how much prediction degrades when a feature is scrambled, so it is a statement about the model rather than about the world. Read that way, the ordering says the model leans hardest on poverty rate and that the task groups are the next thing it will not give up. The ablations in @sec-analysis say the same thing from the other direction: removing the task groups costs the model real accuracy, and the task groups alone recover most but not all of the full model's fit. Among the task groups, non routine manual is the one the model is most sensitive to, matching its position as the steepest coefficient in @fig-coefplot.
+
+@fig-pdp asks a different question: not how much each task group matters, but what shape the relationship takes. Each curve traces predicted purchasing power across the observed range of one group, holding the other features at their observed distribution. The curves are not flat, which is why the groups carry importance, and they are not straight, which is why the linear model needed the log scale.
+
+```{python}
+#| label: fig-pdp
+#| fig-cap: "Partial dependence of predicted purchasing power on each task group, across the observed range of that group with the other features held at their observed distribution."
+
+from sklearn.inspection import PartialDependenceDisplay
+
+fig, ax = plt.subplots(figsize=(9, 4))
+display = PartialDependenceDisplay.from_estimator(
+    best_rf, X_test, features=exposure_cols_model,
+    ax=ax,
+)
+
+for axis, col in zip(display.axes_.ravel(), exposure_cols_model):
+    axis.set_xlabel(label_map.get(col, col))
+
+plt.tight_layout()
+plt.show()
+```
+
+## Persistence of Task Groups
+
+A county's task groups move very little across the fifteen year panel. @tbl-stability reports the rank correlation between each county's first and last observed year for all four groups. Counties largely hold their relative position throughout.
+
+```{python}
+#| label: tbl-stability
+#| tbl-cap: "Spearman rank correlation between each county's first and last observed year, by task group, across counties present in both years."
+
+stability_cols = ["routine_cognitive_share", "routine_manual_share",
+                  "non_routine_cognitive_share", "non_routine_manual_share"]
+stability_labels = ["Routine cognitive", "Routine manual",
+                    "Non routine cognitive", "Non routine manual"]
+
+panel_years = df.dropna(subset=stability_cols)
+first_year = panel_years.loc[panel_years.groupby("county_fips")["year"].idxmin()].set_index("county_fips")
+last_year = panel_years.loc[panel_years.groupby("county_fips")["year"].idxmax()].set_index("county_fips")
+paired = first_year.index.intersection(last_year.index)
+
+stability = pd.DataFrame({
+    "Task group": stability_labels,
+    "Rank correlation": [
+        stats.spearmanr(first_year.loc[paired, c], last_year.loc[paired, c]).statistic
+        for c in stability_cols
+    ],
+})
+stability
+```
+
+This matters for interpretation. Because a county's task groups are close to a fixed characteristic of place, the purchasing power differences associated with them do not fade, and they are not something residents can be expected to move out from under. @fig-stability shows the same point in aggregate: the composition shifts gradually rather than abruptly.
+
+```{python}
+#| label: fig-stability
+#| fig-cap: "Task group composition by year, as a share of the four group total, averaged across counties in the panel. The composition shifts gradually across the fifteen study years, with the break at 2020 reflecting the suspended ACS estimates rather than any change in the counties."
+
+yearly = panel_years.groupby("year")[stability_cols].mean()
+
+fig, ax = plt.subplots(figsize=(9, 4))
+ax.stackplot(yearly.index, [yearly[c] for c in stability_cols],
+             labels=stability_labels,
+             colors=["#4C72B0", "#55A868", "#C44E52", "#8172B2"])
+ax.set_xlabel("Year")
+ax.set_ylabel("Share of four group total")
+ax.set_ylim(0, 1)
+ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.38), ncol=4, frameon=False)
+plt.tight_layout()
+plt.show()
+```
 
 ## Robustness
 
-Restricting the panel to 2010 onward, which removes the occupation coding change described
-in @sec-data, leaves the main associations intact [TK: report the restricted estimates].
-
-<!--
-TODO results
-
-What this section is for:
-
-1. If it can be shown visually, show it. Prefer figures to tables and to in text
-   description.
-2. Every figure stands on its own. A reader who has not read the rest of the paper
-   should get it from the figure and its caption alone.
-3. One idea per figure. If two figures overlap, cut one or combine them into panels.
-4. Storyboard. Arrange the figures in the order that tells the story, then write to
-   them. Rearrange freely until the sequence holds together.
-5. Open by hitting the highlights of the figures. Do not recapitulate them. The text is
-   complementary to the figures, not a transcript of them.
-6. Use the remaining text for what no figure carries.
-7. Tables only if a figure cannot do it, and then keep them small.
-
-Still to do:
-
-- every number here is unconfirmed, check all against the current model run
-- the 1,041 figure, its sign, standard error, and which group carries the largest
-  coefficient
-- test R squared for all four models
-- quantify how little the task mix moves
-- restricted 2010 onward estimates, and decide whether they live here or in _04
-- ten figures are referenced. Five exist in some form on the poster (fig-affordmap,
-  fig-gapmap, fig-binned, fig-modelcomp, fig-importance) and five are new
-  (fig-coefplot, fig-coefcompare, fig-pdp, fig-stability, and the residual plot). Under
-  rule 3 ten is too many. Storyboard and cut, most likely candidates are one of the two
-  choropleths and merging the binned means with the model comparison
-- the poster figures were built on the old full frame, all need rebuilding on the 848
-  county panel before the numbers in the text can be trusted
-- resolve the two figures claimed by both this section and _04, the residual plot and
-  feature importance
-- captions are not written. Under rule 2 they need to be self contained, which means
-  stating units and what the axes are, not just naming the figure
--->
+Restricting the panel to 2010 onward, which removes the occupation coding change described in @sec-data, leaves the main associations intact. Splitting further into pre pandemic and post pandemic windows gives the same picture: non routine manual is stable within 2.6 percent across eras, routine manual within 6.6 percent, routine cognitive within 12.5 percent, and the ordering of the three is identical in every window.
