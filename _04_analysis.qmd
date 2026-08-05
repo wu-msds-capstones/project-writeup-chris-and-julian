@@ -90,21 +90,21 @@ share_vals=vif_share[["routine_cognitive_share","routine_manual_share",
                       "non_routine_manual_share"]].values
 xmax=max(vif_raw.max(), 12)*1.08
 
-fig, axes=plt.subplots(1, 2, figsize=(13,4))
+fig, axes=plt.subplots(1, 2, figsize=(10,3.5))
 
 axes[0].barh(raw_labels, vif_raw.values, color="#D55E00")
 axes[0].axvline(10, color="black", linestyle="--", linewidth=1)
 axes[0].set_xlim(0, xmax)
-axes[0].set_title("Unnormalized employment totals")
-axes[0].set_xlabel("Variance inflation factor")
+axes[0].set_title("Unnormalized Employment Totals")
+axes[0].set_xlabel("Variance Inflation Factor")
 for i, v in enumerate(vif_raw.values):
     axes[0].text(v+0.4, i, f"{v:.1f}", va="center", fontsize=10)
 
 axes[1].barh(share_labels, share_vals, color="#009E73")
 axes[1].axvline(10, color="black", linestyle="--", linewidth=1)
 axes[1].set_xlim(0, xmax)
-axes[1].set_title("Group proportions, as estimated")
-axes[1].set_xlabel("Variance inflation factor")
+axes[1].set_title("Group Proportions, as Estimated")
+axes[1].set_xlabel("Variance Inflation Factor")
 for i, v in enumerate(share_vals):
     axes[1].text(v+0.4, i, f"{v:.1f}", va="center", fontsize=10)
 
@@ -114,7 +114,7 @@ plt.show()
 
 This also explains a problem visible earlier in the project. Before normalization the coefficients were unstable and their standard errors were large relative to their magnitudes, both standard symptoms of multicollinearity.
 
-## Data validation
+## Data Validation
 
 Before making any estimations, we ensure that the data support the chosen methods. We examine the distributions of the four task groups and purchasing power to identify any skewness or outliers. Additionally, we verify that the county year coverage is consistent across the retained panel. Furthermore, we check for any overlap between task groups to ensure that no two groups effectively carry the same information. @fig-dists provides visual representations of the distributions.
 
@@ -125,7 +125,7 @@ Before making any estimations, we ensure that the data support the chosen method
 share_cols=["routine_cognitive_share","routine_manual_share",
             "non_routine_cognitive_share","non_routine_manual_share"]
 
-titles=["Routine cognitive","Routine manual","Non routine cognitive","Non routine manual"]
+titles=["Routine Cognitive","Routine Manual","Non Routine Cognitive","Non Routine Manual"]
 
 layout=[["afford","afford"],
         ["rc","rm"],
@@ -134,7 +134,7 @@ layout=[["afford","afford"],
 fig, axes=plt.subplot_mosaic(layout, figsize=(6.5, 3))
 
 sns.histplot(data=df, x="affordability_salary", bins=50, ax=axes["afford"])
-axes["afford"].set_title("Purchasing power ($)")
+axes["afford"].set_title("Purchasing Power ($)")
 axes["afford"].set_xlabel("")
 
 for key, col, title in zip(["rc","rm","nrc","nrm"], share_cols, titles):
@@ -151,11 +151,11 @@ Purchasing power is right skewed, with a skewness of 1.17. The center of the dis
 
 ## Specification Diagnostics
 
-A linear model assumes a constant rate of association across the data range and symmetrical, evenly distributed errors around the fit. We verify these assumptions using three diagnostics: residuals plotted against fitted values, a QQ plot of the residuals, and the variance inflation factors reported above. @fig-resid-analysis illustrates the first two, pinpointing the failure directly. The smoothed residual line deviates from zero, indicating curvature the model does not capture. The vertical spread of residuals increases with fitted values. The model underestimates both the lowest and highest purchasing power counties while fitting the middle well. Additionally, the QQ plot deviates from normality in the upper tail, reflecting a residual skew of 1.02.
+A linear model assumes a constant rate of association across the data range and symmetrical, evenly distributed errors around the fit. We verify these assumptions using three diagnostics: residuals plotted against fitted values, a QQ plot of the residuals, and the variance inflation factors reported above. A residual is the actual value minus the model's prediction, so a point above zero is a county the model predicted too low. The QQ plot sorts those residuals and plots them against the values a normal distribution of the same size would produce, so points on the diagonal indicate normally distributed errors and departures from it mark where the assumption fails. @fig-resid-analysis illustrates the first two, pinpointing the failure directly. The smoothed residual line deviates from zero, indicating curvature the model does not capture. The vertical spread of residuals increases with fitted values. The model underestimates both the lowest and highest purchasing power counties while fitting the middle well, though the left tail rests on comparatively few counties. Additionally, the QQ plot deviates from normality in the upper tail, reflecting a residual skew of 1.02.
 
 ```{python}
 #| label: fig-resid-analysis
-#| fig-cap: "Level model diagnostics. Left: residuals against fitted values with lowess smoother; the curve away from zero at both ends shows the model underpredicting the lowest and highest purchasing power counties. Right: QQ plot of residuals; the bend above the line in the upper tail reflects the residual skew of 1.02."
+#| fig-cap: "Level model diagnostics. Left: residuals, the actual value minus the model's prediction, against fitted values with a lowess smoother; the curve away from zero at both ends shows the model underpredicting the lowest and highest purchasing power counties. Right: QQ plot of the same residuals against normal quantiles; the bend above the line in the upper tail reflects the residual skew of 1.02."
 
 fig, axes=plt.subplots(1, 2, figsize=(9,4))
 
@@ -171,7 +171,7 @@ stats.probplot(reg["resid"], dist="norm", plot=axes[1])
 axes[1].get_lines()[0].set(marker="o", markersize=2, alpha=0.3,
                            color="grey", markeredgecolor="none")
 axes[1].get_lines()[1].set(color="#D55E00", linewidth=1.5)
-axes[1].set_title("QQ plot")
+axes[1].set_title("QQ Plot")
 axes[1].set_xlabel("Theoretical Quantiles")
 axes[1].set_ylabel("Ordered Residuals ($)")
 
@@ -190,15 +190,15 @@ Underprediction at both extremes is a hallmark of a multiplicative process that 
 #| echo: false
 #| fig-cap: "Purchasing power before and after the log transformation. The level distribution is right skewed with a long upper tail; logging pulls the tail in and leaves a distribution close to symmetric."
 
-fig, axes=plt.subplots(1, 2, figsize=(11,3.5))
+fig, axes=plt.subplots(1, 2, figsize=(10,3.5))
 
 sns.histplot(data=reg, x="affordability_salary", bins=50, color="#D55E00", ax=axes[0])
-axes[0].set_title(f"Level, skew {reg['affordability_salary'].skew():.2f}")
-axes[0].set_xlabel("Purchasing power ($)")
+axes[0].set_title(f"Level, Skew {reg['affordability_salary'].skew():.2f}")
+axes[0].set_xlabel("Purchasing Power ($)")
 
 sns.histplot(data=reg, x="actual_log", bins=50, color="#009E73", ax=axes[1])
-axes[1].set_title(f"Logged, skew {reg['actual_log'].skew():.2f}")
-axes[1].set_xlabel("Log purchasing power")
+axes[1].set_title(f"Logged, Skew {reg['actual_log'].skew():.2f}")
+axes[1].set_xlabel("Log Purchasing Power")
 axes[1].set_ylabel("")
 
 plt.tight_layout()
@@ -218,14 +218,19 @@ fig, axes=plt.subplots(1, 2, figsize=(9,4))
 
 sns.scatterplot(data=reg, x="fitted_log", y="resid_log", alpha=0.1, s=5, color="grey", ax=axes[0])
 sns.regplot(data=reg, x="fitted_log", y="resid_log", scatter=False, lowess=True,
-            line_kws={"color":"#009E73"}, ax=axes[0])
+            line_kws={"color":"#009E73","linewidth":2}, ax=axes[0])
 axes[0].axhline(0, color="black", linewidth=1)
-axes[0].set_title("Residuals against fitted values")
-axes[0].set_xlabel("Fitted log purchasing power")
+axes[0].set_title("Residuals Against Fitted Values")
+axes[0].set_xlabel("Fitted Log Purchasing Power")
 axes[0].set_ylabel("Residual")
 
 stats.probplot(reg["resid_log"], dist="norm", plot=axes[1])
-axes[1].set_title("QQ plot")
+axes[1].get_lines()[0].set(marker="o", markersize=2, alpha=0.3,
+                           color="grey", markeredgecolor="none")
+axes[1].get_lines()[1].set(color="#009E73", linewidth=1.5)
+axes[1].set_title("QQ Plot")
+axes[1].set_xlabel("Theoretical Quantiles")
+axes[1].set_ylabel("Ordered Residuals")
 
 plt.tight_layout()
 plt.show()
@@ -238,7 +243,7 @@ plt.show()
 #| echo: false
 #| fig-cap: "Binned means before and after the log transformation. Fitted values are cut into twenty equal count bins, and each point compares a bin's mean prediction with its mean actual value; points on the line indicate no systematic bias in that range. On the level scale both tails sit above the line. On the log scale the points track it throughout."
 
-fig, axes=plt.subplots(1, 2, figsize=(13,5.5))
+fig, axes=plt.subplots(1, 2, figsize=(10,4.5))
 
 reg.loc[:, "bin"]=pd.qcut(reg["fitted"], 20, labels=False)
 binned=reg.groupby("bin")[["fitted","affordability_salary"]].mean()
@@ -246,9 +251,9 @@ axes[0].scatter(reg["fitted"], reg["affordability_salary"], alpha=0.05, s=4, col
 axes[0].scatter(binned["fitted"], binned["affordability_salary"], color="#D55E00", zorder=3, s=35)
 lim=[binned.values.min(), binned.values.max()]
 axes[0].plot(lim, lim, color="black", linewidth=1)
-axes[0].set_title("Level target")
-axes[0].set_xlabel("Fitted purchasing power ($)")
-axes[0].set_ylabel("Actual purchasing power ($)")
+axes[0].set_title("Level Target")
+axes[0].set_xlabel("Fitted Purchasing Power ($)")
+axes[0].set_ylabel("Actual Purchasing Power ($)")
 
 reg.loc[:, "bin_log"]=pd.qcut(reg["fitted_log"], 20, labels=False)
 binned_log=reg.groupby("bin_log")[["fitted_log","actual_log"]].mean()
@@ -256,9 +261,9 @@ axes[1].scatter(reg["fitted_log"], reg["actual_log"], alpha=0.05, s=4, color="gr
 axes[1].scatter(binned_log["fitted_log"], binned_log["actual_log"], color="#009E73", zorder=3, s=35)
 lim=[binned_log.values.min(), binned_log.values.max()]
 axes[1].plot(lim, lim, color="black", linewidth=1)
-axes[1].set_title("Log target")
-axes[1].set_xlabel("Fitted log purchasing power")
-axes[1].set_ylabel("Actual log purchasing power")
+axes[1].set_title("Log Target")
+axes[1].set_xlabel("Fitted Log Purchasing Power")
+axes[1].set_ylabel("Actual Log Purchasing Power")
 
 plt.tight_layout()
 plt.show()
@@ -268,12 +273,12 @@ The smoothed residual line does not lie perfectly flat even after the transforma
 
 ## Variance Decomposition
 
-Purchasing power and the task groups vary both across counties and within a county over time, and the two carry different implications. @fig-between-within splits each group's variation into the two components. The manual groups vary almost entirely between counties, which is what makes the associated purchasing power differences durable rather than temporary. Routine cognitive is the only group with genuine within county movement.
+Purchasing power and the task groups vary both across counties and within a county over time, and the two carry different implications. @fig-between-within splits each group's variation into the two components. Between county variation is the share of the total that comes from counties differing from one another; within county variation is the share that comes from a single county changing across the panel. The manual groups vary almost entirely between counties, which is what makes the associated purchasing power differences durable rather than temporary. Routine cognitive is the only group with genuine within county movement.
 
 ```{python}
 #| label: fig-between-within
 #| echo: false
-#| fig-cap: "Variation split into differences between counties and movement within a county over time, on the panel restricted to 2010 onward with each year's cross county mean removed. The manual groups vary almost entirely between counties. Routine cognitive is the one group with substantial within county movement."
+#| fig-cap: "Variation split into differences between counties and movement within a county over time, as a percentage of each group's total variance, on the panel restricted to 2010 onward with each year's cross county mean removed. The manual groups vary almost entirely between counties. Routine cognitive is the one group with substantial within county movement."
 
 df10=df[df["year"]>=2010].copy()
 input_cols=["routine_cognitive_share","routine_manual_share","non_routine_manual_share"]
@@ -294,7 +299,7 @@ ax.barh(labels, within_vals, left=between_vals, color="#D55E00",
 for i, v in enumerate(within_vals):
     ax.text(100-v/2, i, f"{v:.0f}%", ha="center", va="center", color="white", fontsize=10)
 ax.set_xlim(0, 100)
-ax.set_xlabel("Share of variance (percent)")
+ax.set_xlabel("Share of Variance (Percent)")
 ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.5), ncol=2, frameon=False)
 plt.tight_layout()
 plt.show()
@@ -391,15 +396,21 @@ Texas was selected as the reference state because its mean purchasing power sits
 #| label: fig-state-afford
 #| fig-cap: "Mean purchasing power by state, sorted ascending, with the panel median marked. Texas sits near the middle of the distribution, supporting its use as the reference state."
 
-state_affordability.plot(kind="bar", figsize=(14, 4))
-plt.axhline(state_affordability.median(), color="red", linestyle="--", label="Median")
-plt.legend()
+fig, ax = plt.subplots(figsize=(12, 4))
+state_affordability.plot(kind="bar", ax=ax)
+ax.axhline(state_affordability.median(), color="red", linestyle="--", label="Median")
+ax.set_xlabel("State FIPS Code")
+ax.set_ylabel("Mean Purchasing Power ($)")
+ax.set_title("Mean Purchasing Power by State")
+plt.xticks(rotation=90, fontsize=8)
+ax.legend()
+plt.tight_layout()
 plt.show()
 ```
 
 @fig-state-afford shows that Texas lies near the middle of the states in terms of purchasing power and is usable as a reference point.
 
-### Collinearity
+### Collinearity in the Predictive Feature Set
 
 Our four main features, `routine_cognitive_share`, `routine_manual_share`, `non_routine_cognitive_share` and `non_routine_manual_share`, are parts of a whole, so one must be removed to maintain independence, as the fourth is deterministic once the values of the other three are known. Leaving all four in would guarantee at least one variance inflation offender, for the same reason set out in @fig-vif above.
 
@@ -487,7 +498,7 @@ ols_model_base = sm.OLS(y_train, X_train_base_sm).fit()
 print(ols_model_base.summary())
 ```
 
-Features are on very different scales. R² = 0.766 is respectable. Every coefficient is negative and highly significant, which follows from non routine cognitive being the reference: shifting a county's task groups toward any of the other groups is associated with lower purchasing power, with non routine manual the steepest.
+Features are on very different scales. R², the share of variation in the outcome the model accounts for, is 0.766, which is respectable. Every coefficient is negative and highly significant, which follows from non routine cognitive being the reference: shifting a county's task groups toward any of the other groups is associated with lower purchasing power, with non routine manual the steepest.
 
 #### Full Specification
 
@@ -515,12 +526,12 @@ fig, axes = plt.subplots(1, 2, figsize=(9, 4))
 
 axes[0].scatter(fitted_ols, residuals_ols, alpha=0.3, s=10)
 axes[0].axhline(0, color="red", linestyle="--")
-axes[0].set_xlabel("Fitted values")
+axes[0].set_xlabel("Fitted Values")
 axes[0].set_ylabel("Residuals")
-axes[0].set_title("Residuals against fitted values")
+axes[0].set_title("Residuals Against Fitted Values")
 
 stats.probplot(residuals_ols, dist="norm", plot=axes[1])
-axes[1].set_title("QQ plot")
+axes[1].set_title("QQ Plot")
 
 plt.tight_layout()
 plt.show()
@@ -557,12 +568,12 @@ fig, axes = plt.subplots(1, 2, figsize=(9, 4))
 
 axes[0].scatter(ols_model_log.predict(X_train_sm), residuals_log, alpha=0.3, s=10)
 axes[0].axhline(0, color="red", linestyle="--")
-axes[0].set_xlabel("Fitted (log)")
-axes[0].set_ylabel("Residuals (log)")
-axes[0].set_title("Residuals against fitted values")
+axes[0].set_xlabel("Fitted (Log)")
+axes[0].set_ylabel("Residuals (Log)")
+axes[0].set_title("Residuals Against Fitted Values")
 
 stats.probplot(residuals_log, dist="norm", plot=axes[1])
-axes[1].set_title("QQ plot")
+axes[1].set_title("QQ Plot")
 
 plt.tight_layout()
 plt.show()
@@ -701,12 +712,12 @@ A train and test gap of 0.989 against 0.876 indicates that the ceiling on this f
 
 residuals_rf = y_test - y_pred_rf
 
-plt.figure(figsize=(7, 5))
+plt.figure(figsize=(7, 4.5))
 plt.scatter(y_pred_rf, residuals_rf, alpha=0.3, s=10, color="green")
 plt.axhline(0, color="red", linestyle="--")
-plt.xlabel("Predicted values")
-plt.ylabel("Residuals")
-plt.title("Random forest residuals against predicted values (test)")
+plt.xlabel("Predicted Purchasing Power ($)")
+plt.ylabel("Residual ($)")
+plt.title("Random Forest Residuals Against Predicted Values")
 plt.tight_layout()
 plt.show()
 ```
@@ -748,7 +759,7 @@ print("R2 without poverty/unemployment:", rf_no_econ.score(X_test_ne2, y_test))
 
 Using only the task groups, excluding poverty and unemployment, the model reaches an R² of 0.698. That is meaningful on its own but well short of the full model.
 
-#### Random Gorest on the Logged Outcome
+#### Random Forest on the Logged Outcome
 
 The forest is also fit on the logged outcome.
 
@@ -768,7 +779,7 @@ An R² of 0.877 after back transforming is a negligible change from the untransf
 
 #### Grouped Permutation
 
-To see what the four task groups do together, rather than one at a time diluting each other, we permute all four jointly and compare the drop in R² to permuting them individually.
+To see what the four task groups do together, rather than one at a time diluting each other, we permute all four jointly and compare the drop in R² to permuting them individually. Permuting a feature means shuffling its values across rows, which breaks its relationship with the outcome while leaving everything else intact, so the resulting drop in R² measures how much the model was relying on it.
 
 ```{python}
 from sklearn.metrics import r2_score as _r2
@@ -870,7 +881,7 @@ print("Best val_loss achieved:", min(history.history["val_loss"]))
 
 plt.plot(history.history["loss"], label="train")
 plt.plot(history.history["val_loss"], label="val")
-plt.legend(); plt.title("Neural network training curve"); plt.show()
+plt.legend(); plt.title("Neural Network Training Curve"); plt.show()
 ```
 
 The initial training curve shows training loss decreasing steadily and plateauing below 0.1, while validation loss initially decreases to approximately 0.2 before rising to roughly 0.5, a clear indication of overfitting. We address this with L2 weight regularization, increased dropout, and a shorter early stopping patience.
@@ -922,17 +933,19 @@ print("Test MAE:", mean_absolute_error(y_test, y_pred_nn))
 
 plt.plot(history.history["loss"], label="train")
 plt.plot(history.history["val_loss"], label="val")
-plt.legend(); plt.title("Neural network training curve"); plt.show()
+plt.legend(); plt.title("Neural Network Training Curve"); plt.show()
 ```
 
 After these changes the gap between training and validation loss narrows. Additional tuning could likely narrow it further.
 
 <!-- restore with the figure when the tensorflow chunks are re-enabled:
-@fig-nn-curve-regularized shows the training curve after these changes. --> The current results are sufficient, however, to conclude that the neural network does not outperform the random forest or the log target linear model, both of which are substantially cheaper to fit and tune. Given this project's emphasis on explaining the relationship between task groups and purchasing power rather than maximizing predictive accuracy, we do not pursue further tuning of the neural network and proceed with the linear and random forest models as the primary results.
+@fig-nn-curve-regularized shows the training curve after these changes. -->
+
+The current results are sufficient, however, to conclude that the neural network does not outperform the random forest or the log target linear model, both of which are substantially cheaper to fit and tune. Given this project's emphasis on explaining the relationship between task groups and purchasing power rather than maximizing predictive accuracy, we do not pursue further tuning of the neural network and proceed with the linear and random forest models as the primary results.
 
 ### Cross Validation
 
-Having compared the explained variance of the three models, we cross validate to check that the single split result generalizes.
+Having compared the explained variance of the three models, we cross validate to check that the single split result generalizes. Cross validation refits the model five times, each time holding out a different fifth of the counties, so the reported score is an average across five independent held out sets rather than one.
 
 ```{python}
 #| label: tbl-cv-summary
