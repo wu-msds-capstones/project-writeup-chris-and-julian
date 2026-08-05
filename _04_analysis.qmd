@@ -53,7 +53,7 @@ model_log=sm.OLS(reg["actual_log"], X).fit(
 reg["resid_log"]=model_log.resid
 ```
 
-## Panel regression
+## Panel Regression
 
 The four task group values described in @eq-group sum to one, so all four cannot enter a regression together. One serves as the reference group, and we use non routine cognitive. Each remaining coefficient represents the change in purchasing power associated with a shift out of non routine cognitive work and into that group, holding the controls fixed. Each coefficient is a comparison against the reference group. The group values are measured on a zero to one scale. Per percentage point figures reported later therefore divide the estimated coefficients by 100.
 
@@ -61,7 +61,7 @@ Year indicators capture conditions common to all counties within a year. These i
 
 Standard errors are clustered by county, because repeated observations of the same county across fifteen years are not independent draws. A Durbin Watson statistic of 0.496 confirms that dependence directly. The estimated coefficients are reported in @sec-results.
 
-## Collinearity and the reference group
+## Collinearity with Reference Group
 
 Normalizing the four totals by their sum, as @sec-data describes, also resolves a collinearity problem that would otherwise make these coefficients unusable. A variance inflation factor measures how much a coefficient is destabilized by its correlation with the other inputs, with a value above 10 the conventional threshold for concern. The unnormalized totals in @eq-totals carry factors between 13 and 27, because all four are employment counts that scale together with county size, so they move together and carry little independent information. Dividing by the four group total removes that shared scale. @fig-vif shows the two specifications side by side: on the specification actually estimated, every factor sits between 1.2 and 1.6.
 
@@ -114,7 +114,7 @@ plt.show()
 
 This also explains a problem visible earlier in the project. Before normalization the coefficients were unstable and their standard errors were large relative to their magnitudes, both standard symptoms of multicollinearity.
 
-## Validation before modeling
+## Data validation
 
 Before making any estimations, we ensure that the data support the chosen methods. We examine the distributions of the four task groups and purchasing power to identify any skewness or outliers. Additionally, we verify that the county year coverage is consistent across the retained panel. Furthermore, we check for any overlap between task groups to ensure that no two groups effectively carry the same information. @fig-dists provides visual representations of the distributions.
 
@@ -149,7 +149,7 @@ plt.show()
 
 Purchasing power is right skewed, with a skewness of 1.17. The center of the distribution is located near \$57,000, and a long tail of high purchasing power counties extends above it. This skewness is why the diagnostics below focus on the extremes of the distribution.
 
-## Specification diagnostics
+## Specification Diagnostics
 
 A linear model assumes a constant rate of association across the data range and symmetrical, evenly distributed errors around the fit. We verify these assumptions using three diagnostics: residuals plotted against fitted values, a QQ plot of the residuals, and the variance inflation factors reported above. @fig-resid-analysis illustrates the first two, pinpointing the failure directly. The smoothed residual line deviates from zero, indicating curvature the model does not capture. The vertical spread of residuals increases with fitted values. The model underestimates both the lowest and highest purchasing power counties while fitting the middle well. Additionally, the QQ plot deviates from normality in the upper tail, reflecting a residual skew of 1.02.
 
@@ -176,7 +176,7 @@ plt.show()
 
 The level model still provides the interpretable estimates we report. Additionally, its own diagnostics demonstrate that the data possess a structure that a straight line in dollars cannot adequately represent.
 
-## Log respecification
+## Logarithmic Respecification
 
 Underprediction at both extremes is a hallmark of a multiplicative process that is fitted on an additive scale. The factors associated with purchasing power operate proportionally, so the same shift in an input moves a high purchasing power county by more dollars than a low one. Logging the outcome converts those proportional effects into the additive form a linear model assumes. @fig-log-transform shows the outcome itself before and after the transformation.
 
@@ -261,7 +261,7 @@ plt.show()
 
 The smoothed residual line does not lie perfectly flat even after the transformation. The remaining deviations are structured in a way that a single global transformation cannot absorb, most likely due to interactions among the inputs. These deviations motivate the increase in model complexity.
 
-## Variance decomposition
+## Variance Decomposition
 
 Purchasing power and the task groups vary both across counties and within a county over time, and the two carry different implications. @fig-between-within splits each group's variation into the two components. The manual groups vary almost entirely between counties, which is what makes the associated purchasing power differences durable rather than temporary. Routine cognitive is the only group with genuine within county movement.
 
@@ -297,7 +297,7 @@ plt.show()
 
 The Census occupation coding change between 2009 and 2010, as described in @sec-data, inflates apparent within county variation for the routine cognitive group. This is due to the way the source data were coded, not a property of the counties, so the figure above is computed on the panel restricted to 2010 onward with each year's cross county mean removed. We additionally repeat the main estimates on pre pandemic (2010 to 2019) and post pandemic (2021 to 2023) windows. Coefficient stability across these windows is reported in @sec-results.
 
-## Predictive modeling
+## Predictive Modeling
 
 Beyond the inferential panel regression above, we evaluate three predictive approaches of increasing complexity: linear regression, random forest, and a small neural network. We check whether a flexible model captures meaningfully more signal than the linear specification. We reuse the county year panel already assembled above, extended with state identifiers for the fixed effects comparison below.
 
@@ -310,7 +310,7 @@ state_lookup = pd.read_sql(
 df_ml = df.merge(state_lookup, on="county_fips", how="left")
 ```
 
-### Feature set and reference groups
+### Feature Set and Reference Groups
 
 ```{python}
 #| include: false
@@ -331,7 +331,7 @@ model_df[feature_cols].describe(include="all").T
 
 The task groups are computed directly by the database as each group's count divided by the four group sum, so they already satisfy the constraint used in the panel regression above and require no additional normalization here. As before, one group must be dropped to avoid a deterministic column, and we retain `non_routine_cognitive_share` as the omitted reference for consistency with the panel regression.
 
-### Year and state indicators
+### Year and State Indicators
 
 Running year as a factor, not as numeric, gives each year its own independent coefficient, with no assumption about ordering or spacing between them.
 
@@ -429,7 +429,7 @@ vif_data[vif_data["feature"].isin(year_cols_model + state_cols_model)].sort_valu
 
 @tbl-vif-ml lists the highest variance inflation factors after removal of `non_routine_cognitive_share`. No offender columns remain, as all features have a factor below 5.
 
-### Grouped train and test split
+### Grouped Evaluation Design
 
 This is not a forecasting exercise, so a time ordered split is not required for its usual reason. A grouped split is still necessary because a county's economic profile barely moves year to year, so its 2018 and 2019 rows are near duplicates. If two adjacent rows land on opposite sides of the split, the model can recall a county rather than learn a relationship. We therefore group by `county_fips` when splitting, so every test set prediction comes from a county the model has seen no rows of. This tests whether the pattern is relationship driven rather than memorized.
 
@@ -470,11 +470,11 @@ X_base = model_df[feature_cols_base].reset_index(drop=True).astype(float)
 X_train_base, X_test_base = X_base.iloc[train_idx], X_base.iloc[test_idx]
 ```
 
-### Linear regression
+### Linear Regression
 
 We report two versions of each linear model throughout this section: a **baseline**, using the task groups with poverty and unemployment only, and a **full** model, which adds year and state controls. The baseline shows what the relationship looks like before time and geography are accounted for, and the full model is the one carried forward as the primary result. Reporting both makes visible exactly what changes when time and geography enter, and why.
 
-#### Baseline specification
+#### Baseline Specification
 
 ```{python}
 X_train_base_sm = sm.add_constant(X_train_base)
@@ -484,7 +484,7 @@ print(ols_model_base.summary())
 
 Features are on very different scales. R² = 0.766 is respectable. Every coefficient is negative and highly significant, which follows from non routine cognitive being the reference: shifting a county's task groups toward any of the other groups is associated with lower purchasing power, with non routine manual the steepest.
 
-#### Full specification
+#### Full Specification
 
 ```{python}
 X_train_sm = sm.add_constant(X_train)
@@ -523,7 +523,7 @@ plt.show()
 
 There is a clear U shaped pattern in the residual plot, indicating that the residuals are not uniformly distributed, so OLS is not a reliable model for these data with the target as is.
 
-#### Full specification on the logged outcome
+#### Full Specification on the Logged Outcome
 
 The binned means in @fig-binned-scale showed an approximately exponential pattern, so we investigate whether logging the target makes a linear model more appropriate here as well.
 
@@ -580,7 +580,7 @@ print("Test MAE (back-transformed to $):", mean_absolute_error(y_test, y_pred_ol
 
 With a logged target, the model achieves an in sample R² of 0.913 and a held out test R², transformed back into dollars, of 0.896. Both are notably higher than the raw target model's 0.871, and with valid residual diagnostics.
 
-#### Coefficient comparison
+#### Coefficient Comparison
 
 @tbl-ols-comparison reports the coefficients across the three specifications; the same comparison is shown graphically in @sec-results.
 
@@ -631,7 +631,7 @@ r2_summary
 
 @tbl-ols-r2-summary shows R² climbing through each stage of this analysis. First, adding year and state controls to the baseline model raises it from 0.766 to 0.871, which confirms that time and geography explain real, previously unmodeled variance. Logging the target raises it further, from 0.871 to 0.913 in sample and 0.896 held out, once the residual violations from the raw target model are resolved. This is the model used for inference going forward, since the raw target model's coefficient significance cannot be trusted given its failed residual diagnostics above.
 
-### Random forest
+### Random Forest
 
 For the random forest, we performed a grid search over `n_estimators`, `max_depth`, `min_samples_leaf`, and `max_features` on the grid shown below, using a high number of estimators to reduce variance, with `max_depth` and `min_samples_leaf` providing regularization.
 
@@ -715,7 +715,7 @@ perm_imp = permutation_importance(
 )
 ```
 
-#### Ablation without task groups
+#### Ablation without Task Groups
 
 ```{python}
 feature_cols_no_exposure = [c for c in feature_cols_reg if c not in exposure_cols_model]
@@ -729,7 +729,7 @@ print("R2 without task groups:", rf_no_exposure.score(X_test_ne, y_test))
 
 Without the task groups at all, the same random forest achieves an R² of 0.834.
 
-#### Ablation without economic controls
+#### Ablation without Economic Controls
 
 ```{python}
 feature_cols_no_econ = [c for c in feature_cols_reg if c not in ["poverty_rate", "unemployment_rate"]]
@@ -743,7 +743,7 @@ print("R2 without poverty/unemployment:", rf_no_econ.score(X_test_ne2, y_test))
 
 Using only the task groups, excluding poverty and unemployment, the model reaches an R² of 0.698. That is meaningful on its own but well short of the full model.
 
-#### Random forest on the logged outcome
+#### Random Gorest on the Logged Outcome
 
 The forest is also fit on the logged outcome.
 
@@ -761,7 +761,7 @@ print("Test MAE (back-transformed to $):", mean_absolute_error(y_test, y_pred_rf
 
 An R² of 0.877 after back transforming is a negligible change from the untransformed target model at 0.876. Since the log target model is already established as the reference model for the linear regression above, we adopt the log target forest here as well for consistency in the final comparison, even though the choice of target makes little practical difference for the random forest specifically.
 
-#### Grouped permutation
+#### Grouped Permutation
 
 To see what the four task groups do together, rather than one at a time diluting each other, we permute all four jointly and compare the drop in R² to permuting them individually.
 
@@ -804,7 +804,7 @@ Task group gross importance of 0.153 is considerably larger than the net contrib
 
 Among the three individual task groups, `non_routine_manual_share` shows the largest individual sensitivity, though none of the three should be read as independently additive given they are parts of a whole. This is consistent with the panel regression, where non routine manual carries the steepest coefficient.
 
-### Neural network
+### Neural Network
 
 The neural network is kept shallow and narrow. The outcome is continuous, so the network ends in a single linear output unit.
 
@@ -925,7 +925,7 @@ After these changes the gap between training and validation loss narrows. Additi
 <!-- restore with the figure when the tensorflow chunks are re-enabled:
 @fig-nn-curve-regularized shows the training curve after these changes. --> The current results are sufficient, however, to conclude that the neural network does not outperform the random forest or the log target linear model, both of which are substantially cheaper to fit and tune. Given this project's emphasis on explaining the relationship between task groups and purchasing power rather than maximizing predictive accuracy, we do not pursue further tuning of the neural network and proceed with the linear and random forest models as the primary results.
 
-### Cross validation
+### Cross Validation
 
 Having compared the explained variance of the three models, we cross validate to check that the single split result generalizes.
 
