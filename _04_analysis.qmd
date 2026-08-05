@@ -825,7 +825,6 @@ Among the three individual task groups, `non_routine_manual_share` shows the lar
 The neural network is kept shallow and narrow. The outcome is continuous, so the network ends in a single linear output unit.
 
 ```{python}
-#| eval: false
 import tensorflow as tf
 from tensorflow.keras import layers, models, callbacks
 
@@ -876,7 +875,6 @@ print("Best val_loss achieved:", min(history.history["val_loss"]))
 
 ```{python}
 #| label: fig-nn-curve-initial
-#| eval: false
 #| fig-cap: "Training and validation loss for the initial, unregularized neural network. Training loss plateaus below 0.1 while validation loss falls to roughly 0.2 before rising to about 0.5, indicating overfitting."
 
 plt.plot(history.history["loss"], label="train")
@@ -890,7 +888,6 @@ The initial training curve shows training loss decreasing steadily and plateauin
 @fig-nn-curve-initial shows training loss decreasing steadily and plateauing below 0.1, while validation loss initially decreases to approximately 0.2 before rising to roughly 0.5, a clear indication of overfitting. -->
 
 ```{python}
-#| eval: false
 from tensorflow.keras import regularizers
 
 nn = models.Sequential([
@@ -928,7 +925,6 @@ print("Test MAE:", mean_absolute_error(y_test, y_pred_nn))
 
 ```{python}
 #| label: fig-nn-curve-regularized
-#| eval: false
 #| fig-cap: "Training and validation loss after adding L2 regularization, increased dropout, and shorter early stopping patience. The gap between training and validation narrows relative to the initial model."
 
 plt.plot(history.history["loss"], label="train")
