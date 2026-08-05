@@ -729,7 +729,7 @@ Figure&nbsp;8: Variation split into differences between counties and movement wi
 <h3 class="anchored" data-anchor-id="year-and-state-indicators">Year and State Indicators</h3>
 <p>Running year as a factor, not as numeric, gives each year its own independent coefficient, with no assumption about ordering or spacing between them.</p>
 <p>One state is left as a reference state as well, which will be the state whose mean purchasing power sits closest to the panel median.</p>
-<div id="98e872d6" class="cell" data-execution_count="12">
+<div id="da9c88dc" class="cell" data-execution_count="12">
 <div class="cell-output cell-output-stdout">
 <pre><code>States pooled into 'OTHER' (fewer than 5 counties): ['02', '10', '15', '31', '32', '38', '44', '46', '50', '56']
 state_code_grouped
@@ -802,7 +802,7 @@ Figure&nbsp;9: Mean purchasing power by state, sorted ascending, with the panel 
 <h3 class="anchored" data-anchor-id="collinearity">Collinearity</h3>
 <p>Our four main features, <code>routine_cognitive_share</code>, <code>routine_manual_share</code>, <code>non_routine_cognitive_share</code> and <code>non_routine_manual_share</code>, are parts of a whole, so one must be removed to maintain independence, as the fourth is deterministic once the values of the other three are known. Leaving all four in would guarantee at least one variance inflation offender, for the same reason set out in <a href="#fig-vif" class="quarto-xref">Figure&nbsp;2</a> above.</p>
 <p>The remaining three coefficients read as the change in purchasing power associated with a shift toward that group and away from the omitted one.</p>
-<div id="c0ea19ca" class="cell" data-execution_count="14">
+<div id="143f7df6" class="cell" data-execution_count="14">
 <div class="cell-output cell-output-stdout">
 <pre><code>Task groups entering the model: ['routine_cognitive_share', 'routine_manual_share', 'non_routine_manual_share']</code></pre>
 </div>
@@ -897,7 +897,7 @@ Table&nbsp;2: Variance inflation factors for year and state indicators after rem
 <p>We report two versions of each linear model throughout this section: a <strong>baseline</strong>, using the task groups with poverty and unemployment only, and a <strong>full</strong> model, which adds year and state controls. The baseline shows what the relationship looks like before time and geography are accounted for, and the full model is the one carried forward as the primary result. Reporting both makes visible exactly what changes when time and geography enter, and why.</p>
 <section id="baseline-specification" class="level4">
 <h4 class="anchored" data-anchor-id="baseline-specification">Baseline Specification</h4>
-<div id="e119aff7" class="cell" data-execution_count="18">
+<div id="43b6791d" class="cell" data-execution_count="18">
 <div class="cell-output cell-output-stdout">
 <pre><code>                             OLS Regression Results                             
 ================================================================================
@@ -905,7 +905,7 @@ Dep. Variable:     affordability_salary   R-squared:                       0.766
 Model:                              OLS   Adj. R-squared:                  0.766
 Method:                   Least Squares   F-statistic:                     6249.
 Date:                  Tue, 04 Aug 2026   Prob (F-statistic):               0.00
-Time:                          19:35:30   Log-Likelihood:                -99712.
+Time:                          20:43:53   Log-Likelihood:                -99712.
 No. Observations:                  9565   AIC:                         1.994e+05
 Df Residuals:                      9559   BIC:                         1.995e+05
 Df Model:                             5                                         
@@ -934,7 +934,7 @@ Notes:
 </section>
 <section id="full-specification" class="level4">
 <h4 class="anchored" data-anchor-id="full-specification">Full Specification</h4>
-<div id="4618fe95" class="cell" data-execution_count="19">
+<div id="d3dd1efb" class="cell" data-execution_count="19">
 <div class="cell-output cell-output-stdout">
 <pre><code>routine_cognitive_share    -87421.198221
 routine_manual_share       -81143.308583
@@ -966,7 +966,7 @@ Figure&nbsp;10: Full raw target OLS diagnostics. Left: residuals against fitted 
 <section id="full-specification-on-the-logged-outcome" class="level4">
 <h4 class="anchored" data-anchor-id="full-specification-on-the-logged-outcome">Full Specification on the Logged Outcome</h4>
 <p>The binned means in <a href="#fig-binned-scale" class="quarto-xref">Figure&nbsp;7</a> showed an approximately exponential pattern, so we investigate whether logging the target makes a linear model more appropriate here as well.</p>
-<div id="897bc366" class="cell" data-execution_count="21">
+<div id="003f2c10" class="cell" data-execution_count="21">
 <div class="cell-output cell-output-stdout">
 <pre><code>Any zero/negative affordability values? 0
 Skew, original: 1.2324330032097133
@@ -977,7 +977,7 @@ Dep. Variable:     affordability_salary   R-squared:                       0.913
 Model:                              OLS   Adj. R-squared:                  0.912
 Method:                   Least Squares   F-statistic:                     1718.
 Date:                  Tue, 04 Aug 2026   Prob (F-statistic):               0.00
-Time:                          19:35:30   Log-Likelihood:                 10999.
+Time:                          20:43:53   Log-Likelihood:                 10999.
 No. Observations:                  9565   AIC:                        -2.188e+04
 Df Residuals:                      9506   BIC:                        -2.146e+04
 Df Model:                            58                                         
@@ -1071,7 +1071,7 @@ Figure&nbsp;11: Log target OLS diagnostics, same layout as the raw target model.
 </div>
 </div>
 <p>The residual plot looks uniformly distributed and the QQ plot follows a straight line pattern, so with a logged target a linear model is appropriate.</p>
-<div id="18d46e8c" class="cell" data-execution_count="23">
+<div id="b1cc304c" class="cell" data-execution_count="23">
 <div class="cell-output cell-output-stdout">
 <pre><code>R-squared (log target, in-sample): 0.9128887327038346
 Test R2 (log space): 0.889425128052146
@@ -1228,7 +1228,7 @@ Figure&nbsp;12: Random forest residuals against predicted values on the held out
 <p>Unlike the raw target OLS residuals, <a href="#fig-rf-resid" class="quarto-xref">Figure&nbsp;12</a> shows random forest residuals with no systematic curve or trend across the range of predicted values.</p>
 <section id="ablation-without-task-groups" class="level4">
 <h4 class="anchored" data-anchor-id="ablation-without-task-groups">Ablation without Task Groups</h4>
-<div id="4c9907fb" class="cell" data-execution_count="30">
+<div id="73990bb9" class="cell" data-execution_count="30">
 <div class="cell-output cell-output-stdout">
 <pre><code>R2 without task groups: 0.8340755666968219</code></pre>
 </div>
@@ -1237,7 +1237,7 @@ Figure&nbsp;12: Random forest residuals against predicted values on the held out
 </section>
 <section id="ablation-without-economic-controls" class="level4">
 <h4 class="anchored" data-anchor-id="ablation-without-economic-controls">Ablation without Economic Controls</h4>
-<div id="ee884ef2" class="cell" data-execution_count="31">
+<div id="fd1bb169" class="cell" data-execution_count="31">
 <div class="cell-output cell-output-stdout">
 <pre><code>R2 without poverty/unemployment: 0.6983174339503759</code></pre>
 </div>
@@ -1247,7 +1247,7 @@ Figure&nbsp;12: Random forest residuals against predicted values on the held out
 <section id="random-gorest-on-the-logged-outcome" class="level4">
 <h4 class="anchored" data-anchor-id="random-gorest-on-the-logged-outcome">Random Gorest on the Logged Outcome</h4>
 <p>The forest is also fit on the logged outcome.</p>
-<div id="6cba2128" class="cell" data-execution_count="32">
+<div id="383b3866" class="cell" data-execution_count="32">
 <div class="cell-output cell-output-stdout">
 <pre><code>Test R2 (log space): 0.8782074681862392
 Test R2 (back-transformed to $): 0.876871024586412
@@ -1259,7 +1259,7 @@ Test MAE (back-transformed to $): 3915.09236140749</code></pre>
 <section id="grouped-permutation" class="level4">
 <h4 class="anchored" data-anchor-id="grouped-permutation">Grouped Permutation</h4>
 <p>To see what the four task groups do together, rather than one at a time diluting each other, we permute all four jointly and compare the drop in R² to permuting them individually.</p>
-<div id="b9d15c30" class="cell" data-execution_count="33">
+<div id="2c9eaba3" class="cell" data-execution_count="33">
 <div class="cell-output cell-output-stdout">
 <pre><code>Baseline R2: 0.8763873952396566
 Drop from permuting all task groups together: 0.1528432158941317

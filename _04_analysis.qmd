@@ -161,14 +161,19 @@ fig, axes=plt.subplots(1, 2, figsize=(9,4))
 
 sns.scatterplot(data=reg, x="fitted", y="resid", alpha=0.1, s=5, color="grey", ax=axes[0])
 sns.regplot(data=reg, x="fitted", y="resid", scatter=False, lowess=True,
-            line_kws={"color":"#D55E00"}, ax=axes[0])
+            line_kws={"color":"#D55E00","linewidth":2}, ax=axes[0])
 axes[0].axhline(0, color="black", linewidth=1)
-axes[0].set_title("Residuals against fitted values")
-axes[0].set_xlabel("Fitted purchasing power ($)")
+axes[0].set_title("Residuals Against Fitted Values")
+axes[0].set_xlabel("Fitted Purchasing Power ($)")
 axes[0].set_ylabel("Residual ($)")
 
 stats.probplot(reg["resid"], dist="norm", plot=axes[1])
+axes[1].get_lines()[0].set(marker="o", markersize=2, alpha=0.3,
+                           color="grey", markeredgecolor="none")
+axes[1].get_lines()[1].set(color="#D55E00", linewidth=1.5)
 axes[1].set_title("QQ plot")
+axes[1].set_xlabel("Theoretical Quantiles")
+axes[1].set_ylabel("Ordered Residuals ($)")
 
 plt.tight_layout()
 plt.show()
