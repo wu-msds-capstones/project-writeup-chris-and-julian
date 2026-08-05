@@ -6,3 +6,6 @@
 _output/
 *_files/
 _0*.html
+site_libs/
+*.out.ipynb
+*-preview.html
