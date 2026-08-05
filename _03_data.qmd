@@ -1,6 +1,6 @@
 # Data {#sec-data}
 
-## Data collection
+## Data Collection
 
 Data for this analysis come from five datasets published by three U.S. federal agencies. Each was retrieved through an agency API or bulk file download and loaded into a PostgreSQL database. @tbl-sources reports each source, record counts, and the variables it supplies.
 
@@ -20,7 +20,7 @@ The study period spans 2008 to 2023, excluding 2020. ACS suspended its 1 year es
 
 [^universe]: Two jurisdictions present in SAIPE for all fifteen years, the District of Columbia (FIPS 11001) and Kalawao County, Hawaii (FIPS 15005), are absent from the county reference file and are therefore excluded from the panel. The District of Columbia exceeds the population threshold described below and would otherwise have been retained. Connecticut requires a related note: the state replaced its eight counties with nine planning regions beginning in 2022, and only the legacy counties were ingested, so Connecticut counties exit the panel after 2021 rather than continuing under successor codes.
 
-## Measuring task groups
+## Measuring Task Groups
 
 Following the task framework introduced in @sec-background, each of the broad occupational categories published in ACS 1 year estimates is assigned to one of four task groups: routine cognitive, routine manual, non routine cognitive, and non routine manual. The Census categories carry no such labels, so the assignment follows the classification logic of @AutorDorn2013: clerical and sales work as routine cognitive, production and construction work as routine manual, managerial, professional and technical work as non routine cognitive, and service work as non routine manual. For each county and year, the task group totals are the employment sums across the categories assigned to each group, shown in @eq-totals.
 
@@ -38,7 +38,7 @@ Normalizing by the four group total converts employment counts into a compositio
 
 Retaining four separate groups, rather than collapsing them into a single routine intensity index, preserves a distinction that a composite measure erases. Under one index, a county shifting away from clerical work and a county shifting away from assembly work look identical.
 
-## Measuring purchasing power
+## Measuring Purchasing Power
 
 The outcome variable is purchasing power, measured in dollars and defined in @eq-afford as county median household income, from the Census SAIPE program, divided by the local Regional Price Parity. BEA publishes parities as an index with the national average set to 100, so dividing by 100 converts the index into a price multiplier.
 
@@ -52,11 +52,11 @@ Regional Price Parities correct for price differences between places but not bet
 
 Counties outside any metropolitan area have no published parity of their own and take their state parity instead. Within the analytical panel, 45.5 percent of county year rows use a metropolitan parity and 54.5 percent use the state fallback. This is a substantive limitation, since a single state level price index is applied to counties whose actual price levels differ, and a majority of panel rows carry it. The counties involved are above the 65,000 population threshold but predominantly outside metropolitan statistical areas, where BEA publishes no local parity.
 
-## Control variables
+## Control Variables
 
 Three baseline county conditions enter the models as controls. Unemployment rate comes from BLS LAUS and poverty rate from the Census SAIPE program, both measured in percentage points. Total population comes from ACS 1 year estimates and enters the models in logs. Unemployment and poverty capture labor market slack and material hardship that would otherwise be attributed to task groups. Population accounts for scale differences across counties, which range from the ACS publication threshold of 65,000 to the roughly 10.2 million residents of Los Angeles County.
 
-## Storage and organization
+## Storage and Organization
 
 Data are stored in PostgreSQL across two databases that serve different purposes.
 
@@ -128,7 +128,7 @@ The schema centers on a `county` table keyed by FIPS code, with `state` as a ref
 
 Price parities require a separate path. Metropolitan membership is kept out of the `county` table and in the `county_cbsa_code` junction table, so counties outside any metropolitan area carry no null CBSA fields, and the crosswalk stands alone as its own fact. From there `cbsa` connects to `cbsa_rpp`. Storing parities at the CBSA level reflects the level at which BEA measures them and avoids repeating a single value across every county in a metropolitan area.
 
-## The analytical dataset
+## The Analytical Dataset
 
 The 47,140 county year observations described above are the records the source data support, not the records the models estimate on. Two filters reduce it.
 
