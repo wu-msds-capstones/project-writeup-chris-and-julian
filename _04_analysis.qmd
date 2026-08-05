@@ -348,6 +348,7 @@ Running year as a factor, not as numeric, gives each year its own independent co
 One state is left as a reference state as well, which will be the state whose mean purchasing power sits closest to the panel median.
 
 ```{python}
+#| output: false
 model_df["year"] = model_df["year"].astype("category")
 model_df["state_code"] = model_df["state_code"].astype("category")
 
@@ -417,6 +418,7 @@ Our four main features, `routine_cognitive_share`, `routine_manual_share`, `non_
 The remaining three coefficients read as the change in purchasing power associated with a shift toward that group and away from the omitted one.
 
 ```{python}
+#| output: false
 exposure_check_cols = ["routine_cognitive_share",
     "routine_manual_share",
     "non_routine_cognitive_share",
@@ -493,8 +495,12 @@ We report two versions of each linear model throughout this section: a **baselin
 #### Baseline Specification
 
 ```{python}
+#| output: false
 X_train_base_sm = sm.add_constant(X_train_base)
 ols_model_base = sm.OLS(y_train, X_train_base_sm).fit()
+```
+
+```{python}
 print(ols_model_base.summary())
 ```
 
@@ -503,8 +509,12 @@ Features are on very different scales. R², the share of variation in the outcom
 #### Full Specification
 
 ```{python}
+#| output: false
 X_train_sm = sm.add_constant(X_train)
 ols_model = sm.OLS(y_train, X_train_sm).fit()
+```
+
+```{python}
 print(ols_model.params[core_features])
 print("R-squared:", ols_model.rsquared)
 ```
@@ -545,17 +555,28 @@ The binned means in @fig-binned-scale showed an approximately exponential patter
 
 ```{python}
 print("Any zero/negative affordability values?", (y <= 0).sum())  # confirm log is safe
+```
+```{python}
+#| output: false
 
 y_train_log = np.log(y_train)
 y_test_log = np.log(y_test)
 
-print("Skew, original:", y_train.skew())
-print("Skew, logged:  ", y_train_log.skew())
-
-ols_model_log = sm.OLS(y_train_log, X_train_sm).fit()
-print(ols_model_log.summary())
 ```
 
+```{python}
+print("Skew, original:", y_train.skew())
+print("Skew, logged:  ", y_train_log.skew())
+```
+
+```{python}
+#| output: false
+ols_model_log = sm.OLS(y_train_log, X_train_sm).fit()
+```
+
+```{python}
+print(ols_model_log.summary())
+```
 @fig-ols-log-diag shows the same pair of diagnostics for the log target specification.
 
 ```{python}
@@ -583,17 +604,29 @@ The residual plot looks uniformly distributed and the QQ plot follows a straight
 
 ```{python}
 print("R-squared (log target, in-sample):", ols_model_log.rsquared)
+```
+
+```{python}
+#| output: false
 
 X_test_sm = sm.add_constant(X_test, has_constant="add")
 y_pred_ols_log = ols_model_log.predict(X_test_sm)
 
-print("Test R2 (log space):", r2_score(y_test_log, y_pred_ols_log))
+```
 
+```{python}
+print("Test R2 (log space):", r2_score(y_test_log, y_pred_ols_log))
+```
+
+```{python}
+#| output: false
 y_pred_ols_log_dollars = np.exp(y_pred_ols_log)
+```
+
+```{python}
 print("Test R2 (back-transformed to $):", r2_score(y_test, y_pred_ols_log_dollars))
 print("Test MAE (back-transformed to $):", mean_absolute_error(y_test, y_pred_ols_log_dollars))
 ```
-
 With a logged target, the model achieves an in sample R² of 0.913 and a held out test R², transformed back into dollars, of 0.896. Both are notably higher than the raw target model's 0.871, and with valid residual diagnostics.
 
 #### Coefficient Comparison
@@ -672,9 +705,8 @@ param_grid = {
 group_cv = GroupKFold(n_splits=5)
 gcv = GridSearchCV(rf, param_grid, cv=group_cv, scoring="r2", n_jobs=-1)
 gcv.fit(X_train, y_train, groups=groups_train)
-
-print("Best params:", gcv.best_params_)
 ```
+
 
 ```{python}
 #| include: false
@@ -695,6 +727,9 @@ best_rf = RandomForestRegressor(**best_params, random_state=42, n_jobs=2)
 best_rf.fit(X_train, y_train)
 
 y_pred_rf = best_rf.predict(X_test)
+```
+
+```{python}
 print("Test R2: ", r2_score(y_test, y_pred_rf))
 print("Test MAE:", mean_absolute_error(y_test, y_pred_rf))
 
@@ -734,12 +769,16 @@ perm_imp = permutation_importance(
 #### Ablation without Task Groups
 
 ```{python}
+#| output: false
 feature_cols_no_exposure = [c for c in feature_cols_reg if c not in exposure_cols_model]
 X_train_ne = X_train[feature_cols_no_exposure]
 X_test_ne = X_test[feature_cols_no_exposure]
 
 rf_no_exposure = RandomForestRegressor(**best_params, random_state=42, n_jobs=-1)
 rf_no_exposure.fit(X_train_ne, y_train)
+```
+
+```{python}
 print("R2 without task groups:", rf_no_exposure.score(X_test_ne, y_test))
 ```
 
@@ -748,12 +787,16 @@ Without the task groups at all, the same random forest achieves an R² of 0.834.
 #### Ablation without Economic Controls
 
 ```{python}
+#| output: false
 feature_cols_no_econ = [c for c in feature_cols_reg if c not in ["poverty_rate", "unemployment_rate"]]
 X_train_ne2 = X_train[feature_cols_no_econ]
 X_test_ne2 = X_test[feature_cols_no_econ]
 
 rf_no_econ = RandomForestRegressor(**best_params, random_state=42, n_jobs=-1)
 rf_no_econ.fit(X_train_ne2, y_train)
+```
+
+```{python}
 print("R2 without poverty/unemployment:", rf_no_econ.score(X_test_ne2, y_test))
 ```
 
@@ -764,17 +807,26 @@ Using only the task groups, excluding poverty and unemployment, the model reache
 The forest is also fit on the logged outcome.
 
 ```{python}
+#| output: false
 rf_log = RandomForestRegressor(**best_params, random_state=42, n_jobs=2)
 rf_log.fit(X_train, y_train_log)
 
 y_pred_rf_log = rf_log.predict(X_test)
-print("Test R2 (log space):", r2_score(y_test_log, y_pred_rf_log))
+```
 
+```{python}
+print("Test R2 (log space):", r2_score(y_test_log, y_pred_rf_log))
+```
+
+```{python}
+#| output: false
 y_pred_rf_log_dollars = np.exp(y_pred_rf_log)
+```
+
+```{python}
 print("Test R2 (back-transformed to $):", r2_score(y_test, y_pred_rf_log_dollars))
 print("Test MAE (back-transformed to $):", mean_absolute_error(y_test, y_pred_rf_log_dollars))
 ```
-
 An R² of 0.877 after back transforming is a negligible change from the untransformed target model at 0.876. Since the log target model is already established as the reference model for the linear regression above, we adopt the log target forest here as well for consistency in the final comparison, even though the choice of target makes little practical difference for the random forest specifically.
 
 #### Grouped Permutation
@@ -782,6 +834,7 @@ An R² of 0.877 after back transforming is a negligible change from the untransf
 To see what the four task groups do together, rather than one at a time diluting each other, we permute all four jointly and compare the drop in R² to permuting them individually. Permuting a feature means shuffling its values across rows, which breaks its relationship with the outcome while leaving everything else intact, so the resulting drop in R² measures how much the model was relying on it.
 
 ```{python}
+#| output: false
 from sklearn.metrics import r2_score as _r2
 
 exposure_cols = exposure_cols_model  # the three non-reference task groups
@@ -797,12 +850,23 @@ def grouped_permutation_drop(cols, n_repeats=20):
         X_perm[cols] = X_perm[cols].values[shuffled_idx]
         drops.append(baseline_r2 - _r2(y_test, best_rf.predict(X_perm)))
     return np.mean(drops)
+```
 
+```{python}
 print("Baseline R2:", baseline_r2)
+```
 
+```{python}
+#| output: false
 joint_drop = grouped_permutation_drop(exposure_cols)
-print("Drop from permuting all task groups together:", joint_drop)
+```
 
+```{python}
+print("Drop from permuting all task groups together:", joint_drop)
+```
+
+```{python}
+#| output: false
 individual_drops = {}
 for col in exposure_cols:
     individual_drops[col] = grouped_permutation_drop([col])
@@ -810,11 +874,14 @@ for col in exposure_cols:
 
 year_drop = grouped_permutation_drop(year_cols_model)
 state_drop = grouped_permutation_drop(state_cols_model)
+```
+
+```{python}
 print("Drop from permuting year (jointly):", year_drop)
 print("Drop from permuting state (jointly):", state_drop)
 ```
 
-Year matters far more than state, at 0.127 against 0.008: time, not geography, carries the bulk of the temporal and spatial signal once the economic variables and task groups are controlled for.
+Year matters far more than state, at `{python} f"{year_drop:.3f}"` against `{python} f"{state_drop:.3f}"`: time, not geography, carries the bulk of the temporal and spatial signal once the economic variables and task groups are controlled for.
 
 Task group gross importance of 0.153 is considerably larger than the net contribution of 0.042 from the ablation above. This implies that the task groups share real predictive overlap with poverty, unemployment, and time, while still adding something those do not fully capture.
 
@@ -825,6 +892,7 @@ Among the three individual task groups, `non_routine_manual_share` shows the lar
 The neural network is kept shallow and narrow. The outcome is continuous, so the network ends in a single linear output unit.
 
 ```{python}
+#| output: false
 import tensorflow as tf
 from tensorflow.keras import layers, models, callbacks
 
@@ -866,7 +934,9 @@ history = nn.fit(
 
 y_pred_nn_s = nn.predict(X_test_s).ravel()
 y_pred_nn = scaler_y.inverse_transform(y_pred_nn_s.reshape(-1, 1)).ravel()
+```
 
+```{python}
 print("Test R2: ", r2_score(y_test, y_pred_nn))
 print("Test MAE:", mean_absolute_error(y_test, y_pred_nn))
 print("Stopped at epoch:", len(history.history["loss"]))
@@ -884,10 +954,9 @@ plt.legend(); plt.title("Neural Network Training Curve"); plt.show()
 
 The initial training curve shows training loss decreasing steadily and plateauing below 0.1, while validation loss initially decreases to approximately 0.2 before rising to roughly 0.5, a clear indication of overfitting. We address this with L2 weight regularization, increased dropout, and a shorter early stopping patience.
 
-<!-- restore with the figure when the tensorflow chunks are re-enabled:
-@fig-nn-curve-initial shows training loss decreasing steadily and plateauing below 0.1, while validation loss initially decreases to approximately 0.2 before rising to roughly 0.5, a clear indication of overfitting. -->
 
 ```{python}
+#| output: false
 from tensorflow.keras import regularizers
 
 nn = models.Sequential([
@@ -913,16 +982,23 @@ history = nn.fit(
     verbose=0,
 )
 
+```
+
+```{python}
 print("Stopped at epoch:", len(history.history["loss"]))
 print("Best val_loss achieved:", min(history.history["val_loss"]))
+```
 
+```{python}
+#| output: false
 y_pred_nn_s = nn.predict(X_test_s).ravel()
 y_pred_nn = scaler_y.inverse_transform(y_pred_nn_s.reshape(-1, 1)).ravel()
+```
 
+```{python}
 print("Test R2: ", r2_score(y_test, y_pred_nn))
 print("Test MAE:", mean_absolute_error(y_test, y_pred_nn))
 ```
-
 ```{python}
 #| label: fig-nn-curve-regularized
 #| fig-cap: "Training and validation loss after adding L2 regularization, increased dropout, and shorter early stopping patience. The gap between training and validation narrows relative to the initial model."
@@ -934,8 +1010,6 @@ plt.legend(); plt.title("Neural Network Training Curve"); plt.show()
 
 After these changes the gap between training and validation loss narrows. Additional tuning could likely narrow it further.
 
-<!-- restore with the figure when the tensorflow chunks are re-enabled:
-@fig-nn-curve-regularized shows the training curve after these changes. -->
 
 The current results are sufficient, however, to conclude that the neural network does not outperform the random forest or the log target linear model, both of which are substantially cheaper to fit and tune. Given this project's emphasis on explaining the relationship between task groups and purchasing power rather than maximizing predictive accuracy, we do not pursue further tuning of the neural network and proceed with the linear and random forest models as the primary results.
 
@@ -971,13 +1045,12 @@ for fold, (tr_idx, val_idx) in enumerate(group_kfold_cv.split(X, y, groups)):
     r2_rf = r2_score(y_val, rf_fold.predict(X_val))
     cv_results["Random Forest"].append(r2_rf)
 
-    print(f"Fold {fold}: OLS(log)={r2_ols_log_dollars:.3f} RF={r2_rf:.3f}")
 
 cv_summary = pd.DataFrame({m: {"mean_r2": np.mean(s), "std_r2": np.std(s)} for m, s in cv_results.items()}).T
 cv_summary
 ```
 
-As @tbl-cv-summary shows, across five fold cross validation the log target OLS and the random forest are statistically indistinguishable, with mean R² of 0.901 each and the random forest showing marginally lower variance across folds at 0.0090 against 0.0095. This confirms that the single split result above is not an artifact of one particular split, and that both models generalize consistently and comparably across held out counties.
+As @tbl-cv-summary shows, across five fold cross validation the log target OLS and the random forest are statistically indistinguishable, with mean R² of `{python} f"{cv_summary.loc['OLS (log target)','mean_r2']:.3f}"` and `{python} f"{cv_summary.loc['Random Forest','mean_r2']:.3f}"` respectively, and the random forest showing marginally lower variance across folds at `{python} f"{cv_summary.loc['Random Forest','std_r2']:.4f}"` against `{python} f"{cv_summary.loc['OLS (log target)','std_r2']:.4f}"`. This confirms that the single split result above is not an artifact of one particular split, and that both models generalize consistently and comparably across held out counties.
 
 The neural network was not included, as cross validating would be expensive and, as noted above, it is not carried forward.
 
