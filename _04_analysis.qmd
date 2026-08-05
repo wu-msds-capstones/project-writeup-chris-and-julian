@@ -809,6 +809,7 @@ Among the three individual task groups, `non_routine_manual_share` shows the lar
 The neural network is kept shallow and narrow. The outcome is continuous, so the network ends in a single linear output unit.
 
 ```{python}
+#| eval: false
 import tensorflow as tf
 from tensorflow.keras import layers, models, callbacks
 
@@ -869,6 +870,7 @@ plt.legend(); plt.title("Neural network training curve"); plt.show()
 @fig-nn-curve-initial shows training loss decreasing steadily and plateauing below 0.1, while validation loss initially decreases to approximately 0.2 before rising to roughly 0.5, a clear indication of overfitting. We address this with L2 weight regularization, increased dropout, and a shorter early stopping patience.
 
 ```{python}
+#| eval: false
 from tensorflow.keras import regularizers
 
 nn = models.Sequential([
