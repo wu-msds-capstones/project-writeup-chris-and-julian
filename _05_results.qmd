@@ -1,6 +1,6 @@
 # Results {#sec-results}
 
-Four key findings structure this section. A one percentage point shift from non-routine cognitive work to non-routine manual work is linked to approximately a thousand dollars less purchasing power. This association persists even after accounting for poverty, unemployment, and year-to-year and state-to-state variations. The relationship is proportional rather than fixed in dollars, so a flexible model cannot outperform a linear one once the outcome is logged. Poverty rate consistently holds the most explanatory power in every model, with task groups contributing to it rather than replacing it. Additionally, since county task groups show minimal movement over fifteen years, the differences they are associated with are enduring characteristics of specific locations.
+Four findings organize this section. A one percentage point shift toward non routine manual work, away from non routine cognitive, is associated with roughly a thousand dollars less in purchasing power, and that association survives poverty, unemployment, and the year and state controls. The relationship is proportional rather than fixed in dollars, so a flexible model cannot improve on a linear one once the outcome is logged. Poverty rate carries the most explanatory weight in every model, with the task groups adding to it rather than substituting for it. And because a county's task groups barely move across fifteen years, the differences they are associated with are durable features of place.
 
 ```{python}
 #| include: false
@@ -15,88 +15,33 @@ label_map = {
 
 ```{python}
 #| include: false
+model_preds = {
+    "OLS (log target)": y_pred_ols_log_dollars,
+    "Random Forest (log target)": y_pred_rf_log_dollars,
+}
+if "y_pred_nn" in dir():
+    # neural network chunks in @sec-analysis are eval: false until the
+    # tensorflow environment is restored; row returns automatically then
+    model_preds["Neural Net"] = y_pred_nn
+
 results = pd.DataFrame({
-    "model": ["OLS (log target)", "Random Forest (log target)", "Neural Net"],
-    "test_r2": [
-        r2_score(y_test, y_pred_ols_log_dollars),
-        r2_score(y_test, y_pred_rf_log_dollars),
-        r2_score(y_test, y_pred_nn),
-    ],
-    "test_mae": [
-        mean_absolute_error(y_test, y_pred_ols_log_dollars),
-        mean_absolute_error(y_test, y_pred_rf_log_dollars),
-        mean_absolute_error(y_test, y_pred_nn),
-    ],
+    "model": list(model_preds.keys()),
+    "test_r2": [r2_score(y_test, p) for p in model_preds.values()],
+    "test_mae": [mean_absolute_error(y_test, p) for p in model_preds.values()],
 })
+has_nn = "Neural Net" in results["model"].values
 ```
 
-## Geographic patterns in purchasing power
+## Where purchasing power is strained
 
-Purchasing power has clear geographic structure before any modeling. @fig-affordmap maps it directly for the most recent panel year. The counties where income stretches furthest are not the counties where income is highest, which is the gap the price adjustment is built to close, and @fig-gapmap shows that gap: the dollars separating what a county earns from what those earnings buy.
+Purchasing power has clear geographic structure before any modeling. The counties where income stretches furthest are not the counties where income is highest, which is the gap the price adjustment is built to close.
 
-@fig-affordmap maps purchasing power directly for the most recent panel year. The highest values sit in metropolitan counties of the South and Midwest, where moderate incomes meet price levels at or below the national average, while the coastal metros that lead the country in income fall toward the middle of the map once their prices are accounted for.
+<!-- fig-affordmap. EXISTS poster Fig 4. Rebuild on 848 panel. -->
 
-```{python}
-#| label: fig-affordmap
-#| echo: false
-#| fig-cap: "Purchasing power by county in 2023, in dollars, across the 848 panel counties. Counties below the 65,000 population threshold are absent from the panel and shown without color."
+<!-- fig-gapmap. EXISTS poster Fig 1. Rebuild, poster caption says 3,114 counties.
+     Cut one of the two maps? -->
 
-import json
-import plotly.express as px
-from urllib.request import urlopen
-
-with urlopen("https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json") as response:
-    counties_geo = json.load(response)
-
-map_year = df["year"].max()
-map_df = df[df["year"]==map_year].copy()
-map_df["fips"] = map_df["county_fips"].astype(int).astype(str).str.zfill(5)
-
-fig = px.choropleth(
-    map_df, geojson=counties_geo, locations="fips",
-    color="affordability_salary",
-    color_continuous_scale="Viridis",
-    scope="usa",
-    labels={"affordability_salary": "Purchasing power ($)"},
-)
-fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0},
-                  coloraxis_colorbar_title="Purchasing power ($)")
-fig.show()
-```
-
-The map is the descriptive version of the claim the price adjustment makes: ranking counties by what income buys produces a different geography than ranking them by income.
-
-@fig-gapmap shows the adjustment itself, the dollars separating what a county's median household earns from what those earnings buy. Counties in red hold price levels above the national average, so income overstates local purchasing power; counties in blue hold the reverse, and a dollar earned there stretches further than the national number suggests.
-
-```{python}
-#| label: fig-gapmap
-#| echo: false
-#| fig-cap: "Difference between median household income and purchasing power by county in 2023, in dollars. Positive values are counties where local prices erode income; negative values are counties where a dollar earned buys more than the national average."
-
-income = pd.read_sql("""
-    select county_fips, year, median_household_income
-    from county_baseline
-    """, engine)
-
-gap_df = map_df.merge(income, on=["county_fips","year"], how="left")
-gap_df["gap"] = gap_df["median_household_income"] - gap_df["affordability_salary"]
-
-fig = px.choropleth(
-    gap_df, geojson=counties_geo, locations="fips",
-    color="gap",
-    color_continuous_scale="RdBu_r",
-    color_continuous_midpoint=0,
-    scope="usa",
-    labels={"gap": "Income minus purchasing power ($)"},
-)
-fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0},
-                  coloraxis_colorbar_title="Gap ($)")
-fig.show()
-```
-
-The gap is largest in exactly the places where unadjusted income is highest, which is why studies reporting outcomes in raw dollars overstate how well those places serve their residents. This is the pattern that motivates using purchasing power rather than income throughout.
-
-## Task Groups and Purchasing Power
+## Task groups and purchasing power
 
 ```{python}
 #| include: false
@@ -168,7 +113,7 @@ plt.tight_layout()
 plt.show()
 ```
 
-## Nonlinearity and Model Comparison
+## What a straight line misses
 
 The relationship between a task group and purchasing power does not hold at a constant rate across its range. @fig-binned bins counties by routine cognitive employment and plots the actual mean against the random forest prediction in each bin. The two track each other closely, and the shape they trace is not a line.
 
@@ -205,11 +150,11 @@ def binned_means_plot(feature, n_bins=10):
 binned_means_plot("routine_cognitive_share")
 ```
 
-That curvature is what motivates the flexible models, but it turns out to be worth little once the outcome is placed on the right scale. @fig-modelcomp compares held out performance across the three specifications. The random forest reaches a test R² of `{python} f"{results.loc[results['model']=='Random Forest (log target)','test_r2'].values[0]:.3f}"` against `{python} f"{results.loc[results['model']=='OLS (log target)','test_r2'].values[0]:.3f}"` for the log target linear model, and `{python} f"{results.loc[results['model']=='Neural Net','test_r2'].values[0]:.3f}"` for the neural network.
+That curvature is what motivates the flexible models, but it turns out to be worth little once the outcome is placed on the right scale. @fig-modelcomp compares held out performance across the fitted specifications. The random forest reaches a test R² of `{python} f"{results.loc[results['model']=='Random Forest (log target)','test_r2'].values[0]:.3f}"` against `{python} f"{results.loc[results['model']=='OLS (log target)','test_r2'].values[0]:.3f}"` for the log target linear model`{python} f", and {results.loc[results['model']=='Neural Net','test_r2'].values[0]:.3f} for the neural network" if has_nn else ""`.
 
 ```{python}
 #| label: fig-modelcomp
-#| fig-cap: "Held out test R-squared across three model specifications, all scored on the same held out counties. The random forest and the log target linear model perform comparably; the neural network trails both."
+#| fig-cap: "Held out test R-squared by model specification, all scored on the same held out counties. The random forest and the log target linear model perform comparably."
 
 display_labels = {
     "OLS (log target)": "Linear model",
@@ -219,7 +164,7 @@ display_labels = {
 chart_labels = results["model"].map(display_labels)
 
 plt.figure(figsize=(7, 5))
-colors = ["#4C72B0", "#55A868", "#C44E52"]
+colors = ["#4C72B0", "#55A868", "#C44E52"][:len(results)]
 bars = plt.bar(chart_labels, results["test_r2"], color=colors)
 plt.ylabel("Test R²")
 plt.title("Model comparison, held out test R²")
@@ -231,9 +176,9 @@ plt.tight_layout()
 plt.show()
 ```
 
-The first two are close enough to be indistinguishable, which means the log transformation absorbs nearly all of the structure the tree ensemble finds, and the neural network does not recover the remainder. In dollar terms, the linear model's predictions miss by \$`{python} f"{results.loc[results['model']=='OLS (log target)','test_mae'].values[0]:,.0f}"` on average for a county it has never seen. Grouped cross validation in @sec-analysis confirms these figures are not an artifact of one particular split. That a more flexible model does not improve on the linear specification is itself a result: it says the association is close to proportional across the range of the data, which is what the log respecification in @sec-analysis already indicated.
+The two are close enough to be indistinguishable, which means the log transformation absorbs nearly all of the structure the tree ensemble finds; the neural network in @sec-analysis does not recover the remainder. In dollar terms, the linear model's predictions miss by \$`{python} f"{results.loc[results['model']=='OLS (log target)','test_mae'].values[0]:,.0f}"` on average for a county it has never seen. Grouped cross validation in @sec-analysis confirms these figures are not an artifact of one particular split. That a more flexible model does not improve on the linear specification is itself a result: it says the association is close to proportional across the range of the data, which is what the log respecification in @sec-analysis already indicated.
 
-## Feature Importance and Partial Dependence
+## What the models weigh
 
 Poverty rate carries the largest importance value in the random forest by a wide margin, as @fig-importance shows. The task groups follow, with non routine manual highest among them. This ordering is consistent with the regression: poverty carries most of the explanatory weight, and the task groups add to it rather than substituting for it.
 
@@ -277,7 +222,7 @@ plt.tight_layout()
 plt.show()
 ```
 
-## Persistence of Task Groups
+## Stability over time
 
 A county's task groups move very little across the fifteen year panel. @tbl-stability reports the rank correlation between each county's first and last observed year for all four groups. Counties largely hold their relative position throughout.
 

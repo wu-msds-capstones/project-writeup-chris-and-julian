@@ -860,6 +860,7 @@ print("Best val_loss achieved:", min(history.history["val_loss"]))
 
 ```{python}
 #| label: fig-nn-curve-initial
+#| eval: false
 #| fig-cap: "Training and validation loss for the initial, unregularized neural network. Training loss plateaus below 0.1 while validation loss falls to roughly 0.2 before rising to about 0.5, indicating overfitting."
 
 plt.plot(history.history["loss"], label="train")
@@ -867,7 +868,10 @@ plt.plot(history.history["val_loss"], label="val")
 plt.legend(); plt.title("Neural network training curve"); plt.show()
 ```
 
-@fig-nn-curve-initial shows training loss decreasing steadily and plateauing below 0.1, while validation loss initially decreases to approximately 0.2 before rising to roughly 0.5, a clear indication of overfitting. We address this with L2 weight regularization, increased dropout, and a shorter early stopping patience.
+The initial training curve shows training loss decreasing steadily and plateauing below 0.1, while validation loss initially decreases to approximately 0.2 before rising to roughly 0.5, a clear indication of overfitting. We address this with L2 weight regularization, increased dropout, and a shorter early stopping patience.
+
+<!-- restore with the figure when the tensorflow chunks are re-enabled:
+@fig-nn-curve-initial shows training loss decreasing steadily and plateauing below 0.1, while validation loss initially decreases to approximately 0.2 before rising to roughly 0.5, a clear indication of overfitting. -->
 
 ```{python}
 #| eval: false
@@ -908,6 +912,7 @@ print("Test MAE:", mean_absolute_error(y_test, y_pred_nn))
 
 ```{python}
 #| label: fig-nn-curve-regularized
+#| eval: false
 #| fig-cap: "Training and validation loss after adding L2 regularization, increased dropout, and shorter early stopping patience. The gap between training and validation narrows relative to the initial model."
 
 plt.plot(history.history["loss"], label="train")
@@ -915,7 +920,10 @@ plt.plot(history.history["val_loss"], label="val")
 plt.legend(); plt.title("Neural network training curve"); plt.show()
 ```
 
-@fig-nn-curve-regularized shows the training curve after these changes. Additional tuning could likely narrow the remaining gap between training and validation loss further. The current results are sufficient, however, to conclude that the neural network does not outperform the random forest or the log target linear model, both of which are substantially cheaper to fit and tune. Given this project's emphasis on explaining the relationship between task groups and purchasing power rather than maximizing predictive accuracy, we do not pursue further tuning of the neural network and proceed with the linear and random forest models as the primary results.
+After these changes the gap between training and validation loss narrows. Additional tuning could likely narrow it further.
+
+<!-- restore with the figure when the tensorflow chunks are re-enabled:
+@fig-nn-curve-regularized shows the training curve after these changes. --> The current results are sufficient, however, to conclude that the neural network does not outperform the random forest or the log target linear model, both of which are substantially cheaper to fit and tune. Given this project's emphasis on explaining the relationship between task groups and purchasing power rather than maximizing predictive accuracy, we do not pursue further tuning of the neural network and proceed with the linear and random forest models as the primary results.
 
 ### Cross validation
 
