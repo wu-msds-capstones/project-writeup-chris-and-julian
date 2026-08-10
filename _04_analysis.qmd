@@ -6,16 +6,14 @@ import os
 import pandas as pd
 import numpy as np
 import statsmodels.api as sm
-import matplotlib.pyplot as plt
-import seaborn as sns
-from scipy import stats
+from statsmodels.nonparametric.smoothers_lowess import lowess
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from sqlalchemy import create_engine
 from dotenv import load_dotenv
 
 load_dotenv()
 
-engine=create_engine(os.environ["AUTORACK_URL"])
+engine=create_engine(os.environ["AUTORACK_URL"], pool_pre_ping=True, pool_recycle=300)
 df=pd.read_sql("""
 select ca.county_fips, ca.year, ca.affordability_salary,
     cte.routine_cognitive_share, cte.routine_manual_share,
@@ -36,11 +34,11 @@ reg_cols=["routine_cognitive_share","routine_manual_share","non_routine_manual_s
 
 reg=df.dropna(subset=reg_cols+["affordability_salary"]).copy()
 
-X=pd.concat([reg[reg_cols],
-             pd.get_dummies(reg["year"], prefix="year", drop_first=True).astype(float)], axis=1)
-X=sm.add_constant(X)
+X_panel=pd.concat([reg[reg_cols],
+                   pd.get_dummies(reg["year"], prefix="year", drop_first=True).astype(float)], axis=1)
+X_panel=sm.add_constant(X_panel)
 
-model=sm.OLS(reg["affordability_salary"], X).fit(
+model=sm.OLS(reg["affordability_salary"], X_panel).fit(
     cov_type="cluster", cov_kwds={"groups": reg["county_fips"]})
 
 reg["fitted"]=model.fittedvalues
@@ -48,28 +46,26 @@ reg["resid"]=model.resid
 
 # log respecification, same design matrix
 reg["actual_log"]=np.log(reg["affordability_salary"])
-model_log=sm.OLS(reg["actual_log"], X).fit(
+model_log=sm.OLS(reg["actual_log"], X_panel).fit(
     cov_type="cluster", cov_kwds={"groups": reg["county_fips"]})
 reg["resid_log"]=model_log.resid
+reg["fitted_log"]=model_log.fittedvalues
 ```
 
 ## Panel regression
 
-The four task group values described in @eq-group sum to one, so all four cannot enter a regression together. One serves as the reference group, and we use non routine cognitive. Each remaining coefficient represents the change in purchasing power associated with a shift out of non routine cognitive work and into that group, holding the controls fixed. Each coefficient is a comparison against the reference group. The group values are measured on a zero to one scale. Per percentage point figures reported later therefore divide the estimated coefficients by 100.
+The four task group values defined in @eq-group sum to one, so all four cannot enter a regression together. One serves as the reference group, and we use non-routine cognitive. Each remaining coefficient is the change in purchasing power associated with a shift out of non-routine cognitive work and into that group, holding the controls fixed, and each is therefore a comparison against the reference rather than a standalone quantity. The group values run on a zero to one scale, so the per percentage point figures reported later divide the estimated coefficients by 100.
 
-Year indicators capture conditions common to all counties within a year. These include the 2008 recession, the recovery through the 2010s, and the price movement that purchasing power does not itself account for. Because purchasing power is not deflated to a constant base year, the year effects carry price level drift alongside any other national change and are treated as nuisance parameters rather than as evidence of rising purchasing power. The task group coefficients are comparisons across counties within a year and are unaffected by this.
+Year indicators capture conditions common to all counties within a year. These include the 2008 recession, the recovery through the 2010s, and the price movement that purchasing power does not itself account for. Because purchasing power is not deflated to a constant base year, the year effects carry price level drift alongside any other national change, and we treat them as nuisance parameters rather than as evidence of rising purchasing power. The task group coefficients compare counties within a year and are unaffected by this.
 
-Standard errors are clustered by county, because repeated observations of the same county across fifteen years are not independent draws. A Durbin Watson statistic of 0.496 confirms that dependence directly. The estimated coefficients are reported in @sec-results.
+Standard errors are clustered by county, because repeated observations of the same county across fifteen years are not independent draws. A Durbin Watson statistic of 0.496 confirms that dependence directly. @sec-results reports the estimated coefficients.
 
 ## Collinearity and the reference group
 
-Normalizing the four totals by their sum, as @sec-data describes, also resolves a collinearity problem that would otherwise make these coefficients unusable. A variance inflation factor measures how much a coefficient is destabilized by its correlation with the other inputs, with a value above 10 the conventional threshold for concern. The unnormalized totals in @eq-totals carry factors between 13 and 27, because all four are employment counts that scale together with county size, so they move together and carry little independent information. Dividing by the four group total removes that shared scale. @fig-vif shows the two specifications side by side: on the specification actually estimated, every factor sits between 1.2 and 1.6.
+Normalizing the four totals by their sum, as @sec-data describes, also resolves a collinearity problem that would otherwise make these coefficients unusable. A variance inflation factor measures how much a coefficient is destabilized by its correlation with the other inputs, and a value above 10 is the conventional threshold for concern. The unnormalized totals in @eq-totals carry factors between 13 and 27, because all four are employment counts that scale with county size, so they move together and carry little independent information. Dividing by the four group total removes that shared scale. @fig-vif shows the two specifications side by side. On the specification actually estimated, every factor sits between 1.2 and 1.6.
 
 ```{python}
-#| label: fig-vif
-#| echo: false
-#| fig-cap: "Variance inflation factors before and after normalization, drawn on a shared scale. The four unnormalized employment totals all sit above the threshold of 10 because they scale together with county size. Expressing them as proportions of the four group total removes that shared scale and leaves every factor near one."
-
+#| include: false
 raw=pd.read_sql("""
     select routine_cognitive, routine_manual, non_routine_cognitive, non_routine_manual
     from county_task_exposure
@@ -84,192 +80,228 @@ X_vif_level=sm.add_constant(reg[reg_cols])
 vif_share=pd.Series([variance_inflation_factor(X_vif_level.values, i) for i in range(1, X_vif_level.shape[1])],
                     index=reg_cols)
 
-raw_labels=["Routine cognitive","Routine manual","Non routine cognitive","Non routine manual"]
-share_labels=["Routine cognitive","Routine manual","Non routine manual"]
+raw_labels=["Routine Cognitive","Routine Manual","Non-Routine Cognitive","Non-Routine Manual"]
+share_labels=["Routine Cognitive","Routine Manual","Non-Routine Manual"]
 share_vals=vif_share[["routine_cognitive_share","routine_manual_share",
                       "non_routine_manual_share"]].values
-xmax=max(vif_raw.max(), 12)*1.08
 
-fig, axes=plt.subplots(1, 2, figsize=(13,4))
+vif_df=pd.concat([
+    pd.DataFrame({"group":raw_labels, "vif":vif_raw.values,
+                  "spec":"Unnormalized Employment Totals"}),
+    pd.DataFrame({"group":share_labels, "vif":share_vals,
+                  "spec":"Group Proportions, as Estimated"}),
+], ignore_index=True)
+vif_xmax=float(max(vif_raw.max(), 12)*1.15)
+```
 
-axes[0].barh(raw_labels, vif_raw.values, color="#D55E00")
-axes[0].axvline(10, color="black", linestyle="--", linewidth=1)
-axes[0].set_xlim(0, xmax)
-axes[0].set_title("Unnormalized employment totals")
-axes[0].set_xlabel("Variance inflation factor")
-for i, v in enumerate(vif_raw.values):
-    axes[0].text(v+0.4, i, f"{v:.1f}", va="center", fontsize=10)
+```{python}
+#| label: fig-vif
+#| echo: false
+#| warning: false
+#| fig-cap: "Variance inflation factors before and after normalization, drawn on a shared scale. The four unnormalized employment totals all sit above the threshold of 10 because they scale together with county size. Expressing them as proportions of the four group total removes that shared scale and leaves every factor near one."
+%%R -i vif_df -i vif_xmax -w 13 -h 4 -u in -r 150
+vif_df$group <- factor(vif_df$group,
+    levels=rev(c("Routine Cognitive","Routine Manual",
+                 "Non-Routine Cognitive","Non-Routine Manual")))
+vif_df$spec <- factor(vif_df$spec,
+    levels=c("Unnormalized Employment Totals","Group Proportions, as Estimated"))
 
-axes[1].barh(share_labels, share_vals, color="#009E73")
-axes[1].axvline(10, color="black", linestyle="--", linewidth=1)
-axes[1].set_xlim(0, xmax)
-axes[1].set_title("Group proportions, as estimated")
-axes[1].set_xlabel("Variance inflation factor")
-for i, v in enumerate(share_vals):
-    axes[1].text(v+0.4, i, f"{v:.1f}", va="center", fontsize=10)
-
-plt.tight_layout()
-plt.show()
+ggplot(vif_df, aes(x=vif, y=group, fill=spec)) +
+  geom_col(width=0.7, show.legend=FALSE) +
+  geom_vline(xintercept=10, linetype="dashed", linewidth=0.4) +
+  geom_text(aes(label=sprintf("%.1f", vif)), hjust=-0.3, size=3.4) +
+  facet_wrap(~spec, scales="free_y") +
+  scale_fill_manual(values=c("Unnormalized Employment Totals"="#D55E00",
+                             "Group Proportions, as Estimated"="#009E73")) +
+  xlim(0, vif_xmax) +
+  labs(x="Variance Inflation Factor", y=NULL)
 ```
 
 This also explains a problem visible earlier in the project. Before normalization the coefficients were unstable and their standard errors were large relative to their magnitudes, both standard symptoms of multicollinearity.
 
 ## Validation before modeling
 
-Before making any estimations, we ensure that the data support the chosen methods. We examine the distributions of the four task groups and purchasing power to identify any skewness or outliers. Additionally, we verify that the county year coverage is consistent across the retained panel. Furthermore, we check for any overlap between task groups to ensure that no two groups effectively carry the same information. @fig-dists provides visual representations of the distributions.
+Before estimating, we check that the data support the chosen methods. @fig-dists shows the distributions of purchasing power and the four task groups across the task group panel, looking for the skewness and outliers that would shape the specification. The variance inflation factors above already establish that no two groups carry the same information once the proportions are used.
+
+```{python}
+#| include: false
+dist_label_map={
+    "affordability_salary":"Purchasing Power ($)",
+    "routine_cognitive_share":"Routine Cognitive",
+    "routine_manual_share":"Routine Manual",
+    "non_routine_cognitive_share":"Non-Routine Cognitive",
+    "non_routine_manual_share":"Non-Routine Manual",
+}
+dists_df=df.melt(value_vars=list(dist_label_map.keys()),
+                 var_name="variable", value_name="value")
+dists_df["variable"]=dists_df["variable"].map(dist_label_map)
+dist_order=list(dist_label_map.values())
+```
 
 ```{python}
 #| label: fig-dists
-#| fig-cap: "Distributions across the 12,087 county year panel. Purchasing power is right skewed with a long upper tail; the four task groups each show real cross county spread, with non routine cognitive the largest group."
+#| echo: false
+#| warning: false
+#| fig-cap: "Distributions across the 12,087 county year task group panel, before the 104 rows missing an unemployment rate are dropped. Purchasing power is right skewed with a long upper tail; the four task groups each show real cross county spread, with non-routine cognitive the largest group."
+%%R -i dists_df -i dist_order -w 10 -h 5 -u in -r 150
+dists_df$variable <- factor(dists_df$variable, levels=unlist(dist_order))
 
-share_cols=["routine_cognitive_share","routine_manual_share",
-            "non_routine_cognitive_share","non_routine_manual_share"]
-
-titles=["Routine cognitive","Routine manual","Non routine cognitive","Non routine manual"]
-
-layout=[["afford","afford"],
-        ["rc","rm"],
-        ["nrc","nrm"]]
-
-fig, axes=plt.subplot_mosaic(layout, figsize=(6.5, 3))
-
-sns.histplot(data=df, x="affordability_salary", bins=50, ax=axes["afford"])
-axes["afford"].set_title("Purchasing power ($)")
-axes["afford"].set_xlabel("")
-
-for key, col, title in zip(["rc","rm","nrc","nrm"], share_cols, titles):
-    sns.histplot(data=df, x=col, bins=50, color="#009E73", ax=axes[key])
-    axes[key].set_title(title)
-    axes[key].set_xlabel("")
-    axes[key].set_ylabel("")
-
-plt.tight_layout()
-plt.show()
+ggplot(dists_df, aes(x=value, fill=variable)) +
+  geom_histogram(bins=50, show.legend=FALSE) +
+  facet_wrap(~variable, scales="free", ncol=3) +
+  scale_fill_manual(values=c("Purchasing Power ($)"="#0072B2",
+                             "Routine Cognitive"="#009E73",
+                             "Routine Manual"="#009E73",
+                             "Non-Routine Cognitive"="#009E73",
+                             "Non-Routine Manual"="#009E73")) +
+  labs(x=NULL, y="Count")
 ```
 
-Purchasing power is right skewed, with a skewness of 1.17. The center of the distribution is located near \$57,000, and a long tail of high purchasing power counties extends above it. This skewness is why the diagnostics below focus on the extremes of the distribution.
+Purchasing power is right skewed, with a skewness of 1.17. The center of the distribution sits near \$57,000, and a long tail of high purchasing power counties extends above it. That skew is why the diagnostics below concentrate on the extremes.
 
 ## Specification diagnostics
 
-A linear model assumes a constant rate of association across the data range and symmetrical, evenly distributed errors around the fit. We verify these assumptions using three diagnostics: residuals plotted against fitted values, a QQ plot of the residuals, and the variance inflation factors reported above. @fig-resid-analysis illustrates the first two, pinpointing the failure directly. The smoothed residual line deviates from zero, indicating curvature the model does not capture. The vertical spread of residuals increases with fitted values. The model underestimates both the lowest and highest purchasing power counties while fitting the middle well. Additionally, the QQ plot deviates from normality in the upper tail, reflecting a residual skew of 1.02.
+A linear model assumes a constant rate of association across the data range and errors that are symmetric and evenly spread around the fit. We test those assumptions with three diagnostics, the residuals plotted against fitted values, a QQ plot of the residuals, and the variance inflation factors already reported. @fig-resid-analysis shows the first two, and both point to the same failure. The smoothed residual line departs from zero, which indicates curvature the model does not capture, and the vertical spread of residuals widens with fitted values. The model underestimates both the lowest and the highest purchasing power counties while fitting the middle well. The QQ plot departs from normality in the upper tail, reflecting a residual skew of 1.01.
+
+```{python}
+#| include: false
+resid_df=reg[["fitted","resid"]].copy()
+smooth_level=lowess(reg["resid"], reg["fitted"], return_sorted=True)
+smooth_level_df=pd.DataFrame(smooth_level, columns=["fitted","resid"])
+```
 
 ```{python}
 #| label: fig-resid-analysis
-#| fig-cap: "Level model diagnostics. Left: residuals against fitted values with lowess smoother; the curve away from zero at both ends shows the model underpredicting the lowest and highest purchasing power counties. Right: QQ plot of residuals; the bend above the line in the upper tail reflects the residual skew of 1.02."
+#| echo: false
+#| warning: false
+#| fig-cap: "Level model diagnostics. Left: residuals against fitted values with lowess smoother; the curve away from zero at both ends shows the model underpredicting the lowest and highest purchasing power counties. Right: QQ plot of residuals; the bend above the line in the upper tail reflects the residual skew of 1.01."
+%%R -i resid_df -i smooth_level_df -w 9 -h 4 -u in -r 150
+p1 <- ggplot(resid_df, aes(x=fitted, y=resid)) +
+  geom_point(alpha=0.1, size=0.4, color="grey50") +
+  geom_line(data=smooth_level_df, color="#D55E00", linewidth=0.8) +
+  geom_hline(yintercept=0, linewidth=0.4) +
+  labs(x="Fitted Purchasing Power ($)", y="Residual ($)",
+       title="Residuals Against Fitted Values")
 
-fig, axes=plt.subplots(1, 2, figsize=(9,4))
+p2 <- ggplot(resid_df, aes(sample=resid)) +
+  stat_qq(size=0.4, alpha=0.3, color="grey50") +
+  stat_qq_line(linewidth=0.5) +
+  labs(x="Theoretical Quantiles", y="Sample Quantiles", title="QQ Plot")
 
-sns.scatterplot(data=reg, x="fitted", y="resid", alpha=0.1, s=5, color="grey", ax=axes[0])
-sns.regplot(data=reg, x="fitted", y="resid", scatter=False, lowess=True,
-            line_kws={"color":"#D55E00"}, ax=axes[0])
-axes[0].axhline(0, color="black", linewidth=1)
-axes[0].set_title("Residuals against fitted values")
-axes[0].set_xlabel("Fitted purchasing power ($)")
-axes[0].set_ylabel("Residual ($)")
-
-stats.probplot(reg["resid"], dist="norm", plot=axes[1])
-axes[1].set_title("QQ plot")
-
-plt.tight_layout()
-plt.show()
+p1 + p2
 ```
 
-The level model still provides the interpretable estimates we report. Additionally, its own diagnostics demonstrate that the data possess a structure that a straight line in dollars cannot adequately represent.
+The level model still supplies the interpretable dollar estimates we report, and its own diagnostics show that the data hold structure a straight line in dollars cannot represent.
 
 ## Log respecification
 
-Underprediction at both extremes is a hallmark of a multiplicative process that is fitted on an additive scale. The factors associated with purchasing power operate proportionally, so the same shift in an input moves a high purchasing power county by more dollars than a low one. Logging the outcome converts those proportional effects into the additive form a linear model assumes. @fig-log-transform shows the outcome itself before and after the transformation.
+Underprediction at both extremes is a hallmark of a multiplicative process fitted on an additive scale. The factors associated with purchasing power operate proportionally, so the same shift in an input moves a high purchasing power county by more dollars than a low one. Logging the outcome converts those proportional differences into the additive form a linear model assumes. @fig-log-transform shows the outcome before and after the transformation.
+
+```{python}
+#| include: false
+level_label=f"Level, Skew {reg['affordability_salary'].skew():.2f}"
+log_label=f"Logged, Skew {reg['actual_log'].skew():.2f}"
+logt_df=pd.concat([
+    pd.DataFrame({"value":reg["affordability_salary"], "dist":level_label}),
+    pd.DataFrame({"value":reg["actual_log"], "dist":log_label}),
+], ignore_index=True)
+logt_order=[level_label, log_label]
+```
 
 ```{python}
 #| label: fig-log-transform
 #| echo: false
+#| warning: false
 #| fig-cap: "Purchasing power before and after the log transformation. The level distribution is right skewed with a long upper tail; logging pulls the tail in and leaves a distribution close to symmetric."
+%%R -i logt_df -i logt_order -w 11 -h 3.5 -u in -r 150
+logt_df$dist <- factor(logt_df$dist, levels=unlist(logt_order))
 
-fig, axes=plt.subplots(1, 2, figsize=(11,3.5))
-
-sns.histplot(data=reg, x="affordability_salary", bins=50, color="#D55E00", ax=axes[0])
-axes[0].set_title(f"Level, skew {reg['affordability_salary'].skew():.2f}")
-axes[0].set_xlabel("Purchasing power ($)")
-
-sns.histplot(data=reg, x="actual_log", bins=50, color="#009E73", ax=axes[1])
-axes[1].set_title(f"Logged, skew {reg['actual_log'].skew():.2f}")
-axes[1].set_xlabel("Log purchasing power")
-axes[1].set_ylabel("")
-
-plt.tight_layout()
-plt.show()
+ggplot(logt_df, aes(x=value, fill=dist)) +
+  geom_histogram(bins=50, show.legend=FALSE) +
+  facet_wrap(~dist, scales="free") +
+  scale_fill_manual(values=setNames(c("#D55E00","#009E73"), unlist(logt_order))) +
+  labs(x=NULL, y="Count")
 ```
 
-Refitting the same specification on log purchasing power resolves most of the failure, as @fig-log-diag demonstrates. The residual skew decreases from 1.02 to 0.09, and the spread becomes relatively constant across the fitted range. The QQ plot also straightens through most of its range. The log linear fit serves as the baseline for evaluating the flexible models presented in the subsequent section.
+Refitting the same specification on log purchasing power resolves most of the failure, as @fig-log-diag shows. The residual skew falls from 1.01 to 0.09, the spread becomes close to constant across the fitted range, and the QQ plot straightens through most of its length. The log linear fit is the baseline against which we evaluate the flexible models below.
+
+```{python}
+#| include: false
+resid_log_df=reg[["fitted_log","resid_log"]].copy()
+smooth_log=lowess(reg["resid_log"], reg["fitted_log"], return_sorted=True)
+smooth_log_df=pd.DataFrame(smooth_log, columns=["fitted_log","resid_log"])
+```
 
 ```{python}
 #| label: fig-log-diag
+#| echo: false
+#| warning: false
 #| fig-cap: "Log model diagnostics, same layout as the level model. The smoother lies close to zero, the spread is near constant, and the QQ plot tracks the diagonal through most of its range, showing the transformation resolves most of the level model's failure."
+%%R -i resid_log_df -i smooth_log_df -w 9 -h 4 -u in -r 150
+p1 <- ggplot(resid_log_df, aes(x=fitted_log, y=resid_log)) +
+  geom_point(alpha=0.1, size=0.4, color="grey50") +
+  geom_line(data=smooth_log_df, color="#009E73", linewidth=0.8) +
+  geom_hline(yintercept=0, linewidth=0.4) +
+  labs(x="Fitted Log Purchasing Power", y="Residual",
+       title="Residuals Against Fitted Values")
 
+p2 <- ggplot(resid_log_df, aes(sample=resid_log)) +
+  stat_qq(size=0.4, alpha=0.3, color="grey50") +
+  stat_qq_line(linewidth=0.5) +
+  labs(x="Theoretical Quantiles", y="Sample Quantiles", title="QQ Plot")
 
-reg["fitted_log"]=model_log.fittedvalues
-
-fig, axes=plt.subplots(1, 2, figsize=(9,4))
-
-sns.scatterplot(data=reg, x="fitted_log", y="resid_log", alpha=0.1, s=5, color="grey", ax=axes[0])
-sns.regplot(data=reg, x="fitted_log", y="resid_log", scatter=False, lowess=True,
-            line_kws={"color":"#009E73"}, ax=axes[0])
-axes[0].axhline(0, color="black", linewidth=1)
-axes[0].set_title("Residuals against fitted values")
-axes[0].set_xlabel("Fitted log purchasing power")
-axes[0].set_ylabel("Residual")
-
-stats.probplot(reg["resid_log"], dist="norm", plot=axes[1])
-axes[1].set_title("QQ plot")
-
-plt.tight_layout()
-plt.show()
+p1 + p2
 ```
 
-@fig-binned-scale puts the same comparison in the units of the outcome. Fitted values are cut into twenty equal count bins, and each point compares a bin's mean prediction with its mean actual value, so points on the line indicate no systematic bias in that range. On the level scale the model tracks purchasing power closely through the middle of the distribution, where most counties sit, but both tail bins come in roughly \$8,000 to \$9,000 above their predictions. On the log scale the points track the line throughout.
+@fig-binned-scale puts the same comparison in the units of the outcome. Fitted values are cut into twenty equal count bins, and each point compares a bin's mean prediction with its mean actual value, so points on the line indicate no systematic bias in that range. On the level scale the model tracks purchasing power closely through the middle of the distribution, where most counties sit, while both tail bins come in roughly \$8,000 to \$9,000 above their predictions. On the log scale the points track the line throughout.
+
+```{python}
+#| include: false
+reg.loc[:, "bin"]=pd.qcut(reg["fitted"], 20, labels=False)
+binned=reg.groupby("bin")[["fitted","affordability_salary"]].mean()
+reg.loc[:, "bin_log"]=pd.qcut(reg["fitted_log"], 20, labels=False)
+binned_log=reg.groupby("bin_log")[["fitted_log","actual_log"]].mean()
+
+pts_df=pd.concat([
+    pd.DataFrame({"fitted":reg["fitted"], "actual":reg["affordability_salary"],
+                  "target":"Level Target"}),
+    pd.DataFrame({"fitted":reg["fitted_log"], "actual":reg["actual_log"],
+                  "target":"Log Target"}),
+], ignore_index=True)
+bins_df=pd.concat([
+    pd.DataFrame({"fitted":binned["fitted"], "actual":binned["affordability_salary"],
+                  "target":"Level Target"}),
+    pd.DataFrame({"fitted":binned_log["fitted_log"], "actual":binned_log["actual_log"],
+                  "target":"Log Target"}),
+], ignore_index=True)
+```
 
 ```{python}
 #| label: fig-binned-scale
 #| echo: false
+#| warning: false
 #| fig-cap: "Binned means before and after the log transformation. Fitted values are cut into twenty equal count bins, and each point compares a bin's mean prediction with its mean actual value; points on the line indicate no systematic bias in that range. On the level scale both tails sit above the line. On the log scale the points track it throughout."
+%%R -i pts_df -i bins_df -w 13 -h 5.5 -u in -r 150
+pts_df$target <- factor(pts_df$target, levels=c("Level Target","Log Target"))
+bins_df$target <- factor(bins_df$target, levels=c("Level Target","Log Target"))
 
-fig, axes=plt.subplots(1, 2, figsize=(13,5.5))
-
-reg.loc[:, "bin"]=pd.qcut(reg["fitted"], 20, labels=False)
-binned=reg.groupby("bin")[["fitted","affordability_salary"]].mean()
-axes[0].scatter(reg["fitted"], reg["affordability_salary"], alpha=0.05, s=4, color="grey")
-axes[0].scatter(binned["fitted"], binned["affordability_salary"], color="#D55E00", zorder=3, s=35)
-lim=[binned.values.min(), binned.values.max()]
-axes[0].plot(lim, lim, color="black", linewidth=1)
-axes[0].set_title("Level target")
-axes[0].set_xlabel("Fitted purchasing power ($)")
-axes[0].set_ylabel("Actual purchasing power ($)")
-
-reg.loc[:, "bin_log"]=pd.qcut(reg["fitted_log"], 20, labels=False)
-binned_log=reg.groupby("bin_log")[["fitted_log","actual_log"]].mean()
-axes[1].scatter(reg["fitted_log"], reg["actual_log"], alpha=0.05, s=4, color="grey")
-axes[1].scatter(binned_log["fitted_log"], binned_log["actual_log"], color="#009E73", zorder=3, s=35)
-lim=[binned_log.values.min(), binned_log.values.max()]
-axes[1].plot(lim, lim, color="black", linewidth=1)
-axes[1].set_title("Log target")
-axes[1].set_xlabel("Fitted log purchasing power")
-axes[1].set_ylabel("Actual log purchasing power")
-
-plt.tight_layout()
-plt.show()
+ggplot(pts_df, aes(x=fitted, y=actual)) +
+  geom_point(alpha=0.05, size=0.3, color="grey50") +
+  geom_abline(slope=1, intercept=0, linewidth=0.4) +
+  geom_point(data=bins_df, aes(color=target), size=2.4, show.legend=FALSE) +
+  facet_wrap(~target, scales="free") +
+  scale_color_manual(values=c("Level Target"="#D55E00","Log Target"="#009E73")) +
+  labs(x="Fitted Purchasing Power", y="Actual Purchasing Power")
 ```
 
-The smoothed residual line does not lie perfectly flat even after the transformation. The remaining deviations are structured in a way that a single global transformation cannot absorb, most likely due to interactions among the inputs. These deviations motivate the increase in model complexity.
+The smoothed residual line does not lie perfectly flat even after the transformation. The deviations that remain are structured rather than random, which points to interactions among the inputs, and a linear model cannot represent an interaction it was not given. Those deviations are what justify more complex models, and they also fix the test those models must pass, which is finding signal in held out counties that the log linear fit does not already capture.
 
 ## Variance decomposition
 
-Purchasing power and the task groups vary both across counties and within a county over time, and the two carry different implications. @fig-between-within splits each group's variation into the two components. The manual groups vary almost entirely between counties, which is what makes the associated purchasing power differences durable rather than temporary. Routine cognitive is the only group with genuine within county movement.
+Purchasing power and the task groups vary both across counties and within a county over time, and the two carry different implications. @fig-between-within splits each group's variation into the two components. The manual groups vary almost entirely between counties, which is what makes the purchasing power differences they carry durable rather than temporary. Routine cognitive is the only group with substantial within county movement.
 
 ```{python}
-#| label: fig-between-within
-#| echo: false
-#| fig-cap: "Variation split into differences between counties and movement within a county over time, on the panel restricted to 2010 onward with each year's cross county mean removed. The manual groups vary almost entirely between counties. Routine cognitive is the one group with substantial within county movement."
-
+#| include: false
 df10=df[df["year"]>=2010].copy()
 input_cols=["routine_cognitive_share","routine_manual_share","non_routine_manual_share"]
 
@@ -279,42 +311,63 @@ for col in input_cols:
     within=(yd-yd.groupby(df10["county_fips"]).transform("mean")).var()
     within_vals.append(within/yd.var()*100)
 
-labels=["Routine cognitive","Routine manual","Non routine manual"]
-between_vals=[100-v for v in within_vals]
-
-fig, ax=plt.subplots(figsize=(9,3.5))
-ax.barh(labels, between_vals, color="#0072B2", label="Between counties")
-ax.barh(labels, within_vals, left=between_vals, color="#D55E00",
-        label="Within counties over time")
-for i, v in enumerate(within_vals):
-    ax.text(100-v/2, i, f"{v:.0f}%", ha="center", va="center", color="white", fontsize=10)
-ax.set_xlim(0, 100)
-ax.set_xlabel("Share of variance (percent)")
-ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.5), ncol=2, frameon=False)
-plt.tight_layout()
-plt.show()
+bw_labels=["Routine Cognitive","Routine Manual","Non-Routine Manual"]
+bw_df=pd.concat([
+    pd.DataFrame({"group":bw_labels, "value":[100-v for v in within_vals],
+                  "component":"Between Counties"}),
+    pd.DataFrame({"group":bw_labels, "value":within_vals,
+                  "component":"Within Counties Over Time"}),
+], ignore_index=True)
+bw_text_df=pd.DataFrame({"group":bw_labels,
+                         "x":[100-v/2 for v in within_vals],
+                         "label":[f"{v:.0f}%" for v in within_vals]})
 ```
 
-The Census occupation coding change between 2009 and 2010, as described in @sec-data, inflates apparent within county variation for the routine cognitive group. This is due to the way the source data were coded, not a property of the counties, so the figure above is computed on the panel restricted to 2010 onward with each year's cross county mean removed. We additionally repeat the main estimates on pre pandemic (2010 to 2019) and post pandemic (2021 to 2023) windows. Coefficient stability across these windows is reported in @sec-results.
+```{python}
+#| label: fig-between-within
+#| echo: false
+#| warning: false
+#| fig-cap: "Variation split into differences between counties and movement within a county over time, on the panel restricted to 2010 onward with each year's cross county mean removed. The manual groups vary almost entirely between counties. Routine cognitive is the one group with substantial within county movement."
+%%R -i bw_df -i bw_text_df -w 9 -h 3.5 -u in -r 150
+bw_df$group <- factor(bw_df$group,
+    levels=rev(c("Routine Cognitive","Routine Manual","Non-Routine Manual")))
+bw_df$component <- factor(bw_df$component,
+    levels=c("Within Counties Over Time","Between Counties"))
+bw_text_df$group <- factor(bw_text_df$group, levels=levels(bw_df$group))
+
+ggplot(bw_df, aes(x=value, y=group, fill=component)) +
+  geom_col(width=0.7) +
+  geom_text(data=bw_text_df, aes(x=x, y=group, label=label),
+            inherit.aes=FALSE, color="white", size=3.4) +
+  scale_fill_manual(values=c("Between Counties"="#0072B2",
+                             "Within Counties Over Time"="#D55E00"),
+                    breaks=c("Between Counties","Within Counties Over Time")) +
+  labs(x="Share of Variance (Percent)", y=NULL, fill=NULL) +
+  theme(legend.position="bottom")
+```
+
+The Census occupation coding change between 2009 and 2010, described in @sec-data, inflates apparent within county variation for the routine cognitive group. That inflation comes from how the source data were coded rather than from any property of the counties, so the figure is computed on the panel restricted to 2010 onward with each year's cross county mean removed. We also refit the main estimates on pre pandemic (2010 to 2019) and post pandemic (2021 to 2023) windows, and @sec-results reports coefficient stability across them.
 
 ## Predictive modeling
 
-Beyond the inferential panel regression above, we evaluate three predictive approaches of increasing complexity: linear regression, random forest, and a small neural network. We check whether a flexible model captures meaningfully more signal than the linear specification. We reuse the county year panel already assembled above, extended with state identifiers for the fixed effects comparison below.
+Model complexity follows a ladder, from linear models through tree ensembles to neural networks. The rule is to start with the simplest model that could plausibly work, move up a rung only while held out error improves, and stop when training and validation performance agree. The level model's failed diagnostics justified the first step, the log respecification. The structured residuals that remain justify testing the next rung, a random forest, which represents interactions and curvature without requiring either to be specified in advance. A small neural network sits one rung above the forest and bounds the search, since if the forest finds no additional signal, the network confirms whether that ceiling is real. Every rung is scored on the same held out counties from the grouped split, so a gain at any rung is attributable to the model rather than to the rows it saw. Under this rule, finding no improvement is itself a result, because it establishes that the association is close to proportional and that the log linear model is the right stopping point.
+
+We reuse the county year panel assembled above, extended with state identifiers for the comparison below.
 
 ```{python}
 #| include: false
 # state_code isn't in the panel regression's df, add it here
-state_lookup = pd.read_sql(
+state_lookup=pd.read_sql(
     "select county_fips, state_code from county", engine
 )
-df_ml = df.merge(state_lookup, on="county_fips", how="left")
+df_ml=df.merge(state_lookup, on="county_fips", how="left")
 ```
 
 ### Feature set and reference groups
 
 ```{python}
 #| include: false
-feature_cols = [
+feature_cols=[
     "routine_cognitive_share",
     "routine_manual_share",
     "non_routine_cognitive_share",
@@ -325,113 +378,119 @@ feature_cols = [
     "state_code",
 ]
 
-model_df = df_ml.dropna(subset=feature_cols).copy()
-model_df[feature_cols].describe(include="all").T
+model_df=df_ml.dropna(subset=feature_cols).copy()
 ```
 
-The task groups are computed directly by the database as each group's count divided by the four group sum, so they already satisfy the constraint used in the panel regression above and require no additional normalization here. As before, one group must be dropped to avoid a deterministic column, and we retain `non_routine_cognitive_share` as the omitted reference for consistency with the panel regression.
+The database computes the task groups as each group's count divided by the four group sum, so they already satisfy the constraint used in the panel regression and need no further normalization here. As before, one group must be dropped to avoid a deterministic column, and we retain `non_routine_cognitive_share` as the omitted reference for consistency with the panel regression.
 
 ### Year and state indicators
 
-Running year as a factor, not as numeric, gives each year its own independent coefficient, with no assumption about ordering or spacing between them.
-
-One state is left as a reference state as well, which will be the state whose mean purchasing power sits closest to the panel median.
+Treating year as a factor rather than as a numeric variable gives each year its own coefficient, with no assumption about ordering or spacing between them. One state serves as a reference in the same way. Every state with fewer than five distinct counties in the panel is relabeled as OTHER, since those states cannot support a stable coefficient of their own.
 
 ```{python}
-model_df["year"] = model_df["year"].astype("category")
-model_df["state_code"] = model_df["state_code"].astype("category")
+#| include: false
+model_df["year"]=model_df["year"].astype("category")
+model_df["state_code"]=model_df["state_code"].astype("category")
 
-REFERENCE_YEAR = model_df["year"].cat.categories.min()      # earliest year as reference
+REFERENCE_YEAR=model_df["year"].cat.categories.min()  # earliest year as reference
 
-# Pool states with too few counties to support a stable, independent coefficient
-county_counts = model_df.groupby("state_code", observed=True)["county_fips"].nunique()
-THIN_STATE_THRESHOLD = 5
-thin_states = county_counts[county_counts < THIN_STATE_THRESHOLD].index.tolist()
-print("States pooled into 'OTHER' (fewer than", THIN_STATE_THRESHOLD, "counties):", thin_states)
+# pool states with too few counties to support a stable, independent coefficient
+county_counts=model_df.groupby("state_code", observed=True)["county_fips"].nunique()
+THIN_STATE_THRESHOLD=5
+thin_states=county_counts[county_counts<THIN_STATE_THRESHOLD].index.tolist()
 
-model_df["state_code_grouped"] = model_df["state_code"].astype(str)
-model_df["state_code_grouped"] = model_df["state_code_grouped"].where(
+model_df["state_code_grouped"]=model_df["state_code"].astype(str)
+model_df["state_code_grouped"]=model_df["state_code_grouped"].where(
     ~model_df["state_code_grouped"].isin(thin_states), "OTHER"
 )
-model_df["state_code_grouped"] = model_df["state_code_grouped"].astype("category")
+model_df["state_code_grouped"]=model_df["state_code_grouped"].astype("category")
 
-state_affordability = model_df.groupby("state_code_grouped", observed=True)["affordability_salary"].mean().sort_values()
-print(state_affordability)
+state_affordability=model_df.groupby("state_code_grouped", observed=True)["affordability_salary"].mean().sort_values()
 
-median_state = state_affordability.index[len(state_affordability) // 2]
-print("\nState/group closest to median purchasing power:", median_state)
+median_state=state_affordability.index[len(state_affordability)//2]
+REFERENCE_STATE=median_state
 
-REFERENCE_STATE = median_state
+year_dummies=pd.get_dummies(model_df["year"], prefix="year")
+year_dummies=year_dummies.drop(columns=[f"year_{REFERENCE_YEAR}"])
 
-year_dummies = pd.get_dummies(model_df["year"], prefix="year")
-year_dummies = year_dummies.drop(columns=[f"year_{REFERENCE_YEAR}"])
+state_dummies=pd.get_dummies(model_df["state_code_grouped"], prefix="state")
+state_dummies=state_dummies.drop(columns=[f"state_{REFERENCE_STATE}"])
 
-state_dummies = pd.get_dummies(model_df["state_code_grouped"], prefix="state")
-state_dummies = state_dummies.drop(columns=[f"state_{REFERENCE_STATE}"])
+model_df=pd.concat([model_df, year_dummies, state_dummies], axis=1)
 
-model_df = pd.concat([model_df, year_dummies, state_dummies], axis=1)
-
-year_cols_model = list(year_dummies.columns)
-state_cols_model = list(state_dummies.columns)
-
-print("Year indicator columns:", year_cols_model)
-print("Number of state indicator columns:", len(state_cols_model))
+year_cols_model=list(year_dummies.columns)
+state_cols_model=list(state_dummies.columns)
 ```
 
-Every state with fewer than five distinct counties in the panel is relabeled as "OTHER," since those states cannot reliably support their own independent coefficient.
+The reference state is the one whose mean purchasing power falls at the median of the state means, which is Texas. Texas is not a cost of living outlier in either direction, and it holds considerable within state diversity, with major metropolitan areas alongside a large number of rural counties, so reading other states as different from Texas gives an interpretable baseline. @fig-state-afford shows where it sits.
 
-Texas was selected as the reference state because its mean purchasing power sits closest to the panel median. It is not a cost of living outlier in either direction, and it has considerable within state diversity: major metropolitan areas alongside a large number of rural counties. Reading other states as different from Texas is therefore an intuitive baseline.
+```{python}
+#| include: false
+state_df=state_affordability.reset_index()
+state_df.columns=["state","mean_pp"]
+state_median=float(state_affordability.median())
+```
 
 ```{python}
 #| label: fig-state-afford
-#| fig-cap: "Mean purchasing power by state, sorted ascending, with the panel median marked. Texas sits near the middle of the distribution, supporting its use as the reference state."
+#| echo: false
+#| warning: false
+#| fig-cap: "Mean purchasing power by state, sorted ascending, with the median of the state means marked. Texas sits at the middle of the distribution, supporting its use as the reference state."
+%%R -i state_df -i state_median -w 14 -h 4 -u in -r 150
+state_df$state <- factor(state_df$state, levels=state_df$state)
 
-state_affordability.plot(kind="bar", figsize=(14, 4))
-plt.axhline(state_affordability.median(), color="red", linestyle="--", label="Median")
-plt.legend()
-plt.show()
+ggplot(state_df, aes(x=state, y=mean_pp)) +
+  geom_col(fill="#0072B2") +
+  geom_hline(yintercept=state_median, linetype="dashed", linewidth=0.4) +
+  labs(x="State", y="Mean Purchasing Power ($)") +
+  theme(axis.text.x=element_text(angle=90, vjust=0.5, hjust=1))
 ```
-
-@fig-state-afford shows that Texas lies near the middle of the states in terms of purchasing power and is usable as a reference point.
 
 ### Collinearity
 
-Our four main features, `routine_cognitive_share`, `routine_manual_share`, `non_routine_cognitive_share` and `non_routine_manual_share`, are parts of a whole, so one must be removed to maintain independence, as the fourth is deterministic once the values of the other three are known. Leaving all four in would guarantee at least one variance inflation offender, for the same reason set out in @fig-vif above.
-
-The remaining three coefficients read as the change in purchasing power associated with a shift toward that group and away from the omitted one.
+The four task groups are parts of a whole, so one must be removed, since the fourth is determined once the other three are known. Leaving all four in would guarantee at least one variance inflation offender, for the reason set out in @fig-vif. The remaining three coefficients read as the change in purchasing power associated with a shift toward that group and away from the omitted one.
 
 ```{python}
-exposure_check_cols = ["routine_cognitive_share",
+#| include: false
+exposure_check_cols=["routine_cognitive_share",
     "routine_manual_share",
     "non_routine_cognitive_share",
     "non_routine_manual_share"]
 
-REFERENCE_EXPOSURE = "non_routine_cognitive_share"
-exposure_cols_model = [c for c in exposure_check_cols if c != REFERENCE_EXPOSURE]
-core_features = exposure_cols_model + ["poverty_rate", "unemployment_rate"]
-print("Task groups entering the model:", exposure_cols_model)
+REFERENCE_EXPOSURE="non_routine_cognitive_share"
+exposure_cols_model=[c for c in exposure_check_cols if c!=REFERENCE_EXPOSURE]
+core_features=exposure_cols_model+["poverty_rate", "unemployment_rate"]
 ```
 
 ```{python}
 #| label: tbl-vif-ml
-#| tbl-cap: "Variance inflation factors for year and state indicators after removing the reference task group. All values fall below 5, indicating no remaining collinearity concern."
+#| echo: false
+#| tbl-cap: "Ten highest variance inflation factors among year and state indicators after removing the reference task group. All values fall below 5, indicating no remaining collinearity concern."
+from great_tables import GT
 
-vif_features = core_features + year_cols_model + state_cols_model
+vif_features=core_features+year_cols_model+state_cols_model
 
-X_vif = sm.add_constant(model_df[vif_features].astype(float))
+X_vif=sm.add_constant(model_df[vif_features].astype(float))
 
-vif_data = pd.DataFrame({
+vif_data=pd.DataFrame({
     "feature": X_vif.columns,
     "VIF": [variance_inflation_factor(X_vif.values, i) for i in range(X_vif.shape[1])],
 })
-vif_data[vif_data["feature"].isin(year_cols_model + state_cols_model)].sort_values("VIF", ascending=False).head(10)
+vif_top=vif_data[vif_data["feature"].isin(year_cols_model+state_cols_model)].sort_values("VIF", ascending=False).head(10).copy()
+vif_top["Indicator"]=(vif_top["feature"]
+                      .str.replace("year_", "Year ", regex=False)
+                      .str.replace("state_", "State ", regex=False))
+
+(GT(vif_top[["Indicator","VIF"]])
+  .fmt_number(columns="VIF", decimals=2)
+  .cols_align(align="right", columns="VIF"))
 ```
 
-@tbl-vif-ml lists the highest variance inflation factors after removal of `non_routine_cognitive_share`. No offender columns remain, as all features have a factor below 5.
+@tbl-vif-ml lists the highest variance inflation factors after the reference group is removed. No offenders remain, since every feature falls below 5.
 
 ### Grouped train and test split
 
-This is not a forecasting exercise, so a time ordered split is not required for its usual reason. A grouped split is still necessary because a county's economic profile barely moves year to year, so its 2018 and 2019 rows are near duplicates. If two adjacent rows land on opposite sides of the split, the model can recall a county rather than learn a relationship. We therefore group by `county_fips` when splitting, so every test set prediction comes from a county the model has seen no rows of. This tests whether the pattern is relationship driven rather than memorized.
+This is not a forecasting exercise, so a time ordered split is not required for its usual reason. A grouped split is still necessary, because a county's economic profile barely moves year to year, which makes its 2018 and 2019 rows near duplicates. If two adjacent rows land on opposite sides of the split, the model can recall a county rather than learn a relationship. We therefore group by `county_fips` when splitting, so every test set prediction comes from a county the model has seen no rows of, which tests whether the pattern generalizes rather than whether it was memorized.
 
 ```{python}
 #| include: false
@@ -439,165 +498,146 @@ from sklearn.model_selection import GroupShuffleSplit
 from sklearn.metrics import r2_score, mean_absolute_error
 from sklearn.preprocessing import StandardScaler
 
-feature_cols_reg = core_features + year_cols_model + state_cols_model
-target_col = "affordability_salary"
+feature_cols_reg=core_features+year_cols_model+state_cols_model
+target_col="affordability_salary"
 
+X_ml=model_df[feature_cols_reg].reset_index(drop=True).astype(float)
+y=model_df[target_col].reset_index(drop=True)
+groups=model_df["county_fips"].reset_index(drop=True)
 
-X = model_df[feature_cols_reg].reset_index(drop=True).astype(float)
-y = model_df[target_col].reset_index(drop=True)
-groups = model_df["county_fips"].reset_index(drop=True)
+gss=GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+train_idx, test_idx=next(gss.split(X_ml, y, groups))
 
-# quick skew check on the target -- log-transform candidate
-print("Target skew:", y.skew())
+X_train, X_test=X_ml.iloc[train_idx], X_ml.iloc[test_idx]
+y_train, y_test=y.iloc[train_idx], y.iloc[test_idx]
+groups_train=groups.iloc[train_idx]
 
-gss = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
-train_idx, test_idx = next(gss.split(X, y, groups))
-
-X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
-y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
-groups_train = groups.iloc[train_idx]
-
-print("Train rows:", len(X_train), " Test rows:", len(X_test))
-print("Overlap in county_fips between train/test (should be 0):",
-      len(set(groups.iloc[train_idx]) & set(groups.iloc[test_idx])))
+assert len(set(groups.iloc[train_idx]) & set(groups.iloc[test_idx]))==0
 ```
 
 ```{python}
 #| include: false
-# Baseline feature set (no year/state), reusing the SAME row split as the full model
-feature_cols_base = exposure_cols_model + ["poverty_rate", "unemployment_rate"]
-X_base = model_df[feature_cols_base].reset_index(drop=True).astype(float)
-X_train_base, X_test_base = X_base.iloc[train_idx], X_base.iloc[test_idx]
+# baseline feature set (no year/state), reusing the SAME row split as the full model
+feature_cols_base=exposure_cols_model+["poverty_rate", "unemployment_rate"]
+X_base=model_df[feature_cols_base].reset_index(drop=True).astype(float)
+X_train_base, X_test_base=X_base.iloc[train_idx], X_base.iloc[test_idx]
 ```
 
 ### Linear regression
 
-We report two versions of each linear model throughout this section: a **baseline**, using the task groups with poverty and unemployment only, and a **full** model, which adds year and state controls. The baseline shows what the relationship looks like before time and geography are accounted for, and the full model is the one carried forward as the primary result. Reporting both makes visible exactly what changes when time and geography enter, and why.
+We report two versions of each linear model. The baseline uses the task groups with poverty and unemployment only, and the full model adds year and state controls. The baseline shows what the relationship looks like before time and geography are accounted for, the full model is the one carried forward, and reporting both makes visible exactly what changes when time and geography enter.
 
 #### Baseline specification
 
 ```{python}
-X_train_base_sm = sm.add_constant(X_train_base)
-ols_model_base = sm.OLS(y_train, X_train_base_sm).fit()
-print(ols_model_base.summary())
+#| include: false
+X_train_base_sm=sm.add_constant(X_train_base)
+ols_model_base=sm.OLS(y_train, X_train_base_sm).fit()
 ```
 
-Features are on very different scales. R² = 0.766 is respectable. Every coefficient is negative and highly significant, which follows from non routine cognitive being the reference: shifting a county's task groups toward any of the other groups is associated with lower purchasing power, with non routine manual the steepest.
+The baseline reaches an R² of 0.766. Every coefficient is negative and highly significant, which follows from non-routine cognitive serving as the reference. Shifting a county toward any of the other three groups is associated with lower purchasing power, and non-routine manual is the steepest. The coefficients appear alongside the full specifications in @tbl-ols-comparison.
 
 #### Full specification
 
 ```{python}
-X_train_sm = sm.add_constant(X_train)
-ols_model = sm.OLS(y_train, X_train_sm).fit()
-print(ols_model.params[core_features])
-print("R-squared:", ols_model.rsquared)
+#| include: false
+X_train_sm=sm.add_constant(X_train)
+ols_model=sm.OLS(y_train, X_train_sm).fit()
 ```
 
-With the addition of time and geography, R² rises from 0.766 to 0.871 in the same model, implying that these variables explain real variance. Notably, the `unemployment_rate` coefficient flips sign, meaning that the baseline coefficient likely absorbed some of the geography and time confounding. This makes sense, as places and periods with heavy unemployment also tend to be places and periods of low purchasing power. The full model's coefficient reflects the within state year relationship instead. Also notable, the task group coefficients maintained their direction and relative ordering through the addition of the new features.
+Adding time and geography raises R² from 0.766 to 0.871, so these variables explain real variance. The `unemployment_rate` coefficient flips sign, which suggests the baseline coefficient absorbed some of the geographic and temporal confounding, and that is what we would expect, since places and periods with heavy unemployment also tend to be places and periods of low purchasing power. The full model's coefficient reflects the within state year relationship instead. The task group coefficients keep their direction and their relative ordering through the addition.
 
-@fig-ols-diag shows both diagnostics side by side.
+```{python}
+#| include: false
+fitted_ols=ols_model.predict(X_train_sm)
+ols_diag_df=pd.DataFrame({"fitted":fitted_ols, "resid":y_train-fitted_ols})
+```
 
 ```{python}
 #| label: fig-ols-diag
+#| echo: false
+#| warning: false
 #| fig-cap: "Full raw target OLS diagnostics. Left: residuals against fitted values; the U shaped pattern shows the model underpredicting at both extremes. Right: QQ plot of residuals, deviating from normality in the upper tail."
+%%R -i ols_diag_df -w 9 -h 4 -u in -r 150
+p1 <- ggplot(ols_diag_df, aes(x=fitted, y=resid)) +
+  geom_point(alpha=0.2, size=0.5, color="grey50") +
+  geom_hline(yintercept=0, linetype="dashed", linewidth=0.4) +
+  labs(x="Fitted Values ($)", y="Residuals ($)",
+       title="Residuals Against Fitted Values")
 
-import scipy.stats as stats
+p2 <- ggplot(ols_diag_df, aes(sample=resid)) +
+  stat_qq(size=0.4, alpha=0.3, color="grey50") +
+  stat_qq_line(linewidth=0.5) +
+  labs(x="Theoretical Quantiles", y="Sample Quantiles", title="QQ Plot")
 
-fitted_ols = ols_model.predict(X_train_sm)
-residuals_ols = y_train - fitted_ols
-
-fig, axes = plt.subplots(1, 2, figsize=(9, 4))
-
-axes[0].scatter(fitted_ols, residuals_ols, alpha=0.3, s=10)
-axes[0].axhline(0, color="red", linestyle="--")
-axes[0].set_xlabel("Fitted values")
-axes[0].set_ylabel("Residuals")
-axes[0].set_title("Residuals against fitted values")
-
-stats.probplot(residuals_ols, dist="norm", plot=axes[1])
-axes[1].set_title("QQ plot")
-
-plt.tight_layout()
-plt.show()
+p1 + p2
 ```
 
-There is a clear U shaped pattern in the residual plot, indicating that the residuals are not uniformly distributed, so OLS is not a reliable model for these data with the target as is.
+@fig-ols-diag shows a clear U shaped pattern in the residuals, so OLS is not reliable for these data with the target as is.
 
 #### Full specification on the logged outcome
 
-The binned means in @fig-binned-scale showed an approximately exponential pattern, so we investigate whether logging the target makes a linear model more appropriate here as well.
+The binned means in @fig-binned-scale showed an approximately exponential pattern, so we test whether logging the target makes a linear model appropriate here as well.
 
 ```{python}
-print("Any zero/negative affordability values?", (y <= 0).sum())  # confirm log is safe
+#| include: false
+assert (y<=0).sum()==0  # confirm log is safe
 
-y_train_log = np.log(y_train)
-y_test_log = np.log(y_test)
+y_train_log=np.log(y_train)
+y_test_log=np.log(y_test)
 
-print("Skew, original:", y_train.skew())
-print("Skew, logged:  ", y_train_log.skew())
+ols_model_log=sm.OLS(y_train_log, X_train_sm).fit()
 
-ols_model_log = sm.OLS(y_train_log, X_train_sm).fit()
-print(ols_model_log.summary())
+X_test_sm=sm.add_constant(X_test, has_constant="add")
+y_pred_ols_log=ols_model_log.predict(X_test_sm)
+y_pred_ols_log_dollars=np.exp(y_pred_ols_log)
+
+ols_log_test_r2_log=r2_score(y_test_log, y_pred_ols_log)
+ols_log_test_r2=r2_score(y_test, y_pred_ols_log_dollars)
+ols_log_test_mae=mean_absolute_error(y_test, y_pred_ols_log_dollars)
 ```
 
-@fig-ols-log-diag shows the same pair of diagnostics for the log target specification.
+```{python}
+#| include: false
+fitted_ols_log=ols_model_log.predict(X_train_sm)
+ols_log_diag_df=pd.DataFrame({"fitted":fitted_ols_log, "resid":y_train_log-fitted_ols_log})
+```
 
 ```{python}
 #| label: fig-ols-log-diag
+#| echo: false
+#| warning: false
 #| fig-cap: "Log target OLS diagnostics, same layout as the raw target model. The residual spread is roughly constant across fitted values and the QQ plot tracks the diagonal much more closely."
+%%R -i ols_log_diag_df -w 9 -h 4 -u in -r 150
+p1 <- ggplot(ols_log_diag_df, aes(x=fitted, y=resid)) +
+  geom_point(alpha=0.2, size=0.5, color="grey50") +
+  geom_hline(yintercept=0, linetype="dashed", linewidth=0.4) +
+  labs(x="Fitted (Log)", y="Residuals (Log)",
+       title="Residuals Against Fitted Values")
 
-residuals_log = y_train_log - ols_model_log.predict(X_train_sm)
+p2 <- ggplot(ols_log_diag_df, aes(sample=resid)) +
+  stat_qq(size=0.4, alpha=0.3, color="grey50") +
+  stat_qq_line(linewidth=0.5) +
+  labs(x="Theoretical Quantiles", y="Sample Quantiles", title="QQ Plot")
 
-fig, axes = plt.subplots(1, 2, figsize=(9, 4))
-
-axes[0].scatter(ols_model_log.predict(X_train_sm), residuals_log, alpha=0.3, s=10)
-axes[0].axhline(0, color="red", linestyle="--")
-axes[0].set_xlabel("Fitted (log)")
-axes[0].set_ylabel("Residuals (log)")
-axes[0].set_title("Residuals against fitted values")
-
-stats.probplot(residuals_log, dist="norm", plot=axes[1])
-axes[1].set_title("QQ plot")
-
-plt.tight_layout()
-plt.show()
+p1 + p2
 ```
 
-The residual plot looks uniformly distributed and the QQ plot follows a straight line pattern, so with a logged target a linear model is appropriate.
-
-```{python}
-print("R-squared (log target, in-sample):", ols_model_log.rsquared)
-
-X_test_sm = sm.add_constant(X_test, has_constant="add")
-y_pred_ols_log = ols_model_log.predict(X_test_sm)
-
-print("Test R2 (log space):", r2_score(y_test_log, y_pred_ols_log))
-
-y_pred_ols_log_dollars = np.exp(y_pred_ols_log)
-print("Test R2 (back-transformed to $):", r2_score(y_test, y_pred_ols_log_dollars))
-print("Test MAE (back-transformed to $):", mean_absolute_error(y_test, y_pred_ols_log_dollars))
-```
-
-With a logged target, the model achieves an in sample R² of 0.913 and a held out test R², transformed back into dollars, of 0.896. Both are notably higher than the raw target model's 0.871, and with valid residual diagnostics.
+In @fig-ols-log-diag the residuals are evenly spread and the QQ plot follows a straight line, so a linear model is appropriate on the logged target. That model reaches an in sample R² of 0.913 and a held out R², back transformed into dollars, of 0.896, both above the raw target model's 0.871 and with valid diagnostics behind them.
 
 #### Coefficient comparison
 
-@tbl-ols-comparison reports the coefficients across the three specifications; the same comparison is shown graphically in @sec-results.
+@tbl-ols-comparison reports the coefficients across the three specifications, and @sec-results shows the same comparison graphically.
 
 ```{python}
 #| label: tbl-ols-comparison
-#| tbl-cap: "Coefficients across the baseline, full raw target, and full log target OLS specifications, with log target coefficients also converted to percent change per one point shift."
+#| echo: false
+#| tbl-cap: "Coefficients across the baseline, full raw target, and full log target OLS specifications, with log target coefficients also converted to percent change per one percentage point shift. Task group coefficients are per unit of group proportion."
 
-comparison_ols = pd.DataFrame({
-    "baseline": ols_model_base.params,
-    "with_controls (raw $)": ols_model.params[feature_cols_base],
-    "with_controls (log target)": ols_model_log.params[feature_cols_base],
-})
+log_coefs=ols_model_log.params[feature_cols_base]
 
-log_coefs = ols_model_log.params[feature_cols_base]
-
-# task groups are 0-1 scale (1pp = 0.01 units); poverty/unemployment are already in point units (1pp = 1 unit)
-unit_per_point = {
+# task groups are 0 to 1 scale (1pp=0.01 units); poverty and unemployment are already in point units
+unit_per_point={
     "routine_cognitive_share": 0.01,
     "routine_manual_share": 0.01,
     "non_routine_manual_share": 0.01,
@@ -605,59 +645,79 @@ unit_per_point = {
     "unemployment_rate": 1.0,
 }
 
-pct_change_per_point = {
-    feat: (np.exp(log_coefs[feat] * unit_per_point[feat]) - 1) * 100
+pct_change_per_point={
+    feat: (np.exp(log_coefs[feat]*unit_per_point[feat])-1)*100
     for feat in feature_cols_base
 }
 
-comparison_ols["log_target (% change per 1pp)"] = pd.Series(pct_change_per_point)
-comparison_ols
+label_map={
+    "routine_cognitive_share":"Routine cognitive",
+    "routine_manual_share":"Routine manual",
+    "non_routine_manual_share":"Non-routine manual",
+    "poverty_rate":"Poverty rate",
+    "unemployment_rate":"Unemployment rate",
+}
+
+comparison_ols=pd.DataFrame({
+    "Variable": [label_map[f] for f in feature_cols_base],
+    "Baseline ($)": ols_model_base.params[feature_cols_base].values,
+    "With controls ($)": ols_model.params[feature_cols_base].values,
+    "With controls (log)": ols_model_log.params[feature_cols_base].values,
+    "Percent change per point": [pct_change_per_point[f] for f in feature_cols_base],
+})
+
+(GT(comparison_ols)
+  .fmt_number(columns=["Baseline ($)","With controls ($)"], decimals=0, use_seps=True)
+  .fmt_number(columns="With controls (log)", decimals=4)
+  .fmt_number(columns="Percent change per point", decimals=2))
 ```
 
-As @tbl-ols-comparison shows, the sign flip in `unemployment_rate` is confirmed across all three fitted forms. Task group coefficients shrink in magnitude from baseline to raw controls while `poverty_rate` grows, moving from −1,376.50 to −1,728.82. Controls therefore sharpen the task group association rather than displacing it.
+The sign flip in `unemployment_rate` holds across all three fitted forms. Task group coefficients shrink in magnitude from baseline to raw controls while the poverty coefficient grows, from roughly −1,376 to −1,729, so the controls sharpen the task group association rather than displacing it.
 
-Each additional percentage point of poverty rate is associated with roughly 2.9 percent lower purchasing power, holding time, geography, and task groups fixed. This is a considerably larger proportional difference than any single task group.
+Each additional percentage point of poverty rate is associated with roughly 2.9 percent lower purchasing power, holding time, geography, and task groups fixed. That is a considerably larger proportional difference than any single task group carries.
 
 ```{python}
 #| label: tbl-ols-r2-summary
+#| echo: false
 #| tbl-cap: "R-squared by specification stage: baseline, full raw target (diagnostics failed), and full log target."
 
-r2_summary = pd.DataFrame({
-    "model": ["Baseline OLS", "Full OLS (raw $, diagnostics failed)", "Full OLS (log target)"],
-    "r2_or_note": [ols_model_base.rsquared, ols_model.rsquared, ols_model_log.rsquared],
+r2_summary=pd.DataFrame({
+    "Model": ["Baseline OLS", "Full OLS (raw $, diagnostics failed)", "Full OLS (log target)"],
+    "R squared": [ols_model_base.rsquared, ols_model.rsquared, ols_model_log.rsquared],
 })
-r2_summary
+
+(GT(r2_summary)
+  .fmt_number(columns="R squared", decimals=3)
+  .cols_align(align="right", columns="R squared"))
 ```
 
-@tbl-ols-r2-summary shows R² climbing through each stage of this analysis. First, adding year and state controls to the baseline model raises it from 0.766 to 0.871, which confirms that time and geography explain real, previously unmodeled variance. Logging the target raises it further, from 0.871 to 0.913 in sample and 0.896 held out, once the residual violations from the raw target model are resolved. This is the model used for inference going forward, since the raw target model's coefficient significance cannot be trusted given its failed residual diagnostics above.
+@tbl-ols-r2-summary shows R² climbing through each stage. Adding year and state controls raises it from 0.766 to 0.871, confirming that time and geography explain real variance the baseline left unmodeled. Logging the target raises it further, to 0.913 in sample and 0.896 held out, and resolves the residual violations along the way. This is the linear model used for inference from here, since the raw target model's coefficient significance cannot be trusted given its failed diagnostics.
 
 ### Random forest
 
-For the random forest, we performed a grid search over `n_estimators`, `max_depth`, `min_samples_leaf`, and `max_features` on the grid shown below, using a high number of estimators to reduce variance, with `max_depth` and `min_samples_leaf` providing regularization.
+For the random forest we ran a grid search over the number of trees (600 and 1,000), maximum depth (10, 20, and unlimited), minimum leaf size (1, 2, and 5), and the feature subsampling rate (all features, half, and the square root), scored by grouped five fold cross validation on the training counties. More trees reduce variance, while depth and leaf size supply regularization. The search selected 1,000 trees, unlimited depth, a minimum leaf of 1, and half the features per split.
 
 ```{python}
 #| eval: false
-# Grid search actually run once; shown here for documentation of the search
-# space. Not re-executed on every render — see the following chunk for the
-# cached result.
+#| include: false
+# grid search actually run once; kept for documentation of the search space,
+# not re-executed on render. Best params hardcoded in the following chunk.
 
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import GridSearchCV, GroupKFold
 
-rf = RandomForestRegressor(random_state=42, n_jobs=-1)
+rf=RandomForestRegressor(random_state=42, n_jobs=-1)
 
-param_grid = {
+param_grid={
     "n_estimators": [600, 1000],
     "max_depth": [None, 10, 20],
     "min_samples_leaf": [1, 2, 5],
     "max_features": [1.0, "sqrt", 0.5],
 }
 
-group_cv = GroupKFold(n_splits=5)
-gcv = GridSearchCV(rf, param_grid, cv=group_cv, scoring="r2", n_jobs=-1)
+group_cv=GroupKFold(n_splits=5)
+gcv=GridSearchCV(rf, param_grid, cv=group_cv, scoring="r2", n_jobs=-1)
 gcv.fit(X_train, y_train, groups=groups_train)
-
-print("Best params:", gcv.best_params_)
 ```
 
 ```{python}
@@ -665,52 +725,50 @@ print("Best params:", gcv.best_params_)
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.inspection import permutation_importance
 
-# Grid search above was run once over the full param_grid; best params found were:
+# grid search above was run once over the full param_grid; best params found were:
 # {'max_depth': None, 'max_features': 0.5, 'min_samples_leaf': 1, 'n_estimators': 1000}
-# Hardcoded here to avoid re-running an expensive search on every render.
-best_params = {
+best_params={
     "max_depth": None,
     "max_features": 0.5,
     "min_samples_leaf": 1,
     "n_estimators": 1000,
 }
 
-best_rf = RandomForestRegressor(**best_params, random_state=42, n_jobs=2)
+best_rf=RandomForestRegressor(**best_params, random_state=42, n_jobs=2)
 best_rf.fit(X_train, y_train)
 
-y_pred_rf = best_rf.predict(X_test)
-print("Test R2: ", r2_score(y_test, y_pred_rf))
-print("Test MAE:", mean_absolute_error(y_test, y_pred_rf))
-
-# overfitting check
-print("Train R2:", best_rf.score(X_train, y_train))
+y_pred_rf=best_rf.predict(X_test)
+rf_test_r2=r2_score(y_test, y_pred_rf)
+rf_test_mae=mean_absolute_error(y_test, y_pred_rf)
+rf_train_r2=best_rf.score(X_train, y_train)
 ```
 
-An R² of 0.876 is higher than the raw target OLS model at 0.871, suggesting at least some nonlinear structure in the data at this stage. However, this comparison changes once the target is log transformed, which is addressed in the comparison below.
+The forest reaches a held out R² of 0.876 against the raw target OLS model's 0.871, which suggests some nonlinear structure at this stage. That comparison changes once the target is logged, as the comparison below shows.
 
-A train and test gap of 0.989 against 0.876 indicates that the ceiling on this feature set is constrained by something other than hyperparameters. The training data is already fit about as well as a tree ensemble can manage, without better generalization following.
-
-```{python}
-#| label: fig-rf-resid
-#| fig-cap: "Random forest residuals against predicted values on the held out test set. No systematic curve or trend is visible across the range of predictions."
-
-residuals_rf = y_test - y_pred_rf
-
-plt.figure(figsize=(7, 5))
-plt.scatter(y_pred_rf, residuals_rf, alpha=0.3, s=10, color="green")
-plt.axhline(0, color="red", linestyle="--")
-plt.xlabel("Predicted values")
-plt.ylabel("Residuals")
-plt.title("Random forest residuals against predicted values (test)")
-plt.tight_layout()
-plt.show()
-```
-
-Unlike the raw target OLS residuals, @fig-rf-resid shows random forest residuals with no systematic curve or trend across the range of predicted values.
+The train and test gap, 0.989 against 0.876, indicates that something other than hyperparameters sets the ceiling on this feature set. The training data are already fit about as well as a tree ensemble can manage, and better generalization does not follow.
 
 ```{python}
 #| include: false
-perm_imp = permutation_importance(
+rf_resid_df=pd.DataFrame({"pred":y_pred_rf, "resid":y_test-y_pred_rf})
+```
+
+```{python}
+#| label: fig-rf-resid
+#| echo: false
+#| warning: false
+#| fig-cap: "Random forest residuals against predicted values on the held out test set. No systematic curve or trend is visible across the range of predictions."
+%%R -i rf_resid_df -w 7 -h 5 -u in -r 150
+ggplot(rf_resid_df, aes(x=pred, y=resid)) +
+  geom_point(alpha=0.3, size=0.6, color="#CC79A7") +
+  geom_hline(yintercept=0, linetype="dashed", linewidth=0.4) +
+  labs(x="Predicted Values ($)", y="Residuals ($)")
+```
+
+Unlike the raw target OLS residuals, @fig-rf-resid shows no systematic curve or trend across the range of predicted values.
+
+```{python}
+#| include: false
+perm_imp=permutation_importance(
     best_rf, X_test, y_test, n_repeats=20, random_state=42, n_jobs=1
 )
 ```
@@ -718,129 +776,126 @@ perm_imp = permutation_importance(
 #### Ablation without task groups
 
 ```{python}
-feature_cols_no_exposure = [c for c in feature_cols_reg if c not in exposure_cols_model]
-X_train_ne = X_train[feature_cols_no_exposure]
-X_test_ne = X_test[feature_cols_no_exposure]
+#| include: false
+feature_cols_no_exposure=[c for c in feature_cols_reg if c not in exposure_cols_model]
+X_train_ne=X_train[feature_cols_no_exposure]
+X_test_ne=X_test[feature_cols_no_exposure]
 
-rf_no_exposure = RandomForestRegressor(**best_params, random_state=42, n_jobs=-1)
+rf_no_exposure=RandomForestRegressor(**best_params, random_state=42, n_jobs=-1)
 rf_no_exposure.fit(X_train_ne, y_train)
-print("R2 without task groups:", rf_no_exposure.score(X_test_ne, y_test))
+rf_no_exposure_r2=rf_no_exposure.score(X_test_ne, y_test)
 ```
 
-Without the task groups at all, the same random forest achieves an R² of 0.834.
+Without the task groups, the same random forest reaches an R² of 0.834.
 
 #### Ablation without economic controls
 
 ```{python}
-feature_cols_no_econ = [c for c in feature_cols_reg if c not in ["poverty_rate", "unemployment_rate"]]
-X_train_ne2 = X_train[feature_cols_no_econ]
-X_test_ne2 = X_test[feature_cols_no_econ]
+#| include: false
+feature_cols_no_econ=[c for c in feature_cols_reg if c not in ["poverty_rate", "unemployment_rate"]]
+X_train_ne2=X_train[feature_cols_no_econ]
+X_test_ne2=X_test[feature_cols_no_econ]
 
-rf_no_econ = RandomForestRegressor(**best_params, random_state=42, n_jobs=-1)
+rf_no_econ=RandomForestRegressor(**best_params, random_state=42, n_jobs=-1)
 rf_no_econ.fit(X_train_ne2, y_train)
-print("R2 without poverty/unemployment:", rf_no_econ.score(X_test_ne2, y_test))
+rf_no_econ_r2=rf_no_econ.score(X_test_ne2, y_test)
 ```
 
-Using only the task groups, excluding poverty and unemployment, the model reaches an R² of 0.698. That is meaningful on its own but well short of the full model.
+Using only the task groups, with poverty and unemployment removed, the model reaches 0.698. That is meaningful on its own but well short of the full model.
 
 #### Random forest on the logged outcome
 
-The forest is also fit on the logged outcome.
-
 ```{python}
-rf_log = RandomForestRegressor(**best_params, random_state=42, n_jobs=2)
+#| include: false
+rf_log=RandomForestRegressor(**best_params, random_state=42, n_jobs=2)
 rf_log.fit(X_train, y_train_log)
 
-y_pred_rf_log = rf_log.predict(X_test)
-print("Test R2 (log space):", r2_score(y_test_log, y_pred_rf_log))
+y_pred_rf_log=rf_log.predict(X_test)
+y_pred_rf_log_dollars=np.exp(y_pred_rf_log)
 
-y_pred_rf_log_dollars = np.exp(y_pred_rf_log)
-print("Test R2 (back-transformed to $):", r2_score(y_test, y_pred_rf_log_dollars))
-print("Test MAE (back-transformed to $):", mean_absolute_error(y_test, y_pred_rf_log_dollars))
+rf_log_test_r2_log=r2_score(y_test_log, y_pred_rf_log)
+rf_log_test_r2=r2_score(y_test, y_pred_rf_log_dollars)
+rf_log_test_mae=mean_absolute_error(y_test, y_pred_rf_log_dollars)
 ```
 
-An R² of 0.877 after back transforming is a negligible change from the untransformed target model at 0.876. Since the log target model is already established as the reference model for the linear regression above, we adopt the log target forest here as well for consistency in the final comparison, even though the choice of target makes little practical difference for the random forest specifically.
+Fitting the forest on the logged outcome gives 0.877 after back transforming, a negligible change from 0.876 on the raw target. Since the log target is already the reference form for the linear model, we adopt the log target forest for the final comparison as well, even though the choice of target makes little practical difference for the forest.
 
 #### Grouped permutation
 
-To see what the four task groups do together, rather than one at a time diluting each other, we permute all four jointly and compare the drop in R² to permuting them individually.
+To see what the four task groups do together, rather than one at a time diluting each other, we permute all four jointly and compare the drop in R² against permuting them individually.
 
 ```{python}
-from sklearn.metrics import r2_score as _r2
+#| include: false
+exposure_cols=exposure_cols_model  # the three non-reference task groups
+rng=np.random.RandomState(42)
 
-exposure_cols = exposure_cols_model  # the three non-reference task groups
-rng = np.random.RandomState(42)
-
-baseline_r2 = _r2(y_test, best_rf.predict(X_test))
+baseline_r2=r2_score(y_test, best_rf.predict(X_test))
 
 def grouped_permutation_drop(cols, n_repeats=20):
-    drops = []
+    drops=[]
     for _ in range(n_repeats):
-        X_perm = X_test.copy()
-        shuffled_idx = rng.permutation(len(X_perm))
-        X_perm[cols] = X_perm[cols].values[shuffled_idx]
-        drops.append(baseline_r2 - _r2(y_test, best_rf.predict(X_perm)))
+        X_perm=X_test.copy()
+        shuffled_idx=rng.permutation(len(X_perm))
+        X_perm[cols]=X_perm[cols].values[shuffled_idx]
+        drops.append(baseline_r2-r2_score(y_test, best_rf.predict(X_perm)))
     return np.mean(drops)
 
-print("Baseline R2:", baseline_r2)
+joint_drop=grouped_permutation_drop(exposure_cols)
 
-joint_drop = grouped_permutation_drop(exposure_cols)
-print("Drop from permuting all task groups together:", joint_drop)
-
-individual_drops = {}
+individual_drops={}
 for col in exposure_cols:
-    individual_drops[col] = grouped_permutation_drop([col])
-    print(f"Drop from permuting {col} alone:", individual_drops[col])
+    individual_drops[col]=grouped_permutation_drop([col])
 
-year_drop = grouped_permutation_drop(year_cols_model)
-state_drop = grouped_permutation_drop(state_cols_model)
-print("Drop from permuting year (jointly):", year_drop)
-print("Drop from permuting state (jointly):", state_drop)
+year_drop=grouped_permutation_drop(year_cols_model)
+state_drop=grouped_permutation_drop(state_cols_model)
 ```
 
-Year matters far more than state, at 0.127 against 0.008: time, not geography, carries the bulk of the temporal and spatial signal once the economic variables and task groups are controlled for.
+Year matters far more than state, at 0.128 against 0.008, so time rather than geography carries the bulk of the temporal and spatial signal once the economic variables and task groups are present.
 
-Task group gross importance of 0.153 is considerably larger than the net contribution of 0.042 from the ablation above. This implies that the task groups share real predictive overlap with poverty, unemployment, and time, while still adding something those do not fully capture.
+The task groups drop 0.153 when permuted jointly, considerably more than the 0.042 net contribution the ablation above implies. The task groups therefore overlap with poverty, unemployment, and time while still adding something those three do not capture.
 
-Among the three individual task groups, `non_routine_manual_share` shows the largest individual sensitivity, though none of the three should be read as independently additive given they are parts of a whole. This is consistent with the panel regression, where non routine manual carries the steepest coefficient.
+Among the three individual task groups, `non_routine_manual_share` shows the largest sensitivity, though none of the three should be read as independently additive given that they are parts of a whole. This matches the panel regression, where non-routine manual carries the steepest coefficient.
 
 ### Neural network
 
-The neural network is kept shallow and narrow. The outcome is continuous, so the network ends in a single linear output unit.
+The neural network is kept shallow, with three hidden layers and a single linear output unit for the continuous outcome.
 
 ```{python}
-#| eval: false
+#| include: false
 import tensorflow as tf
 from tensorflow.keras import layers, models, callbacks
 
-scaler_x = StandardScaler().fit(X_train)
-X_train_s = scaler_x.transform(X_train)
-X_test_s = scaler_x.transform(X_test)
+tf.random.set_seed(42)
+np.random.seed(42)
 
-scaler_y = StandardScaler().fit(y_train.values.reshape(-1, 1))
-y_train_s = scaler_y.transform(y_train.values.reshape(-1, 1)).ravel()
-y_test_s = scaler_y.transform(y_test.values.reshape(-1, 1)).ravel()
+scaler_x=StandardScaler().fit(X_train)
+X_train_s=scaler_x.transform(X_train)
+X_test_s=scaler_x.transform(X_test)
 
-n_features = X_train.shape[1]          # now ~70+ with year/state indicators
-h1 = int(round(n_features * 1.5))
-h2 = max(int(round(h1 * 0.5)), 20)
-h3 = 10                                  # latent bottleneck
+scaler_y=StandardScaler().fit(y_train.values.reshape(-1, 1))
+y_train_s=scaler_y.transform(y_train.values.reshape(-1, 1)).ravel()
+y_test_s=scaler_y.transform(y_test.values.reshape(-1, 1)).ravel()
 
-nn = models.Sequential([
+n_features=X_train.shape[1]
+h1=int(round(n_features*1.5))
+h2=max(int(round(h1*0.5)), 20)
+h3=10
+
+nn=models.Sequential([
     layers.Input(shape=(n_features,)),
     layers.Dense(h1, activation="relu"),
     layers.Dropout(0.2),
     layers.Dense(h2, activation="relu"),
     layers.Dropout(0.2),
     layers.Dense(h3, activation="relu"),
-    layers.Dense(1, activation="linear"),   # regression head
+    layers.Dense(1, activation="linear"),  # regression head
 ])
 
 nn.compile(optimizer="adam", loss="mse", metrics=["mae"])
 
-es = callbacks.EarlyStopping(patience=15, restore_best_weights=True)
+es=callbacks.EarlyStopping(patience=15, restore_best_weights=True)
 
-history = nn.fit(
+history=nn.fit(
     X_train_s, y_train_s,
     validation_split=0.2,
     epochs=300,
@@ -849,35 +904,38 @@ history = nn.fit(
     verbose=0,
 )
 
-y_pred_nn_s = nn.predict(X_test_s).ravel()
-y_pred_nn = scaler_y.inverse_transform(y_pred_nn_s.reshape(-1, 1)).ravel()
+y_pred_nn_s=nn.predict(X_test_s).ravel()
+y_pred_nn=scaler_y.inverse_transform(y_pred_nn_s.reshape(-1, 1)).ravel()
 
-print("Test R2: ", r2_score(y_test, y_pred_nn))
-print("Test MAE:", mean_absolute_error(y_test, y_pred_nn))
-print("Stopped at epoch:", len(history.history["loss"]))
-print("Best val_loss achieved:", min(history.history["val_loss"]))
+nn_initial_test_r2=r2_score(y_test, y_pred_nn)
+nn_initial_test_mae=mean_absolute_error(y_test, y_pred_nn)
+
+nn_init_df=pd.DataFrame({
+    "epoch": range(1, len(history.history["loss"])+1),
+    "Train": history.history["loss"],
+    "Validation": history.history["val_loss"],
+}).melt(id_vars="epoch", var_name="series", value_name="loss")
 ```
 
 ```{python}
 #| label: fig-nn-curve-initial
-#| eval: false
-#| fig-cap: "Training and validation loss for the initial, unregularized neural network. Training loss plateaus below 0.1 while validation loss falls to roughly 0.2 before rising to about 0.5, indicating overfitting."
-
-plt.plot(history.history["loss"], label="train")
-plt.plot(history.history["val_loss"], label="val")
-plt.legend(); plt.title("Neural network training curve"); plt.show()
+#| echo: false
+#| warning: false
+#| fig-cap: "Training and validation loss for the first neural network, with light dropout and a patience of 15 epochs. Training loss falls steadily while validation loss turns upward partway through, the signature of overfitting."
+%%R -i nn_init_df -w 7 -h 4 -u in -r 150
+ggplot(nn_init_df, aes(x=epoch, y=loss, color=series)) +
+  geom_line(linewidth=0.7) +
+  scale_color_manual(values=c(Train="#0072B2", Validation="#D55E00")) +
+  labs(x="Epoch", y="Loss (MSE, Standardized)", color=NULL)
 ```
 
-The initial training curve shows training loss decreasing steadily and plateauing below 0.1, while validation loss initially decreases to approximately 0.2 before rising to roughly 0.5, a clear indication of overfitting. We address this with L2 weight regularization, increased dropout, and a shorter early stopping patience.
-
-<!-- restore with the figure when the tensorflow chunks are re-enabled:
-@fig-nn-curve-initial shows training loss decreasing steadily and plateauing below 0.1, while validation loss initially decreases to approximately 0.2 before rising to roughly 0.5, a clear indication of overfitting. -->
+@fig-nn-curve-initial shows training loss falling steadily while validation loss reverses direction partway through, which is overfitting. We respond with L2 weight regularization, heavier dropout, and a shorter early stopping patience.
 
 ```{python}
-#| eval: false
+#| include: false
 from tensorflow.keras import regularizers
 
-nn = models.Sequential([
+nn=models.Sequential([
     layers.Input(shape=(n_features,)),
     layers.Dense(h1, activation="relu", kernel_regularizer=regularizers.l2(0.001)),
     layers.Dropout(0.4),
@@ -889,9 +947,9 @@ nn = models.Sequential([
 
 nn.compile(optimizer="adam", loss="mse", metrics=["mae"])
 
-es = callbacks.EarlyStopping(patience=8, restore_best_weights=True)
+es=callbacks.EarlyStopping(patience=8, restore_best_weights=True)
 
-history = nn.fit(
+history=nn.fit(
     X_train_s, y_train_s,
     validation_split=0.2,
     epochs=300,
@@ -900,79 +958,89 @@ history = nn.fit(
     verbose=0,
 )
 
-print("Stopped at epoch:", len(history.history["loss"]))
-print("Best val_loss achieved:", min(history.history["val_loss"]))
+y_pred_nn_s=nn.predict(X_test_s).ravel()
+y_pred_nn=scaler_y.inverse_transform(y_pred_nn_s.reshape(-1, 1)).ravel()
 
-y_pred_nn_s = nn.predict(X_test_s).ravel()
-y_pred_nn = scaler_y.inverse_transform(y_pred_nn_s.reshape(-1, 1)).ravel()
+nn_test_r2=r2_score(y_test, y_pred_nn)
+nn_test_mae=mean_absolute_error(y_test, y_pred_nn)
 
-print("Test R2: ", r2_score(y_test, y_pred_nn))
-print("Test MAE:", mean_absolute_error(y_test, y_pred_nn))
+nn_reg_df=pd.DataFrame({
+    "epoch": range(1, len(history.history["loss"])+1),
+    "Train": history.history["loss"],
+    "Validation": history.history["val_loss"],
+}).melt(id_vars="epoch", var_name="series", value_name="loss")
 ```
 
 ```{python}
 #| label: fig-nn-curve-regularized
-#| eval: false
-#| fig-cap: "Training and validation loss after adding L2 regularization, increased dropout, and shorter early stopping patience. The gap between training and validation narrows relative to the initial model."
-
-plt.plot(history.history["loss"], label="train")
-plt.plot(history.history["val_loss"], label="val")
-plt.legend(); plt.title("Neural network training curve"); plt.show()
+#| echo: false
+#| warning: false
+#| fig-cap: "Training and validation loss after adding L2 regularization, heavier dropout, and a patience of 8 epochs. The two curves stay closer together than in the first model, and training stops earlier."
+%%R -i nn_reg_df -w 7 -h 4 -u in -r 150
+ggplot(nn_reg_df, aes(x=epoch, y=loss, color=series)) +
+  geom_line(linewidth=0.7) +
+  scale_color_manual(values=c(Train="#0072B2", Validation="#D55E00")) +
+  labs(x="Epoch", y="Loss (MSE, Standardized)", color=NULL)
 ```
 
-After these changes the gap between training and validation loss narrows. Additional tuning could likely narrow it further.
-
-<!-- restore with the figure when the tensorflow chunks are re-enabled:
-@fig-nn-curve-regularized shows the training curve after these changes. --> The current results are sufficient, however, to conclude that the neural network does not outperform the random forest or the log target linear model, both of which are substantially cheaper to fit and tune. Given this project's emphasis on explaining the relationship between task groups and purchasing power rather than maximizing predictive accuracy, we do not pursue further tuning of the neural network and proceed with the linear and random forest models as the primary results.
+The gap narrows in @fig-nn-curve-regularized, but the network still does not beat the random forest or the log target linear model, both of which are far cheaper to fit and tune. This project is built to explain the relationship between task groups and purchasing power rather than to maximize predictive accuracy, so we stop tuning here and carry the linear and forest models forward as the primary results.
 
 ### Cross validation
 
-Having compared the explained variance of the three models, we cross validate to check that the single split result generalizes.
+Having compared explained variance across the three models, we cross validate to check that the single split result generalizes.
+
+```{python}
+#| include: false
+from sklearn.model_selection import GroupKFold
+
+group_kfold_cv=GroupKFold(n_splits=5)
+cv_results={"OLS (log target)": [], "Random forest": []}
+
+y_log=np.log(y)  # full data log target, same idea as y_train_log/y_test_log
+
+for fold, (tr_idx, val_idx) in enumerate(group_kfold_cv.split(X_ml, y, groups)):
+    X_tr, X_val=X_ml.iloc[tr_idx], X_ml.iloc[val_idx]
+    y_tr, y_val=y.iloc[tr_idx], y.iloc[val_idx]
+    y_tr_log, y_val_log=y_log.iloc[tr_idx], y_log.iloc[val_idx]
+
+    X_tr_sm=sm.add_constant(X_tr)
+    X_val_sm=sm.add_constant(X_val, has_constant="add")
+    ols_fold_log=sm.OLS(y_tr_log, X_tr_sm).fit()
+    pred_log=ols_fold_log.predict(X_val_sm)
+    r2_ols_log_dollars=r2_score(y_val, np.exp(pred_log))  # back transformed, dollar scale
+    cv_results["OLS (log target)"].append(r2_ols_log_dollars)
+
+    rf_fold=RandomForestRegressor(**best_params, random_state=42, n_jobs=-1)
+    rf_fold.fit(X_tr, y_tr_log)
+    r2_rf=r2_score(y_val, np.exp(rf_fold.predict(X_val)))
+    cv_results["Random forest (log target)"]=cv_results.pop("Random forest", [])
+    cv_results["Random forest (log target)"].append(r2_rf)
+
+cv_summary=pd.DataFrame({m: {"Mean R squared": np.mean(s), "SD": np.std(s)}
+                         for m, s in cv_results.items()}).T.reset_index()
+cv_summary.columns=["Model","Mean R squared","SD"]
+```
 
 ```{python}
 #| label: tbl-cv-summary
-#| tbl-cap: "Mean and standard deviation of held out R-squared across five fold grouped cross validation for log target OLS and random forest."
+#| echo: false
+#| tbl-cap: "Mean and standard deviation of held out R-squared across five fold grouped cross validation for the log target OLS and the log target random forest, both scored on the dollar scale."
 
-from sklearn.model_selection import GroupKFold
-
-group_kfold_cv = GroupKFold(n_splits=5)
-cv_results = {"OLS (log target)": [], "Random Forest": []}
-
-y_log = np.log(y)  # full-data log target, same idea as y_train_log/y_test_log
-
-for fold, (tr_idx, val_idx) in enumerate(group_kfold_cv.split(X, y, groups)):
-    X_tr, X_val = X.iloc[tr_idx], X.iloc[val_idx]
-    y_tr, y_val = y.iloc[tr_idx], y.iloc[val_idx]
-    y_tr_log, y_val_log = y_log.iloc[tr_idx], y_log.iloc[val_idx]
-
-    X_tr_sm = sm.add_constant(X_tr)
-    X_val_sm = sm.add_constant(X_val, has_constant="add")
-    ols_fold_log = sm.OLS(y_tr_log, X_tr_sm).fit()
-    pred_log = ols_fold_log.predict(X_val_sm)
-    r2_ols_log_dollars = r2_score(y_val, np.exp(pred_log))  # back-transformed, dollar scale
-    cv_results["OLS (log target)"].append(r2_ols_log_dollars)
-
-    rf_fold = RandomForestRegressor(**best_params, random_state=42, n_jobs=-1)
-    rf_fold.fit(X_tr, y_tr)
-    r2_rf = r2_score(y_val, rf_fold.predict(X_val))
-    cv_results["Random Forest"].append(r2_rf)
-
-    print(f"Fold {fold}: OLS(log)={r2_ols_log_dollars:.3f} RF={r2_rf:.3f}")
-
-cv_summary = pd.DataFrame({m: {"mean_r2": np.mean(s), "std_r2": np.std(s)} for m, s in cv_results.items()}).T
-cv_summary
+(GT(cv_summary)
+  .fmt_number(columns=["Mean R squared","SD"], decimals=4)
+  .cols_align(align="right", columns=["Mean R squared","SD"]))
 ```
 
-As @tbl-cv-summary shows, across five fold cross validation the log target OLS and the random forest are statistically indistinguishable, with mean R² of 0.901 each and the random forest showing marginally lower variance across folds at 0.0090 against 0.0095. This confirms that the single split result above is not an artifact of one particular split, and that both models generalize consistently and comparably across held out counties.
+@tbl-cv-summary shows the two models performing at the same level across five folds, and the difference between their means is smaller than the spread across folds, so they are statistically indistinguishable. The forest varies slightly less from fold to fold. The single split result above is therefore not an artifact of one particular split, and both models generalize comparably across held out counties.
 
-The neural network was not included, as cross validating would be expensive and, as noted above, it is not carried forward.
+The neural network is not included, since cross validating it would be expensive and it is not carried forward.
 
-Model comparison across test R² and MAE, along with the full ablation results, appears in @sec-results.
+@sec-results reports the model comparison across held out R² and mean absolute error.
 
 ## Summary
 
-Three specifications answer three different questions. The panel regression, with county clustered standard errors, is the model used for inference. It shows that routine intensive work is associated with lower purchasing power even after controlling for poverty, unemployment, time, and geography, and the variance decomposition establishes that the task group differences behind that association are durable features of a place rather than transient ones. Its log respecification resolves the residual violations that make the raw target version untrustworthy for that purpose.
+Three specifications answer three different questions. The panel regression, with standard errors clustered by county, is the model used for inference. It shows that routine intensive work is associated with lower purchasing power even after controlling for poverty, unemployment, time, and geography, and the variance decomposition establishes that the task group differences behind that association are durable features of a place rather than transient ones. Its log respecification resolves the residual violations that make the raw target version untrustworthy for that purpose.
 
-The predictive models answer the different question of how much of purchasing power can be explained at all, and by what. The random forest and the log target linear model perform comparably on held out data, which indicates that the curvature in the relationship adds little once poverty, unemployment, time, and geography are already in the model. The neural network does not improve on either, and its added complexity is not justified by this feature set.
+The predictive models answer a different question, which is how much of purchasing power can be explained at all, and by what. The random forest and the log target linear model perform comparably on held out data, so the curvature in the relationship adds little once poverty, unemployment, time, and geography are already in the model. The neural network improves on neither, and its added complexity is not justified by this feature set.
 
-Across both approaches, the task groups carry real, independent explanatory power, but poverty rate remains the dominant single factor throughout. This ordering, not any one model's fit statistic, is the finding this analysis is built to support, and it is what @sec-results carries forward.
+Across both approaches the task groups carry real, independent explanatory power, while poverty rate remains the dominant single factor. That ordering, rather than any one model's fit statistic, is the finding this analysis is built to support, and it is what @sec-results carries forward.

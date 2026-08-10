@@ -1,11 +1,64 @@
 # Background and Related Work {#sec-background}
 
-The project begins with a change in how economists think about what technology replaces. @Autor2003 argued that technology does not entirely replace occupations, rather, it replaces tasks. Tasks that follow explicit, rule based procedures can be documented as programs, making computers suitable substitutes. On the other hand, tasks that require judgment, adaptability, or situational response resist this translation and are instead complemented. By categorizing tasks along two axes, routine versus non-routine and cognitive versus manual, we can identify the four groups we use here. This transformation turns a vague concern about automation into a measurable concept.
+The project begins with a change in how economists think about what technology replaces. @Autor2003 argued that technology replaces tasks rather than whole occupations. Tasks that follow explicit, rule based procedures can be written down as programs, which makes computers close substitutes for the people who perform them. Tasks that call for judgment, adaptation, or response to a situation resist that translation, and technology complements them instead. Sorting tasks along two axes, routine against non-routine and cognitive against manual, yields the four groups used here and turns a broad worry about automation into something a dataset can carry.
 
-Once task scores become measurable at the occupational level, they can also be measured at the place level. This is because places differ in the types of work their residents do. @AutorDorn2013 demonstrated this by showing that local labor markets have long-lasting differences in their composition of work, which contributed to the polarization of employment across US commuting zones. Routine intensive areas experienced a decline in middle-wage jobs and an increase in employment at both the low and high ends of the wage distribution. Their occupation taxonomy is the one we use when categorizing occupations into task groups. Their finding that task groups are a persistent characteristic of a place, rather than a temporary feature of its residents, makes a panel design a sensible approach.
+Task content measured at the occupational level can also be measured at the place level, because places differ in the work their residents do. @AutorDorn2013 showed that local labor markets hold long lasting differences in the work they contain, and that those differences drove employment polarization across United States commuting zones. Routine intensive areas lost middle wage jobs and gained employment at both the low and high ends of the wage distribution. We use their occupation taxonomy when assigning occupations to task groups. Their finding that the balance of work is a persistent feature of a place, rather than a passing feature of its residents, is what makes a panel design the right one here.
 
-@AcemogluAutor2011 laid the formal groundwork for this approach. Their model conceptualizes tasks as the production units, with skill groups vying to supply them. Technological shifts determine which group holds the comparative advantage in which task. Consequently, local outcomes are contingent upon the tasks performed within a local economy. This framework has become the standard for empirical research on automation and labor markets, and our county-level design incorporates its core assumption.
+@AcemogluAutor2011 gave the approach its formal grounding. In their model tasks are the unit of production, and skill groups compete to supply them. Technological change decides which group holds the comparative advantage in which task, so what a local economy produces depends on the tasks its workers perform. That model is the standard reference for empirical work on automation and labor markets, and our county level design rests on its core assumption.
 
-Alongside this research, a separate line of evidence focuses on what workers themselves anticipate. Gallup’s findings indicate a significant increase in concerns about technology potentially rendering jobs obsolete between 2021 and 2023 [@Gallup2023]. Similarly, Pew’s reports suggest that Americans anticipate automation to displace other workers while preserving their own jobs largely intact [@Pew2017]. These surveys measure beliefs rather than task scores, and it’s possible for these two measures to diverge. For instance, a worker in a county with a high concentration of routine work may not be as worried as one in a county with a lower concentration, and vice versa. This discrepancy between worker expectations and the actual composition of local work is a key motivation behind directly measuring the latter.
+A separate line of evidence records what workers themselves expect. Surveyed concern about automation has risen sharply, even as workers place the displacement on jobs other than their own [@Gallup2023; @Pew2017]. Surveys of this kind measure belief, and belief forms from headlines and personal experience rather than from the work a county actually contains. Measuring the second directly is the point of what follows.
 
-The purchasing power of a wage, measured in dollars, varies depending on the location where it is earned. Prior work reports outcomes in unadjusted wages and employment shares, so a high-wage metropolitan area and a low-wage rural county can appear vastly different in dollar terms even when the goods those wages can buy are comparable. Geography further complicates matters because the commuting zone averages over the counties it encompasses, obscuring the variation that determines whether a paycheck covers rent in any specific county. Additionally, estimation is typically linear, so whether purchasing power varies with task groups in fixed dollar increments or proportionally is not something these designs can address. None of these limitations are flaws in the earlier studies, which were intended to address different questions. However, together, these limitations restrict the extent to which we can say about county-level purchasing power.
+Three limits stand between this literature and a claim about county purchasing power. The first is that dollars are not comparable across places.
+
+A wage buys different amounts in different places, and prior work reports outcomes in unadjusted wages and employment counts. A high wage metropolitan area and a low wage rural county can look far apart in dollar terms even when those dollars buy about the same goods. @fig-income-gap shows the size and direction of that distortion. Red counties are places where nominal income overstates what residents can afford, blue counties are places where it understates it, and the error runs in both directions, which means nominal income does not simply inflate the ranking but reorders it.
+
+```{python}
+#| label: fig-income-gap
+#| fig-cap: "Average gap between nominal median household income and purchasing power by county, 2008 to 2023, in dollars. Red counties are places where nominal income overstates what residents can afford; blue counties are places where it understates it. Gap is median household income minus purchasing power, where purchasing power is income divided by the local price level. Gray counties lack a purchasing power value. Continental United States only."
+#| echo: false
+#| warning: false
+import os
+import pandas as pd
+import geopandas as gpd
+import matplotlib.pyplot as plt
+from sqlalchemy import create_engine
+engine=create_engine(os.environ["AUTORACK_URL"], pool_pre_ping=True, pool_recycle=300)
+
+gap_county=pd.read_sql("""
+    select b.county_fips,
+           avg(b.median_household_income - a.affordability_salary) as income_gap
+    from county_baseline b
+    join county_affordability a
+      on a.county_fips=b.county_fips and a.year=b.year
+    group by b.county_fips
+""", engine)
+gap_county['fips']=gap_county['county_fips'].astype(str).str.zfill(5)
+
+gdf=gpd.read_file("https://www2.census.gov/geo/tiger/GENZ2021/shp/cb_2021_us_county_500k.zip")
+gdf=gdf.rename(columns={'GEOID':'fips'})
+
+# symmetric color range around zero so equal magnitude gaps get equal intensity in both directions
+bound=gap_county['income_gap'].abs().quantile(0.98)
+
+merged_gap=gdf.merge(gap_county[['fips','income_gap']], on='fips', how='left')
+merged_gap=merged_gap[~merged_gap['STATEFP'].isin(['02','15','60','66','69','72','78'])] # continental US only
+
+fig, ax=plt.subplots(figsize=(12,7))
+merged_gap.plot(column='income_gap', cmap='RdBu_r', vmin=-bound, vmax=bound,
+                linewidth=0.1, edgecolor='white', ax=ax,
+                legend=True,
+                legend_kwds={'label':'income gap ($)',
+                    'orientation':'horizontal', 'shrink':0.3, 'pad':0.02, 'aspect':35},
+                missing_kwds={'color':'#eeeeee'})
+ax.set_axis_off()
+
+cbar_ax=fig.axes[-1]
+cbar_ax.xaxis.set_major_formatter(lambda value, pos: f"${value/1000:+.0f}k")
+plt.show()
+```
+
+The second limit is geography. A commuting zone pools the counties inside it and reports their average, which is the right unit for studying labor market adjustment and the wrong one for studying what a paycheck covers. Housing costs, and with them the gap in @fig-income-gap, vary sharply between a metropolitan core and the counties around it. Averaging across that boundary removes exactly the variation the question turns on.
+
+The third limit is functional form. Prior estimation is linear, which assumes that a given shift in the balance of work moves purchasing power by the same number of dollars everywhere. If the relationship is proportional instead, that assumption understates the difference in high purchasing power counties and overstates it in low ones, and a linear model cannot distinguish the two cases from the inside.
+
+None of the three is a flaw in the earlier studies, which were built for other questions. Together they mark out what prior work cannot say about purchasing power at the county level, and the data and design in @sec-data address each one.

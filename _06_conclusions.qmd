@@ -1,45 +1,45 @@
 # Conclusions {#sec-conclusions}
 
-## Summary of Findings
+## Summary of findings
 
-We asked whether counties with more routine work offer less purchasing power to the people who live in them. Building a county by year panel from five federal sources, summarizing each county's work by four task groups, and measuring purchasing power in dollars as median household income adjusted for local prices, we find that the answer is yes and that the relationship holds once poverty and unemployment are accounted for. Poverty is by a wide margin the strongest single correlate of county purchasing power. The task groups are a smaller but separate one.
+We asked whether counties with more routine work offer less purchasing power to the people who live in them. To answer it we built a county by year panel from five federal sources, described each county's work by four task groups, and measured purchasing power in dollars as median household income adjusted for local prices. The answer is yes, and the association holds once poverty and unemployment are accounted for. @sec-results reports the estimates. Poverty is by a wide margin the strongest single correlate of county purchasing power, and the task groups are a smaller, separate one.
 
 ## Contributions
 
-Two patterns are worth stating plainly before the broader claim. Poverty is the strongest single correlate of county purchasing power, but the task groups relate to purchasing power independently of it. And neither relationship is a straight line: the binned means, the partial dependence curves, and the fact that a linear model matches the random forest only after the outcome is logged all point to a proportional rather than fixed dollar relationship.
+The task framework has been applied to wages and to employment counts, mostly at the national or commuting zone level. Applying it to a cost adjusted outcome at the county level changes what the measure describes. It is no longer a statement about what work pays. It is a statement about what that pay buys where it is earned.
 
-The task framework has been applied to wages and to employment composition, mostly at the national or commuting zone level. Applying it to a cost adjusted outcome at the county level changes what the measure describes: not what work pays, but what that pay buys where it is earned. Two findings follow from that shift. The association is present after controlling for local economic distress, so it is not poverty in different clothing. And it is not linear, which the diagnostics establish and the flexible models exploit, so studies that assume a straight line relationship between task groups and local outcomes are leaving structure on the table.
+Three findings follow from that shift, and each closes one of the gaps named in @sec-intro. The association is present after controlling for local economic distress, so it is not poverty in different clothing. It appears at the county level, below the geography prior work could reach. And it is proportional rather than linear, which the diagnostics in @sec-analysis establish and the flexible models confirm, so designs that assume a fixed dollar relationship between task groups and local outcomes are leaving structure on the table.
 
-The finding lands on people through place. Residents of routine work counties see their incomes buy systematically less, and because a county's task groups barely move across fifteen years, the difference is built into where they live rather than something individual effort resolves. Three groups can act on that. Economic development agencies deciding where workforce training goes, since the task groups separate structurally exposed counties from those in a temporary downturn. Policymakers and planners designing cost of living responses, since these gaps will not close on their own. And researchers extending the framework, since both the county level link and its nonlinear shape point past existing national wage studies.
-
-## Ethical Considerations
-
-All data are public county level aggregates with no individual records, so no person can be identified, and no individual level inference is licensed. Reading a county level association at the level of a person is the ecological fallacy: nothing here says that any particular worker in a routine work county has lower purchasing power, only that counties with more routine work tend to have less of it.
-
-The panel also carries an equity constraint. The population threshold below which occupational estimates are not published removes small counties entirely, so rural places are least represented in exactly the kind of analysis that might direct resources toward them.
-
-Two harms are worth naming. Labeling counties as exposed or stuck could stigmatize them or steer investment away from the places that need it. And reading the association as causal could motivate policy that tries to reshape a county's mix of work in the expectation that purchasing power follows, which this study does not support.
+The finding lands on people through place. Residents of routine work counties see their incomes buy systematically less, and because a county's task groups barely move across fifteen years, the difference is built into where they live rather than something individual effort resolves. Three groups can act on that. Economic development agencies can use the task groups to separate structurally exposed counties from those in a temporary downturn when deciding where workforce training goes. Policymakers and planners designing cost of living responses can treat these gaps as durable rather than self correcting. And researchers extending the framework have two openings, the county level link and its proportional shape, that national wage studies do not reach.
 
 ## Limitations
 
-The results are associational. Counties are not assigned their mix of work, and nothing in this design isolates a causal channel, so we cannot say that routine work makes a place offer less purchasing power, only that the two move together.
+The results are associational. Counties are not assigned the work their residents do, and nothing in this design isolates a causal channel, so we cannot say that routine work makes a place offer less purchasing power, only that the two move together.
 
-The four task groups are parts of a whole and sum to one, so one had to serve as the reference group. Every coefficient is read relative to non routine cognitive work rather than in isolation.
+The four task groups are parts of a whole and sum to one, so one had to serve as the reference group. Every coefficient is read relative to non-routine cognitive work rather than in isolation.
 
 Coverage is the sharpest constraint. Task group values exist for 12,087 of the 47,140 county year observations in the frame, and dropping the 104 rows missing an unemployment rate leaves 11,983 for estimation across 848 counties. The counties that fall out are small ones, below the population threshold at which the American Community Survey publishes one year occupational estimates, so the panel describes metropolitan and larger non metropolitan counties rather than the country.
 
 Regional Price Parities are published for metropolitan areas, so counties outside one take their state value. Roughly 54.5 percent of county year rows use that fallback, which applies a single price index to counties whose actual price levels differ, and it falls disproportionately on rural places.
 
-2020 is excluded because the American Community Survey did not release one year estimates for it. The 2009 to 2010 occupation coding change is a source artifact that inflates measured within county variance for routine cognitive work; restricting to 2010 onward leaves the conclusions unchanged.
+2020 is excluded because the American Community Survey did not release one year estimates for it. The 2009 to 2010 occupation coding change is a source artifact that inflates measured within county variance for routine cognitive work, and restricting to 2010 onward leaves the conclusions unchanged.
 
-## Future Directions
+## Ethical considerations
+
+All data are public county level aggregates with no individual records, so no person can be identified and no individual level inference is licensed. Reading a county level association at the level of a person is the ecological fallacy. Nothing here says that any particular worker in a routine work county has lower purchasing power, only that counties with more routine work tend to have less of it.
+
+The coverage constraint described above is not neutral in its consequences. Small counties are absent from the panel entirely, so rural places are least represented in exactly the kind of analysis that might direct resources toward them.
+
+Two further harms are worth naming. Labeling counties as exposed or stuck could stigmatize them or steer investment away from the places that need it most. And reading the association as causal could motivate policy that tries to reshape what a county's residents do for work in the expectation that purchasing power will follow, which this study does not support.
+
+## Future directions
 
 Two extensions would address the limitations above directly.
 
 The coverage gap could be narrowed with satellite imagery. @Jean2016 estimate local economic conditions from daytime and nighttime imagery where survey data are thin, an approach that could recover the small counties this panel excludes and allow the purchasing power pattern to be retested on them.
 
-Finer grained labor data would move the work closer to a causal claim. Splitting the task groups by worker education and status would separate the effect of workforce composition from the effect of the task groups themselves, which the current design cannot disentangle.
+Finer grained labor data would move the work closer to a causal claim. Splitting the task groups by worker education and employment status would separate what the workforce is made of from the task groups themselves, which the current design cannot disentangle.
 
 ## Conclusion
 
-Poverty remains the strongest correlate of county purchasing power, and nothing in this analysis displaces it. What the analysis adds is that the mix of work a county holds is a separate pressure on top of it, one that poverty and unemployment statistics alone do not capture. A county can look unremarkable on every conventional distress measure and still hold a workforce whose dollars systematically buy less, year after year, because of what its residents do for a living. That pressure is durable, since task groups are close to a fixed characteristic of place, and the people living with it cannot be expected to out earn a structure built into where they live. Anyone deciding where help should go, and reading only the poverty rate to decide it, is looking at an incomplete picture.
+Poverty remains the strongest correlate of county purchasing power, and nothing in this analysis displaces it. What the analysis adds is that the work a county's residents do is a separate pressure on top of it, one that poverty and unemployment statistics alone do not capture. A county can look unremarkable on every conventional distress measure and still hold a workforce whose dollars systematically buy less, year after year, because of what its residents do for a living. That pressure is durable, since the balance of work is close to a fixed characteristic of place, and the people living with it cannot be expected to out earn a structure built into where they live. Anyone deciding where help should go, and reading only the poverty rate to decide it, is looking at an incomplete picture.

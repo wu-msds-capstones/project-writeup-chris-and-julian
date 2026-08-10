@@ -13,6 +13,15 @@ format:
       dark: darkly
 ---
 
+```{python}
+#| include: false
+import os, sys
+os.environ["R_HOME"]=os.path.join(sys.prefix, "lib", "R")
+%load_ext rpy2.ipython
+import rpy2.robjects as ro
+ro.r('suppressMessages({library(ggplot2); library(patchwork)}); theme_set(theme_minimal(base_size=11))')
+```
+
 {{< include _01_intro.qmd >}}
 {{< include _02_background.qmd >}}
 {{< include _03_data.qmd >}}
