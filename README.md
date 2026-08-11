@@ -1,12 +1,9 @@
 # Automation and Affordability in U.S. Counties
 
-<<<<<<< HEAD
-**Is the task composition of local work associated with what residents can afford?**
-=======
 **Live writeup:** https://wu-msds-capstones.github.io/project-writeup-chris-and-julian/
 
 The files provided within should provide a starting point for an organizational scheme and template for writing your capstone. Everything can be shifted or changed as needed or you see fit: this is just a starting point.
->>>>>>> origin/main
+
 
 Chris Bell | Julian Pacheco
 DATA 510 Data Science Capstone, Willamette University | Summer 2026
