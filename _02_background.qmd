@@ -1,0 +1,94 @@
+# Background and related work {#sec-background}
+
+This study starts from a change in how economists think about what technology replaces. @Autor2003 argued that technology replaces tasks rather than whole occupations. Tasks that follow explicit, rule based procedures can be written down as programs, which makes computers close substitutes for the people who perform them. Tasks that call for judgment, adaptation, or response to a situation resist that translation, and technology complements them instead. Sorting tasks along two axes, routine against non-routine and cognitive against manual, yields the four groups used here and turns a broad worry about automation into something a dataset can carry.
+
+Task content measured at the occupational level can also be measured at the place level, because places differ in the work their residents do. @AutorDorn2013 showed that local labor markets hold long lasting differences in the work they contain, and that those differences drove employment polarization across United States commuting zones. Routine intensive areas lost middle wage jobs and gained employment at both the low and high ends of the wage distribution. We used their occupation taxonomy when assigning occupations to task groups. Their finding that the balance of work is a persistent feature of a place, rather than a passing feature of its residents, is what makes a panel design the right one here.
+
+@AcemogluAutor2011 gave the approach its formal grounding. In their model tasks are the unit of production, and skill groups compete to supply them. Technological change decides which group holds the comparative advantage in which task, so what a local economy produces depends on the tasks its workers perform. Our county level design rests on that last point.
+
+A separate line of evidence records what workers themselves expect, and it is where this study began. Surveyed concern about automation has risen sharply, even as workers place the displacement on jobs other than their own [@Gallup2023; @Pew2017]. Surveys of this kind measure belief, and belief forms from headlines and personal experience rather than from the occupations a county's residents hold. Measuring that work directly is the point of what follows.
+
+Three limits stand between these studies and a claim about county purchasing power. The first is that a dollar is not a constant unit. A wage buys different amounts in different places, and prior work reports outcomes in unadjusted wages and employment counts. A high wage metropolitan area and a low wage rural county can look far apart in dollar terms even when those dollars buy about the same goods. @fig-income-gap shows the size and direction of that distortion. The error runs in both directions, so nominal income reorders the ranking of counties rather than inflating it uniformly.
+```{python}
+#| label: income-gap-data
+#| include: false
+import os
+import pandas as pd
+import geopandas as gpd
+from sqlalchemy import create_engine
+
+engine = create_engine(
+    os.environ["AUTORACK_URL"],
+    pool_pre_ping=True,
+    pool_recycle=300
+)
+gap_county = pd.read_sql("""
+    select
+        b.county_fips,
+        avg(
+            b.median_household_income - a.affordability_salary
+        ) as income_gap
+    from county_baseline b
+    join county_affordability a
+      on a.county_fips = b.county_fips
+     and a.year = b.year
+    group by b.county_fips
+""", engine)
+gap_county["fips"] = (
+    gap_county["county_fips"]
+    .astype(str)
+    .str.zfill(5)
+)
+gdf = gpd.read_file(
+    "https://www2.census.gov/geo/tiger/GENZ2021/shp/"
+    "cb_2021_us_county_500k.zip"
+)
+gdf = gdf.rename(columns={"GEOID": "fips"})
+merged_gap = gdf.merge(
+    gap_county[["fips", "income_gap"]],
+    on="fips",
+    how="left"
+)
+# Continental United States only
+merged_gap = merged_gap[
+    ~merged_gap["STATEFP"].isin(
+        ["02", "15", "60", "66", "69", "72", "78"]
+    )
+].copy()
+# Symmetric color range around zero
+gap_bound = float(gap_county["income_gap"].abs().quantile(0.98))
+os.makedirs("output", exist_ok=True)
+merged_gap[["fips", "income_gap", "geometry"]].to_file(
+    "output/income_gap.geojson",
+    driver="GeoJSON"
+)
+```
+
+```{python}
+#| label: fig-income-gap
+#| echo: false
+#| warning: false
+#| fig-cap: "Average gap between nominal median household income and purchasing power by county, 2008 to 2023, in dollars. Red counties are places where nominal income overstates what residents can afford; blue counties are places where it understates it. Gap is median household income minus purchasing power, where purchasing power is income divided by the local price level. Gray counties lack a purchasing power value. Continental United States only."
+%%R -i gap_bound -w 12 -h 7 -u in -r 150
+suppressMessages(library(sf))
+
+gap_sf <- st_read("output/income_gap.geojson", quiet=TRUE)
+
+ggplot(gap_sf) +
+  geom_sf(aes(fill=income_gap), color="white", linewidth=0.05) +
+  scale_fill_gradient2(low="#2166AC", mid="#FFFFFF", high="#B2182B",
+                       midpoint=0, limits=c(-gap_bound, gap_bound),
+                       oob=scales::squish, na.value="#EEEEEE",
+                       name="Income gap ($)",
+                       labels=function(v) sprintf("$%+.0fk", v/1000)) +
+  coord_sf(crs=st_crs(5070)) +
+  theme_void() +
+  theme(legend.position="bottom",
+        legend.key.width=unit(2, "cm"))
+```
+
+The second limit is geography. A commuting zone pools the counties inside it and reports their average, which is the right unit for studying labor market adjustment and the wrong one for studying what a paycheck covers. Housing costs, and with them the gap in @fig-income-gap, vary sharply between a metropolitan core and the counties around it. Averaging across that boundary removes exactly the variation the question turns on.
+
+The third limit is functional form. Prior estimation is linear, which assumes that a given shift in the balance of work moves purchasing power by the same number of dollars everywhere. If the relationship is proportional instead, that assumption understates the difference in high purchasing power counties and overstates it in low ones, and a linear model cannot distinguish the two cases from the inside.
+
+Together the three mark out what prior work cannot say about purchasing power at the county level, and the data and design in @sec-data address each one.
