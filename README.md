@@ -2,17 +2,12 @@
 
 **Live writeup:** https://wu-msds-capstones.github.io/project-writeup-chris-and-julian/
 
-The files provided within should provide a starting point for an organizational scheme and template for writing your capstone. Everything can be shifted or changed as needed or you see fit: this is just a starting point.
-
-
 Chris Bell | Julian Pacheco
 DATA 510 Data Science Capstone, Willamette University | Summer 2026
 
-**Live writeup:** https://wu-msds-capstones.github.io/project-writeup-chris-and-julian/
-
 ## About
 
-This project asks whether the kind of work a county does relates to what its residents can afford, once local price levels are accounted for. We build a county by year panel covering 2008 to 2023, excluding 2020, from five federal data sources. Each county year is summarized by four task groups drawn from the task framework of Autor, Levy and Murnane (2003) and the occupation taxonomy of Autor and Dorn (2013): routine cognitive, routine manual, non routine cognitive, and non routine manual.
+This project asks whether the kind of work a county does relates to what its residents can afford, once local price levels are accounted for. We build a county by year panel covering 2008 to 2023, excluding 2020, from five federal data sources. Each county year is summarized by four task groups drawn from the task framework of Autor, Levy and Murnane (2003) and the occupation taxonomy of Autor and Dorn (2013): routine cognitive, routine manual, non-routine cognitive, and non-routine manual.
 
 The outcome is purchasing power, measured in dollars as county median household income divided by the local price level from the BEA Regional Price Parities. Prior work in this area measures outcomes in unadjusted wages at the commuting zone level; adjusting for local prices at the county level is what this project adds.
 
@@ -50,22 +45,26 @@ Data are held in two PostgreSQL databases on Railway: a data lake of raw retriev
 
 ## Building
 
+```
+QUARTO_PYTHON=/opt/anaconda3/envs/capstone/bin/python quarto render
+```
+
+Rendering requires the `capstone` conda environment (Python 3.12, TensorFlow, scikit-learn, statsmodels, rpy2). The shell default Python is incompatible with TensorFlow, so the interpreter must be set explicitly as shown above.
+
+Output lands in `_output/`. To publish, render first, confirm the output, then publish what was already built:
 
 ```
-quarto render capstone.qmd
+QUARTO_PYTHON=/opt/anaconda3/envs/capstone/bin/python quarto render
+quarto publish gh-pages --no-render
 ```
 
-Output lands in `_output/`. To publish:
-
-```
-quarto publish gh-pages
-```
+`--no-render` matters: without it, publish renders again outside the `QUARTO_PYTHON` prefix and picks up the wrong interpreter.
 
 Credentials are never committed. `_freeze/` is committed so that sections requiring packages not present on every machine, notably the neural network, do not need to rerun on each build.
 
 ## Methods
 
-Panel regression with year indicators and standard errors clustered by county, checked with residual plots, quantile quantile plots, and variance inflation factors. The four task groups sum to one, so one enters as the reference category; non routine cognitive is used throughout.
+Panel regression with year indicators and standard errors clustered by county, checked with residual plots, quantile quantile plots, and variance inflation factors. The four task groups sum to one, so one enters as the reference category; non-routine cognitive is used throughout.
 
 Diagnostics show the relationship is proportional rather than additive in dollars, which motivates a log respecification and, beyond that, testing whether more flexible models capture structure the linear specification cannot. Random forest and neural network models are fit on a split grouped by county, so every held out prediction comes from a county the model has never seen.
 
