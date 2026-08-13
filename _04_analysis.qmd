@@ -314,7 +314,7 @@ resid_log_df=reg[["fitted_log","resid_log"]].copy()
 #| label: fig-diagnostics
 #| echo: false
 #| warning: false
-#| fig-cap: "**Regression Diagnostics, Raw vs. Log Specification.** (A) Raw residuals versus fitted values and (B) the raw specification's QQ plot; (C) log residuals versus fitted values and (D) the log specification's QQ plot. Residuals are shown as binned density with a loess smoother, since individual points would overplot. The raw specification (A, B) shows systematic curvature and a heavy QQ tail, while the log specification (C, D) is substantially flatter and tracks the reference line more closely."
+#| fig-cap: "**Regression Diagnostics, Raw vs. Log Specification.** Columns are the diagnostic, rows are the specification. Residuals are shown as binned density with a loess smoother, since individual points would overplot; the raw specification shows systematic curvature and a heavy QQ tail, while the log specification is substantially flatter and tracks the reference line more closely."
 %%R -i resid_df -i resid_log_df -w 9 -h 7 -u in -r 150
 resid_df$std_resid <- as.numeric(scale(resid_df$resid))
 resid_log_df$std_resid <- as.numeric(scale(resid_log_df$resid_log))
@@ -740,7 +740,7 @@ Logging the target resolves the pattern here the same way it did for the panel r
 ```{python}
 #| label: tbl-ols-comparison
 #| echo: false
-#| tbl-cap: "Coefficients across the baseline, full raw target, and full log target OLS specifications, with log target coefficients also converted to percent change per one percentage point shift."
+#| tbl-cap: "Coefficients across the baseline, full raw target, and full log target OLS specifications, with log target coefficients also converted to percent change per one percentage point shift. Task group coefficients are per unit of group proportion."
 
 log_coefs=ols_model_log.params[feature_cols_base]
 
@@ -802,7 +802,9 @@ spec_summary = pd.DataFrame({
 #| tbl-cap: "Model specification comparison across the baseline, full raw target, and full log target Ordinary Least Squares fits."
 
 style_table(GT(spec_summary, rowname_col="Metric")
-  .tab_header(title="Model Specification Comparison"))
+  .tab_header(title="Model Specification Comparison")
+  .tab_style(style=style.text(weight="bold"),
+             locations=loc.body(columns="Full, log", rows=[2, 3, 4])))
 ```
 
 @tbl-specmatrix shows in sample R² climbing through each stage. Adding year and state controls raises it from 0.766 to 0.871, confirming that time and geography explain real variance the baseline left unmodeled. Logging the target raises it further, to 0.913, and resolves the residual violations along the way. This is the linear model used for inference from here, since the raw target model's coefficient significance cannot be trusted given its failed diagnostics.
@@ -1076,7 +1078,7 @@ nn_reg_df=pd.DataFrame({
 #| label: fig-nn-curves
 #| echo: false
 #| warning: false
-#| fig-cap: "**Training and Validation Loss Across Model Specifications.** (A) In the initial network, validation loss reaches its minimum early, then rises while training loss keeps falling, the signature of overfitting. (B) After adding L2 regularization, heavier dropout, and a shorter early stopping patience, validation loss stays close to training loss throughout. Points mark the minimum validation loss in each panel; the same loss scale is used in both."
+#| fig-cap: "**Training and Validation Loss, Before and After Regularization.** In the initial network, validation loss declines briefly then rises while training loss keeps falling, the signature of overfitting; the shaded region marks where validation loss turns upward. After adding L2 regularization, heavier dropout, and a shorter early stopping patience, the two curves stay much closer together."
 %%R -i nn_init_df -i nn_reg_df -w 10 -h 4.5 -u in -r 150
 ymax <- max(c(nn_init_df$loss, nn_reg_df$loss)) * 1.05
 y_breaks <- seq(0, 0.8, by=0.2)
@@ -1101,10 +1103,10 @@ p1 <- ggplot(nn_init_df, aes(x=epoch, y=loss, color=series)) +
   geom_point(data=best_init[best_init$epoch==best_init_epoch,], aes(x=epoch, y=loss),
              inherit.aes=FALSE, color=ORANGE, size=2.2) +
   geom_label(data=label_df1, aes(label=series, y=label_y), hjust=-0.1, size=3.4, fontface="bold",
-             fill="#FCFCFB", label.size=0, label.padding=unit(0.08, "lines"), show.legend=FALSE) +
+             fill="#FCFCFB", linewidth=0, label.padding=unit(0.08, "lines"), show.legend=FALSE) +
   annotate("label", x=best_init_epoch, y=best_init_loss + ymax*0.1,
            label=paste0("Minimum validation loss · epoch ", best_init_epoch),
-           hjust=0, size=2.9, color="grey35", fill="#FCFCFB", label.size=0,
+           hjust=0, size=2.9, color="grey35", fill="#FCFCFB", linewidth=0,
            label.padding=unit(0.12, "lines")) +
   scale_color_manual(values=c(Train=BLUE, Validation=ORANGE), guide="none") +
   scale_y_continuous(limits=c(0, ymax), breaks=y_breaks) +
@@ -1119,10 +1121,10 @@ p2 <- ggplot(nn_reg_df, aes(x=epoch, y=loss, color=series)) +
   geom_point(data=best_reg[best_reg$epoch==best_reg_epoch,], aes(x=epoch, y=loss),
              inherit.aes=FALSE, color=ORANGE, size=2.2) +
   geom_label(data=label_df2, aes(label=series, y=label_y), hjust=-0.1, size=3.4, fontface="bold",
-             fill="#FCFCFB", label.size=0, label.padding=unit(0.08, "lines"), show.legend=FALSE) +
+             fill="#FCFCFB", linewidth=0, label.padding=unit(0.08, "lines"), show.legend=FALSE) +
   annotate("label", x=best_reg_epoch, y=best_reg_loss + ymax*0.1,
            label=paste0("Minimum validation loss · epoch ", best_reg_epoch),
-           hjust=0, size=2.9, color="grey35", fill="#FCFCFB", label.size=0,
+           hjust=0, size=2.9, color="grey35", fill="#FCFCFB", linewidth=0,
            label.padding=unit(0.12, "lines")) +
   scale_color_manual(values=c(Train=BLUE, Validation=ORANGE), guide="none") +
   scale_y_continuous(limits=c(0, ymax), breaks=y_breaks) +
@@ -1185,7 +1187,7 @@ cv_summary.columns=["Model","Mean R²","SD"]
 ```{python}
 #| label: tbl-cv-summary
 #| echo: false
-#| tbl-cap: "Mean and standard deviation of held out R² across five fold grouped cross validation for Ordinary Least Squares and the random forest."
+#| tbl-cap: "Mean and standard deviation of held out R² across five fold grouped cross validation for Ordinary Least Squares and the random forest, both fit on the log target and scored on the dollar scale after back transformation."
 
 style_table(GT(cv_summary)
   .tab_header(title="Five Fold Grouped Cross Validation Performance")
