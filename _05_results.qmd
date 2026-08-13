@@ -1,0 +1,703 @@
+# Results {#sec-results}
+
+```{python}
+#| include: false
+# inbound from _04: reg, df, model, model_log, X_ml, X_test, y_test, y_pred_rf,
+# y_pred_rf_log_dollars, best_rf, perm_imp, joint_drop, year_drop, state_drop,
+# cv_folds, engine, ols_log_test_r2, rf_log_test_r2, nn_test_r2,
+# ols_log_test_mae, rf_log_test_mae, nn_test_mae
+import pandas as pd
+import numpy as np
+import statsmodels.api as sm
+from great_tables import GT, html
+
+res_cols=["routine_cognitive_share","routine_manual_share","non_routine_manual_share",
+          "poverty_rate","unemployment_rate","log_population"]
+
+mean_pp=float(reg["affordability_salary"].mean())
+group_terms=["non_routine_manual_share","routine_cognitive_share","routine_manual_share"]
+group_names=["Non-Routine Manual","Routine Cognitive","Routine Manual"]
+```
+
+The analysis supports four findings. A county's task groups are associated with its purchasing power, and the association survives controls for poverty, unemployment, population, and year. The log specification captures most of the structure in the relationship, and the flexible models do not improve on it, which is what supports reading the relationship as proportional rather than fixed in dollars. Poverty rate remains the single strongest correlate of purchasing power throughout, with the task groups adding real signal beyond it. And the task group differences behind the association are durable features of places, so the purchasing power gaps they carry are durable too. The subsections below work through these findings, and through the geography and the model behavior behind them.
+
+## The association
+
+```{python}
+#| include: false
+# log specification coefficients (model_log fit in _04, cluster robust), expressed as
+# dollars at the panel mean per one percentage point shift
+coef_rows=[]
+for term, name in zip(group_terms, group_names):
+    b=model_log.params[term]
+    se=model_log.bse[term]
+    est=(np.exp(b*0.01)-1)*mean_pp
+    lo=(np.exp((b-1.96*se)*0.01)-1)*mean_pp
+    hi=(np.exp((b+1.96*se)*0.01)-1)*mean_pp
+    coef_rows.append({"group":name, "est":est, "lo":lo, "hi":hi})
+coef_df=pd.DataFrame(coef_rows)
+```
+
+The log specification of the panel regression is the model we use for inference, for the diagnostic reasons set out in @sec-analysis. @fig-coefplot reports its task group coefficients as the change in purchasing power, in dollars at the panel mean, associated with a one percentage point shift into each group and out of non-routine cognitive work, the reference group. A one percentage point shift toward non-routine manual work is associated with roughly \$846 less in purchasing power, with a 95 percent interval of plus or minus \$38, evaluated at the panel mean. Routine cognitive and routine manual shifts carry smaller but clearly negative associations, and the ordering matches the level specification reported in @sec-analysis. For scale, each additional percentage point of poverty rate is associated with roughly 2.9 percent lower purchasing power, a larger proportional difference than any single task group carries.
+
+```{python}
+#| label: fig-coefplot
+#| echo: false
+#| warning: false
+#| fig-cap: "**Task Group Coefficients, Log Specification.** From the panel regression, expressed as dollars of purchasing power at the panel mean per one percentage point shift into each group, with 95 percent intervals. Non-routine cognitive is the reference group at zero. Standard errors are clustered by county."
+%%R -i coef_df -w 8 -h 3.5 -u in -r 150
+coef_df$group <- factor(coef_df$group,
+    levels=rev(c("Non-Routine Manual","Routine Cognitive","Routine Manual")))
+
+ggplot(coef_df, aes(x=est, y=group, color=group)) +
+  geom_vline(xintercept=0, linetype="dashed", linewidth=0.4) +
+  geom_errorbar(aes(xmin=lo, xmax=hi), orientation="y", width=0.15) +
+  geom_point(size=2.6) +
+  geom_text(aes(label=dollar_axis(est)), vjust=-1.4, size=3.3, fontface="bold", show.legend=FALSE) +
+  scale_color_manual(values=TASK_COLORS, guide="none") +
+  scale_x_continuous(labels=dollar_axis, expand=expansion(mult=c(0.1, 0.15))) +
+  labs(title="Task Group Coefficients, Log Specification",
+       x="Change in Purchasing Power per Percentage Point Shift (at Panel Mean)", y=NULL)
+```
+
+## Not poverty in disguise
+
+A natural objection is that the task groups merely proxy for poverty, since poor counties hold more routine work. @fig-baseline-maps shows the two conventional distress measures side by side, mean poverty rate (Panel A) and mean unemployment rate (Panel B) by county across the study period. Both run highest across the rural South, the Mississippi Delta, and pockets of the Southwest border region. That is the same broad area where @fig-afford-map shows purchasing power running lowest, which is exactly why the objection is worth taking seriously. Unemployment (Panel B) carries a second concentration along the California coast and Central Valley that poverty (Panel A) does not share, evidence the two measures are not interchangeable with each other or with what follows.
+
+```{python}
+#| label: baseline-maps-data
+#| include: false
+import geopandas as gpd
+
+map_baseline=pd.read_sql("""
+    select county_fips, avg(poverty_rate) as poverty_rate, avg(unemployment_rate) as unemployment_rate
+    from county_baseline
+    group by county_fips
+""", engine)
+map_baseline['fips']=map_baseline['county_fips'].astype(str).str.zfill(5)
+
+gdf_baseline=gpd.read_file("https://www2.census.gov/geo/tiger/GENZ2021/shp/cb_2021_us_county_500k.zip")
+gdf_baseline=gdf_baseline.rename(columns={'GEOID':'fips'})
+merged_baseline=gdf_baseline.merge(map_baseline[['fips','poverty_rate','unemployment_rate']], on='fips', how='left')
+merged_baseline=merged_baseline[~merged_baseline['STATEFP'].isin(['02','15','60','66','69','72','78'])]
+os.makedirs("output", exist_ok=True)
+merged_baseline[['fips','poverty_rate','unemployment_rate','geometry']].to_file("output/baseline_maps.geojson", driver="GeoJSON")
+
+pov_vmin=float(merged_baseline['poverty_rate'].quantile(0.02))
+pov_vmax=float(merged_baseline['poverty_rate'].quantile(0.98))
+unemp_vmin=float(merged_baseline['unemployment_rate'].quantile(0.02))
+unemp_vmax=float(merged_baseline['unemployment_rate'].quantile(0.98))
+```
+
+```{python}
+#| label: fig-baseline-maps
+#| echo: false
+#| warning: false
+#| fig-cap: "**Two Conventional Distress Measures, by County.** (A) Mean poverty rate and (B) mean unemployment rate, 2008 to 2023, in percent. Each panel uses its own color scale, clipped at the 2nd and 98th percentiles so extreme counties do not compress it. Counties without a value are shown in gray. Continental United States only."
+%%R -i pov_vmin -i pov_vmax -i unemp_vmin -i unemp_vmax -w 11 -h 5.5 -u in -r 150
+suppressMessages(library(sf))
+
+baseline_sf <- st_read("output/baseline_maps.geojson", quiet=TRUE)
+
+p1 <- ggplot(baseline_sf) +
+  geom_sf(aes(fill=poverty_rate), color="white", linewidth=0.05) +
+  scale_fill_distiller(palette="YlOrBr", direction=1, limits=c(pov_vmin, pov_vmax), oob=scales::squish,
+                        na.value="#eeeeee", name="Poverty Rate (%)") +
+  coord_sf(crs=st_crs(5070)) +
+  theme_void() +
+  theme(legend.position="bottom", legend.key.width=unit(1.2, "cm"),
+        plot.title=element_text(face="bold", size=11, hjust=0.5),
+        plot.background=element_rect(fill="#FCFCFB", color=NA)) +
+  labs(title="Poverty Rate")
+
+p2 <- ggplot(baseline_sf) +
+  geom_sf(aes(fill=unemployment_rate), color="white", linewidth=0.05) +
+  scale_fill_distiller(palette="YlOrBr", direction=1, limits=c(unemp_vmin, unemp_vmax), oob=scales::squish,
+                        na.value="#eeeeee", name="Unemployment Rate (%)") +
+  coord_sf(crs=st_crs(5070)) +
+  theme_void() +
+  theme(legend.position="bottom", legend.key.width=unit(1.2, "cm"),
+        plot.title=element_text(face="bold", size=11, hjust=0.5),
+        plot.background=element_rect(fill="#FCFCFB", color=NA)) +
+  labs(title="Unemployment Rate")
+
+p1 + p2 +
+  plot_annotation(title="Two Conventional Distress Measures, by County",
+                  tag_levels="A",
+                  theme=theme(plot.title=element_text(face="bold", size=13, hjust=0.5),
+                              plot.tag=element_text(face="bold", size=11, color="#0B0B0B")))
+```
+
+@fig-coefcompare tests the objection directly by fitting the log panel regression twice on the same rows. The first specification includes only task groups and year indicators; the second adds poverty rate, unemployment rate, and log population, the specification reported in @sec-analysis. Non-routine manual and routine manual both shrink substantially when the controls enter, which is what we would expect, since poverty absorbs shared variation. Routine cognitive barely moves, at roughly −1.1 percent either way, evidence its association runs through something other than the poverty and unemployment channel the controls capture. All three remain negative and precisely estimated after the controls enter. The task group association is smaller than it first appears for two of the three groups and clearly real for all of them.
+
+```{python}
+#| include: false
+share_terms=["routine_cognitive_share","routine_manual_share","non_routine_manual_share"]
+
+X_nocontrols=pd.concat([reg[share_terms],
+                        pd.get_dummies(reg["year"], prefix="year", drop_first=True).astype(float)], axis=1)
+X_nocontrols=sm.add_constant(X_nocontrols)
+model_nc_log=sm.OLS(reg["actual_log"], X_nocontrols).fit(
+    cov_type="cluster", cov_kwds={"groups": reg["county_fips"]})
+
+def pct_ci(m, term):
+    b=m.params[term]
+    se=m.bse[term]
+    est=(np.exp(b*0.01)-1)*100
+    lo=(np.exp((b-1.96*se)*0.01)-1)*100
+    hi=(np.exp((b+1.96*se)*0.01)-1)*100
+    return est, lo, hi
+
+compare_rows=[]
+for term, name in zip(share_terms, ["Routine Cognitive","Routine Manual","Non-Routine Manual"]):
+    for m, spec in [(model_nc_log, "Task Groups and Year Only"), (model_log, "With Controls")]:
+        est, lo, hi = pct_ci(m, term)
+        compare_rows.append({"group":name, "spec":spec, "est":est, "lo":lo, "hi":hi})
+compare_df=pd.DataFrame(compare_rows)
+
+compare_wide=compare_df.pivot(index="group", columns="spec", values="est").reset_index()
+compare_wide.columns=["group","est_baseline","est_controls"]
+compare_wide["attenuation_pct"]=100*(1-compare_wide["est_controls"].abs()/compare_wide["est_baseline"].abs())
+compare_wide["attenuation_label"]=compare_wide["attenuation_pct"].apply(
+    lambda v: "Little change" if v<5 else f"{v:.0f}% smaller")
+```
+
+```{python}
+#| label: fig-coefcompare
+#| echo: false
+#| warning: false
+#| fig-cap: "**Task Group Coefficients Before and After Controls.** From the log panel regression, before and after adding poverty, unemployment, and population controls, as percent change in purchasing power per one percentage point shift, with 95 percent intervals. Non-routine manual and routine manual shrink with controls; routine cognitive does not."
+%%R -i compare_df -i compare_wide -w 9 -h 4.5 -u in -r 150
+compare_df$group <- factor(compare_df$group,
+    levels=rev(c("Non-Routine Manual","Routine Cognitive","Routine Manual")))
+compare_df$spec <- factor(compare_df$spec,
+    levels=c("Task Groups and Year Only","With Controls"))
+compare_wide$group <- factor(compare_wide$group,
+    levels=rev(c("Non-Routine Manual","Routine Cognitive","Routine Manual")))
+compare_df$label_nudge <- ifelse(compare_df$spec=="With Controls", 0.35, -0.35)
+compare_wide$mid <- (compare_wide$est_baseline+compare_wide$est_controls)/2
+
+ggplot(compare_df, aes(x=est, y=group)) +
+  geom_segment(data=compare_wide, aes(x=est_baseline, xend=est_controls, y=group, yend=group),
+               inherit.aes=FALSE, color="grey75", linewidth=2.0, lineend="round") +
+  geom_errorbar(aes(xmin=lo, xmax=hi, color=spec), orientation="y", width=0.1, linewidth=0.6) +
+  geom_point(aes(color=spec, size=spec)) +
+  geom_text(aes(label=sprintf("%.1f%%", est), y=as.numeric(group)+label_nudge),
+            size=3.3, show.legend=FALSE, fontface="bold", color="#252525") +
+  geom_text(data=compare_wide, aes(x=mid, y=as.numeric(group)-0.55, label=attenuation_label),
+            inherit.aes=FALSE, color="grey40", size=3.0, fontface="italic") +
+  scale_size_manual(values=c("Task Groups and Year Only"=2.6, "With Controls"=3.6), guide="none") +
+  geom_vline(xintercept=0, linetype="dashed", linewidth=0.4) +
+  scale_color_manual(values=c("Task Groups and Year Only"=ORANGE, "With Controls"=GREEN)) +
+  scale_y_discrete(expand=expansion(add=0.7)) +
+  labs(title="Task Group Coefficients Before and After Controls",
+       x="Percent Change in Purchasing Power per Percentage Point Shift", y=NULL, color=NULL) +
+  theme(legend.position="bottom")
+```
+
+## Where purchasing power is strained
+
+The association also has a clear geographic pattern. @fig-afford-map maps mean purchasing power by county across the study period, using all counties with a purchasing power value rather than the analytical panel alone, since the outcome requires only income and a price parity. Purchasing power runs highest along the metropolitan Northeast corridor, across parts of the upper Midwest, and in pockets of the mountain West, while the lowest values concentrate across the rural South and the southern border region. Panel B relates this geography to local task groups by grouping counties according to whichever task group holds the largest share of local employment. The 664 counties where non-routine cognitive work dominates reach both higher and more varied purchasing power than the 97 dominated by non-routine manual work or the 87 dominated by routine manual work. Both of those smaller groups cluster tightly at the low end. No county in the panel has routine cognitive work as its largest group, so that group does not appear. Panel A shows the outcome side of the association the coefficients estimate. Panel B shows the same association holding at the level of a county's single largest task group.
+
+```{python}
+#| label: afford-map-data
+#| include: false
+import geopandas as gpd
+
+map_all=pd.read_sql("""
+    select county_fips, avg(affordability_salary) as purchasing_power
+    from county_affordability
+    group by county_fips
+""", engine)
+map_all['fips']=map_all['county_fips'].astype(str).str.zfill(5)
+
+gdf_map=gpd.read_file("https://www2.census.gov/geo/tiger/GENZ2021/shp/cb_2021_us_county_500k.zip")
+gdf_map=gdf_map.rename(columns={'GEOID':'fips'})
+
+afford_vmin=float(map_all['purchasing_power'].quantile(0.02))
+afford_vmax=float(map_all['purchasing_power'].quantile(0.98))
+
+merged_map=gdf_map.merge(map_all[['fips','purchasing_power']], on='fips', how='left')
+merged_map=merged_map[~merged_map['STATEFP'].isin(['02','15','60','66','69','72','78'])]
+os.makedirs("output", exist_ok=True)
+merged_map[['fips','purchasing_power','geometry']].to_file("output/afford_map.geojson", driver="GeoJSON")
+
+# dominant task group per county: whichever of the four groups holds the largest mean share
+dominant_share_cols=["routine_cognitive_share","routine_manual_share",
+                     "non_routine_cognitive_share","non_routine_manual_share"]
+dominant_label_map={"routine_cognitive_share":"Routine Cognitive","routine_manual_share":"Routine Manual",
+                    "non_routine_cognitive_share":"Non-Routine Cognitive","non_routine_manual_share":"Non-Routine Manual"}
+dominant_df=pd.read_sql(f"""
+    select cte.county_fips,
+           avg(cte.routine_cognitive_share) as routine_cognitive_share,
+           avg(cte.routine_manual_share) as routine_manual_share,
+           avg(cte.non_routine_cognitive_share) as non_routine_cognitive_share,
+           avg(cte.non_routine_manual_share) as non_routine_manual_share,
+           avg(ca.affordability_salary) as purchasing_power
+    from county_task_exposure cte
+    join county_affordability ca on cte.county_fips=ca.county_fips and cte.year=ca.year
+    group by cte.county_fips
+""", engine)
+dominant_df["dominant_group"]=dominant_df[dominant_share_cols].idxmax(axis=1).map(dominant_label_map)
+```
+
+```{python}
+#| label: fig-afford-map
+#| echo: false
+#| warning: false
+#| fig-cap: "**Where Purchasing Power Is Strained.** (A) Mean purchasing power by county, 2008 to 2023, in dollars at national average prices, clipped at the 2nd and 98th percentiles so extreme counties do not compress the scale. Counties without a purchasing power value are gray. (B) Density of mean purchasing power among counties grouped by their single largest task group. Continental United States only."
+%%R -i afford_vmin -i afford_vmax -i dominant_df -w 9 -h 9 -u in -r 150
+suppressMessages(library(sf))
+
+afford_sf <- st_read("output/afford_map.geojson", quiet=TRUE)
+
+DOMINANT_COLORS <- TASK_COLORS[c("Non-Routine Cognitive","Non-Routine Manual","Routine Manual")]
+
+p1 <- ggplot(afford_sf) +
+  geom_sf(aes(fill=purchasing_power), color="#FAFAF8", linewidth=0.05) +
+  scale_fill_viridis_c(limits=c(afford_vmin, afford_vmax),
+                        oob=scales::squish, na.value="#D9D9D6",
+                        labels=label_dollar(scale=1e-3, suffix="k"),
+                        name="Mean Purchasing Power") +
+  coord_sf(crs=st_crs(5070), datum=NA) +
+  guides(fill=guide_colorbar(direction="horizontal", title.position="top", title.hjust=0.5,
+                             barwidth=unit(4.5,"cm"), barheight=unit(0.35,"cm"))) +
+  theme_void() +
+  theme(legend.position="bottom",
+        legend.title=element_text(size=10, face="bold", color="#333333"),
+        legend.text=element_text(size=9, color="#555555"),
+        plot.background=element_rect(fill="#FCFCFB", color=NA))
+
+p2 <- ggplot(dominant_df, aes(x=purchasing_power, fill=dominant_group, color=dominant_group)) +
+  geom_density(alpha=0.35, linewidth=0.7) +
+  scale_fill_manual(values=DOMINANT_COLORS) +
+  scale_color_manual(values=DOMINANT_COLORS) +
+  scale_x_continuous(labels=dollar_axis) +
+  labs(title="Purchasing Power by Dominant Task Group",
+       x="Mean Purchasing Power", y="Density", fill=NULL, color=NULL)
+
+(p1 / p2) + plot_layout(heights=c(2.2, 1)) +
+  plot_annotation(title="Where Purchasing Power Is Strained",
+                  tag_levels="A",
+                  theme=theme(plot.title=element_text(face="bold", size=13, hjust=0.5),
+                              plot.tag=element_text(face="bold", size=11, color="#0B0B0B")))
+```
+
+## The relationship is proportional
+
+@sec-analysis climbed the model complexity ladder and reported where each rung landed. @fig-modelcomp collects that ending: held out R² across the five grouped cross validation folds for the two models carried forward. Across those folds, the log target linear model and the random forest perform similarly relative to the variation observed, and neither pulls away from the other. @tbl-modelmetrics adds a further comparison to that picture, a single split that also includes the neural network.
+
+```{python}
+#| include: false
+cv_means=cv_folds.groupby("model", as_index=False)["r2"].mean().rename(columns={"r2":"mean_r2"})
+```
+
+```{python}
+#| label: fig-modelcomp
+#| echo: false
+#| warning: false
+#| fig-cap: "**Ordinary Least Squares and Random Forest Score Similarly Across Folds.** Held out R² across the five grouped cross validation folds, for the linear model and the random forest, both fit on the log target and scored on the dollar scale after back transformation, with the mean marked. The gap between the model means is small relative to the spread across folds."
+%%R -i cv_folds -i cv_means -w 8 -h 4 -u in -r 150
+cv_means$mean_label <- sprintf("%.3f", cv_means$mean_r2)
+cv_means$label_x <- ifelse(cv_means$model=="Ordinary Least Squares", 0.74, 2.26)
+
+ggplot(cv_folds, aes(x=model, y=r2, color=model)) +
+  geom_line(aes(x=model, y=r2, group=fold), inherit.aes=FALSE, color="grey75", linewidth=0.5) +
+  geom_point(size=2.6) +
+  geom_crossbar(data=cv_means, aes(x=model, y=mean_r2, ymin=mean_r2, ymax=mean_r2),
+                width=0.35, linewidth=0.5, color="grey30", inherit.aes=FALSE) +
+  geom_text(data=cv_means, aes(x=label_x, y=mean_r2, label=mean_label, color=model),
+            size=3.4, fontface="bold", vjust=0.5, show.legend=FALSE) +
+  scale_color_manual(values=c("Ordinary Least Squares"=GREEN,
+                              "Random forest"=PINK)) +
+  scale_x_discrete(expand=expansion(add=0.6)) +
+  labs(title="Ordinary Least Squares and Random Forest Score Similarly Across Folds",
+       x=NULL, y="Held Out R² (Dollar Scale)") +
+  guides(color="none")
+```
+
+```{python}
+#| label: tbl-modelmetrics
+#| echo: false
+#| tbl-cap: "Held out performance on the same held out counties from the single grouped split."
+
+metrics_df=pd.DataFrame({
+    "Model": ["Ordinary Least Squares","Random Forest","Neural Network"],
+    "R²": [ols_log_test_r2, rf_log_test_r2, nn_test_r2],
+    "Mean Absolute Error ($)": [ols_log_test_mae, rf_log_test_mae, nn_test_mae],
+})
+
+style_table(GT(metrics_df)
+  .tab_header(title="Model Performance on the Held Out Counties")
+  .fmt_number(columns="R²", decimals=3)
+  .fmt_currency(columns="Mean Absolute Error ($)", decimals=0)
+  .tab_source_note("Ordinary Least Squares and Random Forest are fit on the log target and scored on the dollar scale after back transformation.")
+  .tab_source_note("Neural network results are from this single split only; Table 3 reports cross validated results for the other two models."))
+```
+
+This is the ladder's stopping rule working as designed: a random forest can represent any interaction or curvature the data contain, yet it finds nothing beyond what the log transformation already captured. The binned comparison in @fig-binned confirms the same conclusion, this time in the units of the outcome itself. Specifically, the relationship is not monotonic across these bins: purchasing power rises with routine cognitive share through the lower part of its observed range, peaks near 20 percent, and then declines as the share continues to rise. The forest's predictions track this same shape closely rather than discovering a different pattern of their own, which is further evidence that the flexible model adds little beyond what the log linear specification already captures.
+
+```{python}
+#| include: false
+binned_ml=pd.DataFrame({
+    "rc": X_test["routine_cognitive_share"].values,
+    "Actual": y_test.values,
+    "Random Forest": y_pred_rf_log_dollars,
+})
+binned_ml["bin"]=pd.qcut(binned_ml["rc"], 10, labels=False)
+binned_means=binned_ml.groupby("bin")[["rc","Actual","Random Forest"]].mean().reset_index(drop=True)
+binned_long=binned_means.melt(id_vars="rc", value_vars=["Actual","Random Forest"],
+                              var_name="series", value_name="pp")
+```
+
+```{python}
+#| label: fig-binned
+#| echo: false
+#| warning: false
+#| fig-cap: "**Actual vs. Random Forest Purchasing Power by Routine Cognitive Share.** Mean actual and predicted purchasing power across ten equal count bins of routine cognitive work, on the held out test counties, with predictions from the log target forest back transformed into dollars; each point marks a bin's mean routine cognitive share. The relationship rises then declines rather than moving monotonically; the forest reproduces this same shape rather than finding a different one."
+%%R -i binned_long -i rf_log_test_r2 -i rf_log_test_mae -w 9 -h 4.5 -u in -r 150
+OBSERVED <- "#252525"
+binned_long$rc_pct <- binned_long$rc*100
+label_pts <- binned_long[binned_long$rc==max(binned_long$rc),]
+rf_stat_label <- sprintf("Random Forest: R² = %.3f, MAE = $%s",
+                          rf_log_test_r2, formatC(round(rf_log_test_mae), format="d", big.mark=","))
+
+ggplot(binned_long, aes(x=rc_pct, y=pp, color=series)) +
+  annotate("text", x=max(binned_long$rc_pct), y=max(binned_long$pp)*0.975,
+           label=rf_stat_label, hjust=1, size=3.4, color=PINK, fontface="bold") +
+  geom_line(aes(linewidth=series)) +
+  geom_point(aes(size=series)) +
+  geom_text(data=label_pts, aes(label=series), hjust=-0.15, size=3.4, fontface="bold", show.legend=FALSE) +
+  scale_color_manual(values=c("Actual"=OBSERVED, "Random Forest"=PINK), guide="none") +
+  scale_linewidth_manual(values=c("Actual"=1.0, "Random Forest"=0.7), guide="none") +
+  scale_size_manual(values=c("Actual"=1.8, "Random Forest"=1.4), guide="none") +
+  scale_x_continuous(labels=function(v) sprintf("%d%%", round(v)),
+                      breaks=scales::pretty_breaks(n=8),
+                      expand=expansion(mult=c(0.02, 0.28))) +
+  scale_y_continuous(labels=function(v) sprintf("$%s", formatC(round(v), format="d", big.mark=","))) +
+  labs(title="Actual vs. Random Forest Purchasing Power by Routine Cognitive Share",
+       x="Routine Cognitive Share (Percent)", y="Purchasing Power")
+```
+
+## What carries the signal
+
+Two measurements say how much the task groups contribute. The first removes them and refits: @fig-ablation shows what the random forest loses in held out R² when each block of features is taken away. Removing poverty and unemployment costs 0.178, more than four times the 0.042 lost by removing the task groups. The economic controls therefore carry more predictive information, but the task groups still contribute beyond them, answering the question the objection above raised.
+
+```{python}
+#| include: false
+ablation_df=pd.DataFrame({
+    "model": ["Task groups","Poverty and unemployment"],
+    "r2": [0.834, 0.698],
+})
+ablation_df["full_r2"]=0.876
+ablation_df["drop"]=ablation_df["full_r2"]-ablation_df["r2"]
+```
+
+```{python}
+#| label: fig-ablation
+#| echo: false
+#| warning: false
+#| fig-cap: "**Loss in Held Out R² When Each Feature Block Is Removed.** From the log target random forest, relative to the full model's 0.876. Removing poverty and unemployment costs more than four times as much as removing the task groups."
+%%R -i ablation_df -w 7 -h 3 -u in -r 150
+ablation_df$model <- factor(ablation_df$model, levels=c("Task groups","Poverty and unemployment"))
+
+ggplot(ablation_df, aes(x=drop, y=model, fill=model)) +
+  geom_col(width=0.55) +
+  geom_text(aes(label=sprintf("%.3f", drop)), hjust=-0.25, size=4.0, fontface="bold", color="#252525") +
+  scale_fill_manual(values=c("Task groups"=GREEN, "Poverty and unemployment"=ORANGE), guide="none") +
+  scale_x_continuous(limits=c(0, 0.20), breaks=seq(0, 0.20, 0.05), expand=c(0,0)) +
+  labs(title="Loss in Held Out R² When Each Feature Block Is Removed",
+       x="Loss in Held Out R²", y=NULL)
+```
+
+The second measurement leaves the model intact and destroys the information instead. @fig-importance ranks what the random forest relies on, using the grouped permutation approach from @sec-analysis so that indicator blocks and the task groups are each scored as a unit. These two interpretability figures are computed on the raw target forest rather than the log target one, since the two score within 0.001 of each other on held out counties and the raw target version reports directly in dollars. In that ranking, poverty rate carries the largest single drop, consistent with its dominance in the regression. The modeled task group proportions together come next at 0.153, ahead of the year block at 0.128, and state adds almost nothing at 0.008 once everything else is present.
+
+The two measurements disagree in magnitude, and the reason is instructive. Permuting the task groups costs 0.153, while removing them entirely and refitting costs only 0.042. The gap exists because a refitted model can lean harder on poverty, unemployment, and time to recover much of what the task groups were carrying. The permutation figure therefore measures how much the fitted model uses the task groups, and the ablation measures how much of that is unique to them. Both measurements agree that the task groups function together as a set, which is what parts of a whole should do.
+
+```{python}
+#| include: false
+pov_idx=list(X_test.columns).index("poverty_rate")
+unemp_idx=list(X_test.columns).index("unemployment_rate")
+
+importance_df=pd.DataFrame({
+    "feature": ["Poverty Rate","Task Groups (Joint)","Year (Joint)",
+                "Unemployment Rate","State (Joint)"],
+    "block": ["Economic controls","Task groups","Structural indicators",
+              "Economic controls","Structural indicators"],
+    "drop": [perm_imp.importances_mean[pov_idx], joint_drop, year_drop,
+             perm_imp.importances_mean[unemp_idx], state_drop],
+}).sort_values("drop")
+```
+
+```{python}
+#| label: fig-importance
+#| echo: false
+#| warning: false
+#| fig-cap: "**Feature Importance by Grouped Permutation.** On the held out test counties, measured as the drop in R² when each feature or block is shuffled. The task groups are permuted jointly, as are the year and state indicator blocks. Larger drops indicate features the model relies on more."
+%%R -i importance_df -w 8 -h 3.5 -u in -r 150
+importance_df$feature <- factor(importance_df$feature, levels=importance_df$feature)
+importance_df$block <- factor(importance_df$block,
+    levels=c("Task groups","Economic controls","Structural indicators"))
+
+ggplot(importance_df, aes(x=drop, y=feature, fill=block)) +
+  geom_col(width=0.6) +
+  geom_text(aes(label=sprintf("%.3f", drop)), hjust=-0.25, size=3.4, fontface="bold", color="#252525") +
+  scale_fill_manual(values=c("Task groups"=GREEN, "Economic controls"=ORANGE,
+                             "Structural indicators"=GREY)) +
+  scale_x_continuous(expand=expansion(mult=c(0, 0.15))) +
+  labs(title="Feature Importance by Grouped Permutation",
+       x="Drop in Held Out R² When Permuted", y=NULL, fill=NULL) +
+  theme(legend.position="bottom")
+```
+
+@fig-pdp completes the picture with the forest's partial dependence on the three non-reference task groups. Each curve shows predicted purchasing power as one group's value moves across its observed range with all other features held at their values. Across that range, the curves decline smoothly and near monotonically, with no thresholds or reversals. That shape is what a proportional association implies, and it is why the flexible model could not beat the log linear one. Because the four groups are parts of a whole, moving one while holding the others fixed implies a compensating change in the omitted reference group. These curves therefore describe the model's behavior rather than a combination any county could occupy.
+
+```{python}
+#| include: false
+from sklearn.inspection import partial_dependence
+
+pdp_frames=[]
+for term, name in zip(["routine_cognitive_share","routine_manual_share","non_routine_manual_share"],
+                      ["Routine Cognitive","Routine Manual","Non-Routine Manual"]):
+    pd_res=partial_dependence(best_rf, X_test, [term], kind="average", grid_resolution=40)
+    grid=pd_res["grid_values"][0] if "grid_values" in pd_res else pd_res["values"][0]
+    pdp_frames.append(pd.DataFrame({"x":grid,
+                                    "y":pd_res["average"][0],
+                                    "group":name}))
+pdp_df=pd.concat(pdp_frames, ignore_index=True)
+```
+
+```{python}
+#| label: fig-pdp
+#| echo: false
+#| warning: false
+#| fig-cap: "**Partial Dependence on Each Task Group.** Random forest partial dependence of predicted purchasing power on each non-reference task group, computed on the held out test counties. Each curve moves one group across its observed range with all other features held at their values. The smooth, near monotonic declines match a proportional association."
+%%R -i pdp_df -w 10 -h 3.5 -u in -r 150
+pdp_df$group <- factor(pdp_df$group, levels=c("Routine Cognitive","Routine Manual","Non-Routine Manual"))
+PDP_COLORS <- TASK_COLORS[c("Routine Cognitive","Routine Manual","Non-Routine Manual")]
+
+ggplot(pdp_df, aes(x=x, y=y, color=group)) +
+  geom_line(linewidth=0.8, show.legend=FALSE) +
+  facet_wrap(~group, scales="free_x") +
+  scale_color_manual(values=PDP_COLORS) +
+  scale_y_continuous(labels=function(v) sprintf("$%s", formatC(round(v), format="d", big.mark=","))) +
+  labs(title="Partial Dependence on Each Task Group",
+       x="Task Group Value", y="Predicted Purchasing Power")
+```
+
+## The differences are durable
+
+The final question is whether these associations describe a stable feature of places or a moment in time. Three pieces of evidence say stable. @fig-taskarea shows the panel average of each task group by year, which moves little across fifteen years apart from the 2009 to 2010 step produced by the Census occupation coding change described in @sec-data.
+
+```{python}
+#| include: false
+area_df=(df.groupby("year")[["routine_cognitive_share","routine_manual_share",
+                             "non_routine_cognitive_share","non_routine_manual_share"]]
+           .mean().reset_index()
+           .melt(id_vars="year", var_name="group", value_name="share"))
+area_names={"routine_cognitive_share":"Routine Cognitive",
+            "routine_manual_share":"Routine Manual",
+            "non_routine_cognitive_share":"Non-Routine Cognitive",
+            "non_routine_manual_share":"Non-Routine Manual"}
+area_df["group"]=area_df["group"].map(area_names)
+area_df["period"]=np.where(area_df["year"]<=2019, "pre", "post")
+
+# narrow, deliberate gap right at the missing 2020 year, rather than the
+# full two year blank span a plain pre/2021 split would otherwise leave
+gap_rows=[]
+for grp in area_df["group"].unique():
+    before=area_df.loc[(area_df["group"]==grp) & (area_df["year"]==2019), "share"].iloc[0]
+    after=area_df.loc[(area_df["group"]==grp) & (area_df["year"]==2021), "share"].iloc[0]
+    gap_rows.append({"year":2019.9, "group":grp, "share":before+(after-before)*0.45, "period":"pre"})
+    gap_rows.append({"year":2020.1, "group":grp, "share":before+(after-before)*0.55, "period":"post"})
+area_df=pd.concat([area_df, pd.DataFrame(gap_rows)], ignore_index=True).sort_values("year").reset_index(drop=True)
+```
+
+```{python}
+#| label: fig-taskarea
+#| echo: false
+#| warning: false
+#| fig-cap: "**Average County Task Group Value by Year.** Taken as an unweighted mean across panel counties. The four task groups stay nearly constant over the study period. The bold dashed line marks the Census occupation coding change between 2009 and 2010. The lighter dashed line at 2020 marks the year ACS 1 year estimates were not published; the narrow break in the bands at that point reflects the missing year rather than a data error."
+%%R -i area_df -w 9.5 -h 4.7 -u in -r 150
+TASKAREA_COLORS <- TASK_COLORS
+group_levels <- c("Non-Routine Cognitive","Non-Routine Manual","Routine Cognitive","Routine Manual")
+area_df$group <- factor(area_df$group, levels=group_levels)
+
+pre_df  <- area_df[area_df$period=="pre",]
+post_df <- area_df[area_df$period=="post",]
+
+label_year <- 2016
+label_df <- area_df[area_df$year==label_year,]
+label_df <- label_df[match(group_levels, label_df$group),]
+label_df$cum <- cumsum(label_df$share)
+label_df$mid <- label_df$cum - label_df$share/2
+# Non-Routine Cognitive and Routine Cognitive are the light members of their hue
+# families, so white labels lose contrast there; the two manual groups stay dark.
+label_df$text_color <- ifelse(label_df$group %in% c("Non-Routine Manual","Routine Manual"),
+                               "white", "#0B0B0B")
+
+ggplot(area_df, aes(x=year, y=share, fill=group)) +
+  geom_area(data=pre_df, stat="identity", position=position_stack(reverse=TRUE), linewidth=0) +
+  geom_area(data=post_df, stat="identity", position=position_stack(reverse=TRUE), linewidth=0) +
+  geom_text(data=label_df, aes(x=label_year, y=mid, label=group, color=text_color),
+            hjust=0.5, size=3.3, fontface="bold") +
+  scale_color_identity() +
+  geom_vline(xintercept=2009.5, linetype="dashed", linewidth=1.0, color="#0B0B0B") +
+  geom_vline(xintercept=2020, linetype="dashed", linewidth=0.6, color="grey45") +
+  annotate("text", x=2009.5, y=1.06, label="Census coding change", hjust=0.5, vjust=0.5, size=3.1, fontface="bold", color="#0B0B0B") +
+  annotate("text", x=2020, y=1.06, label="No data", hjust=0.5, vjust=0.5, size=3.1, fontface="bold", color="grey45") +
+  scale_fill_manual(values=TASKAREA_COLORS, guide="none") +
+  scale_y_continuous(labels=function(v) sprintf("%.0f%%", v*100), breaks=seq(0, 1, 0.25),
+                      limits=c(0, 1.13), expand=c(0,0)) +
+  scale_x_continuous(breaks=2008:2023, limits=c(2008, 2023.3), expand=c(0,0)) +
+  labs(title="Average County Task Group Value by Year",
+       x="Year", y="Mean Group Value Across Counties") +
+  theme(axis.text.x=element_text(angle=0, hjust=0.5),
+        plot.margin=margin(10, 5.5, 5.5, 5.5))
+```
+
+Individual counties hold their positions as well, not just the national aggregate. @tbl-rankcorr reports the rank correlation of each group's county ordering between 2010 and 2023, computed from 2010 onward to step over the coding change. Routine manual and non-routine cognitive hold their orderings most strongly, so the counties with the most of each in 2010 are largely the same counties in 2023. Non-routine manual is more mobile, and routine cognitive reorders the most, which is consistent with it being the one group carrying substantial within county movement in the variance decomposition of @sec-analysis.
+
+```{python}
+#| label: tbl-rankcorr
+#| echo: false
+#| tbl-cap: "Spearman rank correlation of county orderings between 2010 and 2023, by task group, across counties present in both years."
+from scipy.stats import spearmanr
+
+wide_2010=df[df["year"]==2010].set_index("county_fips")
+wide_2023=df[df["year"]==2023].set_index("county_fips")
+common=wide_2010.index.intersection(wide_2023.index)
+
+rank_rows=[]
+for col, name in area_names.items():
+    rho=spearmanr(wide_2010.loc[common, col], wide_2023.loc[common, col]).statistic
+    rank_rows.append({"Task group":name, "Rank correlation, 2010 to 2023":rho})
+rankcorr_df=pd.DataFrame(rank_rows)
+
+style_table(GT(rankcorr_df)
+  .tab_header(title="County Ordering Stability, 2010 to 2023")
+  .fmt_number(columns="Rank correlation, 2010 to 2023", decimals=2)
+  .cols_align(align="right", columns="Rank correlation, 2010 to 2023")
+  .tab_source_note("Computed from 2010 onward to avoid the Census occupation coding change."))
+```
+
+@fig-taskchange-map shows this stability geographically, using the same two years as @tbl-rankcorr. Routine manual and non-routine manual, the two groups with almost no net movement in @fig-taskarea, show small changes that run in both directions across counties, consistent with variation that sits between counties rather than within them. Routine cognitive and non-routine cognitive, the pair whose national levels moved most in @fig-taskarea, show a change that is both larger and far more uniform in direction across the map, matching the within county movement identified in the variance decomposition of @sec-analysis.
+
+```{python}
+#| label: taskchange-map-data
+#| include: false
+import geopandas as gpd
+
+change_wide=(wide_2023.loc[common, list(area_names.keys())]
+             -wide_2010.loc[common, list(area_names.keys())])*100
+change_wide.columns=[area_names[c] for c in change_wide.columns]
+change_long=change_wide.reset_index().melt(id_vars="county_fips", var_name="group", value_name="change")
+change_long["fips"]=change_long["county_fips"].astype(str).str.zfill(5)
+
+gdf_change=gpd.read_file("https://www2.census.gov/geo/tiger/GENZ2021/shp/cb_2021_us_county_500k.zip")
+gdf_change=gdf_change.rename(columns={"GEOID":"fips"})
+gdf_change=gdf_change[~gdf_change["STATEFP"].isin(["02","15","60","66","69","72","78"])]
+
+# cross every continental county with all four groups so counties outside the panel
+# still render, grey, in every facet, matching the coverage convention in fig-afford-map
+groups_order=list(area_names.values())
+county_group_grid=gdf_change[["fips","geometry"]].merge(
+    pd.DataFrame({"group":groups_order}), how="cross")
+merged_change=county_group_grid.merge(change_long[["fips","group","change"]],
+                                      on=["fips","group"], how="left")
+os.makedirs("output", exist_ok=True)
+merged_change.to_file("output/taskchange_map.geojson", driver="GeoJSON")
+
+change_bound=float(change_long["change"].abs().quantile(0.98))
+```
+
+```{python}
+#| label: fig-taskchange-map
+#| echo: false
+#| warning: false
+#| fig-cap: "**Change in Task Group Value by County, 2010 to 2023.** Percentage point change in each task group's value, the same two years used in @tbl-rankcorr. Color scale shared across panels so magnitude is comparable across groups. Routine manual and non-routine manual show small, mixed change; routine cognitive and non-routine cognitive show larger, more uniformly signed change."
+%%R -i change_bound -w 9.5 -h 7 -u in -r 150
+suppressMessages(library(sf))
+
+change_sf <- st_read("output/taskchange_map.geojson", quiet=TRUE)
+change_sf$group <- factor(change_sf$group,
+    levels=c("Routine Cognitive","Routine Manual","Non-Routine Cognitive","Non-Routine Manual"))
+
+ggplot(change_sf) +
+  geom_sf(aes(fill=change), color="white", linewidth=0.03) +
+  facet_wrap(~group, ncol=2) +
+  scale_fill_distiller(palette="PuOr", direction=1, limits=c(-change_bound, change_bound),
+                        oob=scales::squish, na.value="#eeeeee",
+                        labels=function(v) sprintf("%+.0fpp", v),
+                        name="Change in Task Group Value (Percentage Points)") +
+  coord_sf(crs=st_crs(5070), datum=NA) +
+  theme_void() +
+  labs(title="Change in Task Group Value by County, 2010 to 2023") +
+  theme(legend.position="bottom", legend.key.width=unit(1.3,"cm"),
+        plot.title=element_text(face="bold", size=13, hjust=0.5),
+        strip.text=element_text(size=11, face="bold"),
+        plot.background=element_rect(fill="#FCFCFB", color=NA))
+```
+
+Finally, the coefficients themselves hold across time. @fig-stability refits the log panel regression on the pre pandemic window, 2010 to 2019, and the post pandemic window, 2021 to 2023, the same windows named in @sec-analysis. Reporting these in percent rather than dollars keeps the three windows comparable, since nominal purchasing power rose substantially across the panel and a dollar coefficient in the later window is measured against a larger base. The task group ordering is identical in both windows and in the full panel, and the magnitudes move modestly, so the association is not an artifact of any one period, recession, recovery, or pandemic era.
+
+```{python}
+#| include: false
+def fit_window_log(frame):
+    Xw=pd.concat([frame[res_cols],
+                  pd.get_dummies(frame["year"], prefix="year", drop_first=True).astype(float)], axis=1)
+    Xw=sm.add_constant(Xw)
+    return sm.OLS(np.log(frame["affordability_salary"]), Xw).fit(
+        cov_type="cluster", cov_kwds={"groups": frame["county_fips"]})
+
+windows={"Full panel": reg,
+         "2010 to 2019": reg[(reg["year"]>=2010)&(reg["year"]<=2019)],
+         "2021 to 2023": reg[reg["year"]>=2021]}
+
+stab_rows=[]
+for term, name in zip(group_terms, group_names):
+    row={"Task group":name}
+    for wname, frame in windows.items():
+        b=fit_window_log(frame).params[term]
+        row[wname]=(np.exp(b*0.01)-1)*100
+    stab_rows.append(row)
+stability_df=pd.DataFrame(stab_rows)
+
+stab_long=stability_df.melt(id_vars="Task group", var_name="window", value_name="value")
+range_df=stability_df.assign(
+    lo=stability_df[["Full panel","2010 to 2019","2021 to 2023"]].min(axis=1),
+    hi=stability_df[["Full panel","2010 to 2019","2021 to 2023"]].max(axis=1),
+)[["Task group","lo","hi"]]
+```
+
+```{python}
+#| label: fig-stability
+#| echo: false
+#| warning: false
+#| fig-cap: "**Task Group Coefficients Across Time Windows.** Log panel regression coefficients, as percent change in purchasing power per one percentage point shift out of non-routine cognitive work, refit on the pre pandemic and post pandemic windows alongside the full panel (diamond). Standard errors clustered by county in every fit."
+%%R -i stab_long -i range_df -w 8 -h 3.6 -u in -r 150
+BLACK <- "#252525"
+
+group_order <- c("Routine Manual", "Routine Cognitive", "Non-Routine Manual")
+stab_long$window <- factor(stab_long$window, levels=c("2010 to 2019", "Full panel", "2021 to 2023"))
+stab_long$`Task group` <- factor(stab_long$`Task group`, levels=group_order)
+range_df$`Task group` <- factor(range_df$`Task group`, levels=group_order)
+
+window_colors <- c("2010 to 2019"=BLUE, "Full panel"=BLACK, "2021 to 2023"=ORANGE)
+window_shapes <- c("2010 to 2019"=16, "Full panel"=18, "2021 to 2023"=16)
+window_sizes  <- c("2010 to 2019"=3.2, "Full panel"=4.6, "2021 to 2023"=3.2)
+
+ggplot() +
+  geom_segment(data=range_df, aes(x=lo, xend=hi, y=`Task group`, yend=`Task group`),
+               color="#C8C8C5", linewidth=1.1) +
+  geom_point(data=stab_long, aes(x=value, y=`Task group`, color=window, shape=window, size=window)) +
+  scale_color_manual(values=window_colors, name=NULL) +
+  scale_shape_manual(values=window_shapes, name=NULL) +
+  scale_size_manual(values=window_sizes, guide="none") +
+  scale_x_continuous(labels=function(v) sprintf("%.1f%%", v)) +
+  labs(title="Task Group Coefficients Across Time Windows",
+       x="Percent Change per Point Shifted Out of Non-Routine Cognitive Work", y=NULL) +
+  theme(legend.position="bottom")
+```
+
+Taken together, the results show that this pattern is not limited to a single year or model. Counties with more routine and manual work tended to have lower purchasing power at the beginning of the study period, and that pattern remained largely unchanged fifteen years later. @sec-conclusions discusses what these findings mean, their limits, and what questions remain.
