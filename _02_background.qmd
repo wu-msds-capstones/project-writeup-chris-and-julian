@@ -109,7 +109,7 @@ p_unemp <- ggplot(context_sf) +
 
 p_inc <- ggplot(context_sf) +
   geom_sf(aes(fill=median_household_income), color="white", linewidth=0.05) +
-  scale_fill_gradient(low="#FCFCFB", high=GREY, limits=c(inc_ctx_vmin, inc_ctx_vmax),
+  scale_fill_gradient(low="#FCFCFB", high=GREEN, limits=c(inc_ctx_vmin, inc_ctx_vmax),
                       oob=scales::squish, na.value="#EEEEEE",
                       labels=function(v) sprintf("$%.0fk", v/1000),
                       name="Median Household Income",

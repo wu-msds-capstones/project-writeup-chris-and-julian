@@ -6,7 +6,7 @@ A longitudinal county analysis depends on measures that remain comparable across
 ```{python}
 #| label: tbl-sources
 #| echo: false
-#| tbl-cap: "Federal data sources and variables supplied."
+#| tbl-cap: "**Federal Data Sources.** Each source, the number of records retrieved, the variables supplied, and the warehouse table it feeds."
 import pandas as pd
 from great_tables import GT
 
@@ -24,7 +24,6 @@ sources_df=pd.DataFrame({
 })
 
 style_table(GT(sources_df)
-  .tab_header(title="Federal Data Sources and Variables Supplied")
   .fmt_integer(columns="Records retrieved", use_seps=True)
   .fmt_markdown(columns="Warehouse table")
   .cols_align(align="right", columns="Records retrieved")
@@ -68,7 +67,7 @@ $$ {#eq-afford}
 
 A county with a median household income of $60,000 and a Regional Price Parity of 120 has purchasing power of $50,000. In practical terms, that income buys roughly what $50,000 would buy at national average prices. This adjustment makes household income more comparable across counties by accounting for differences in local prices.
 
-Regional Price Parities adjust for differences across places, but not for changes in the national price level over time. Purchasing power is therefore reported in U.S. dollars. The regression includes year indicators to account for changes shared across counties within each year, including national price movement. @sec-analysis explains how these year effects enter the model.
+Regional Price Parities adjust for differences across places, but not for changes in the national price level over time. Purchasing power is therefore reported in U.S. dollars. Deflating those dollars to a constant base year with a national price index is the familiar alternative, and the regression uses year indicators instead. A national deflator assigns a single value to every county in a year, so in the log specification used for inference it shifts each year's observations by a constant the year indicators already absorb, leaving the task group estimates unchanged. The indicators also absorb changes shared across counties within a year that a price index does not measure, such as common movements in incomes. @sec-analysis explains how these year effects enter the model, and @sec-conclusions states what this choice costs.
 
 BEA does not publish a separate Regional Price Parity for counties outside metropolitan areas. These counties are assigned the corresponding state level parity instead. Within the analytical panel, 45.5 percent of county year observations use a metropolitan parity and 54.5 percent use the state measure. This provides price coverage across the full analytical sample, but it also introduces a limitation because counties assigned the same state value may face different local prices.
 
@@ -82,7 +81,7 @@ The source frame contains 47,140 county year observations, but not all observati
 
 The first is ACS occupational coverage. The Census Bureau publishes ACS 1 year occupational estimates only for areas with populations of at least 65,000. Counties below this threshold therefore lack the employment counts needed to construct the four task groups. Applying this restriction reduces the sample to 12,087 county year observations across 848 counties.
 
-The second restriction requires complete values for the model covariates. An additional 104 observations are excluded because unemployment rates are missing, while population, median household income, and poverty rate are complete among the retained counties. The final analytical sample contains 11,983 county year observations across 848 counties. All models reported in @sec-analysis and @sec-results are estimated using these same observations.
+The second restriction requires complete values for the model covariates. An additional 104 observations are excluded because unemployment rates are missing, while population, median household income, and poverty rate are complete among the retained counties. This missingness is not random with respect to county identity: all 104 rows belong to Connecticut's eight legacy counties, whose unemployment rate the Bureau of Labor Statistics does not report at the same geography as the rest of the panel, consistent with the legacy county coverage described above. Because the gap traces to which county is being measured rather than to the unemployment rate itself, it is missing at random rather than missing completely at random, and deleting these rows does not bias the retained estimates, though it does mean Connecticut's legacy counties carry less weight in analyses that include unemployment rate as a control. The final analytical sample contains 11,983 county year observations across 848 counties. All models reported in @sec-analysis and @sec-results are estimated using these same observations.
 
 For machine learning evaluation, the data are partitioned at the county level rather than by individual county year observations. Because each county can appear in the panel for up to fifteen years, a random row level split could place observations from the same county in both the training and test sets. Grouping the split by county prevents this overlap and ensures that all observations from a county remain entirely within one partition. @sec-analysis describes the evaluation procedure in detail.
 
@@ -98,24 +97,22 @@ Processed data are then written to an analytical warehouse containing eleven tab
 
 ```{python}
 #| label: fig-erd
-#| fig-cap: "**Data Architecture, Source to Output.** Traces the full pipeline from source ingestion through the normalized warehouse to analysis ready outputs."
+#| fig-cap: "**Data Pipeline Architecture, Source to Analysis Ready Output.** Traces the full pipeline from source ingestion through the normalized warehouse to analysis ready outputs."
 #| echo: false
 import graphviz
 
 def entity(name, rows):
-    body = f'<TR><TD COLSPAN="3" BGCOLOR="#3B9AB2"><FONT COLOR="white" POINT-SIZE="15"><B>{name}</B></FONT></TD></TR>'
+    body = f'<TR><TD COLSPAN="3" BGCOLOR="#2A78D6"><FONT COLOR="white" POINT-SIZE="15"><B>{name}</B></FONT></TD></TR>'
     for typ, col, marker in rows:
-        m = f'<FONT COLOR="#8D8680" POINT-SIZE="10">{marker}</FONT>' if marker else ""
+        m = f'<FONT COLOR="#8F8D87" POINT-SIZE="10">{marker}</FONT>' if marker else ""
         body += f'<TR><TD ALIGN="LEFT"><FONT POINT-SIZE="10">{typ}</FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="13">{col}</FONT></TD><TD ALIGN="LEFT">{m}</TD></TR>'
     return f'<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3">{body}</TABLE>>'
 
-# Fill/border pairs recomputed 13 Aug 2026 to match the Zissou1-derived general palette in
-# capstone.qmd (BLUE/ORANGE/GREEN/PINK/GREY) — fills are ~17% tints of each border color.
-CENSUS_FILL = "#DEEEF2"; CENSUS_BORDER = "#3B9AB2"
-BEA_FILL = "#FCF6DB"; BEA_BORDER = "#EBCC2A"
-BLS_FILL = "#FAF1D4"; BLS_BORDER = "#E1AF00"
-OUT_FILL = "#E8F3F5"; OUT_BORDER = "#78B7C5"
-LAKE_FILL = "#ECEAE9"; LAKE_BORDER = "#8D8680"
+CENSUS_FILL = "#DCEEF7"; CENSUS_BORDER = "#2A78D6"
+BEA_FILL = "#DCF3EA"; BEA_BORDER = "#1BAF7A"
+BLS_FILL = "#F7DCE6"; BLS_BORDER = "#C2255C"
+OUT_FILL = "#FBE3D3"; OUT_BORDER = "#EB6834"
+LAKE_FILL = "#EDEDEA"; LAKE_BORDER = "#8F8D87"
 
 dot = f'''
 digraph architecture {{
@@ -123,7 +120,7 @@ digraph architecture {{
   compound=true
   bgcolor="#FCFCFB"
   fontname="Helvetica"
-  label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD><FONT FACE="Helvetica-Bold" POINT-SIZE="24">Data Architecture, Source to Output</FONT></TD></TR></TABLE>>
+  label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD><FONT FACE="Helvetica-Bold" POINT-SIZE="24">Data Pipeline Architecture, Source to Analysis Ready Output</FONT></TD></TR></TABLE>>
   labelloc="t"
   nodesep=0.4
   ranksep=0.9
@@ -159,7 +156,7 @@ digraph architecture {{
   }}
 
   subgraph cluster_warehouse {{
-    label="DATA WAREHOUSE THIRD NORMAL FORM"
+    label="DATA WAREHOUSE 3NF"
     labeljust="l"
     fontsize=16
     fontname="Helvetica-Bold"
@@ -207,11 +204,11 @@ digraph architecture {{
     analysis_table -> figures
   }}
 
-  src_census -> lake [ltail="cluster_source", lhead="cluster_lake"]
-  src_bea -> lake [ltail="cluster_source", lhead="cluster_lake"]
-  src_bls -> lake [ltail="cluster_source", lhead="cluster_lake"]
-  lake -> state [ltail="cluster_lake", lhead="cluster_warehouse"]
-  county_affordability -> analysis_table [ltail="cluster_warehouse", lhead="cluster_output"]
+  src_census -> lake [ltail="cluster_source", lhead="cluster_lake", minlen=2]
+  src_bea -> lake [ltail="cluster_source", lhead="cluster_lake", minlen=2]
+  src_bls -> lake [ltail="cluster_source", lhead="cluster_lake", minlen=2]
+  lake -> state [ltail="cluster_lake", lhead="cluster_warehouse", minlen=2]
+  county_affordability -> analysis_table [ltail="cluster_warehouse", lhead="cluster_output", minlen=2]
   county_baseline -> analysis_table [style=invis]
   county_task_exposure -> analysis_table [style=invis]
 }}

@@ -90,10 +90,9 @@ level_f_note=(f"F({int(model.df_model)}, {int(model.df_resid)}) = {model.fvalue:
 ```{python}
 #| label: tbl-panel-coefs
 #| echo: false
-#| tbl-cap: "Level panel regression coefficients for the task groups and controls, with standard errors, t-statistics, and p-values. Non-routine cognitive is the reference task group."
+#| tbl-cap: "**Panel Regression Coefficients, Level Specification.** Dollar coefficients for the task groups and controls, with standard errors, t-statistics, and p-values. Non-routine cognitive is the reference task group."
 
 style_table(GT(level_coef_df)
-  .tab_header(title="Panel Regression Coefficients, Level Specification")
   .fmt_number(columns=["Coefficient ($)","Std. Error"], decimals=0, use_seps=True)
   .fmt_number(columns="t", decimals=2)
   .fmt_number(columns="p-value", decimals=3)
@@ -197,9 +196,6 @@ compare_df=pd.DataFrame(compare_rows)
 
 compare_wide=compare_df.pivot(index="group", columns="spec", values="est").reset_index()
 compare_wide.columns=["group","est_baseline","est_controls"]
-compare_wide["attenuation_pct"]=100*(1-compare_wide["est_controls"].abs()/compare_wide["est_baseline"].abs())
-compare_wide["attenuation_label"]=compare_wide["attenuation_pct"].apply(
-    lambda v: "Little change" if v<5 else f"{v:.0f}% smaller")
 ```
 
 ```{python}
@@ -215,18 +211,14 @@ compare_df$spec <- factor(compare_df$spec,
 compare_wide$group <- factor(compare_wide$group,
     levels=rev(c("Non-Routine Manual","Routine Cognitive","Routine Manual")))
 compare_df$label_nudge <- ifelse(compare_df$spec=="With Controls", 0.35, -0.35)
-compare_wide$mid <- (compare_wide$est_baseline+compare_wide$est_controls)/2
 
 ggplot(compare_df, aes(x=est, y=group)) +
   geom_segment(data=compare_wide, aes(x=est_baseline, xend=est_controls, y=group, yend=group),
                inherit.aes=FALSE, color="grey75", linewidth=2.0, lineend="round") +
   geom_errorbar(aes(xmin=lo, xmax=hi, color=spec), orientation="y", width=0.1, linewidth=0.6) +
-  geom_point(aes(color=spec, size=spec)) +
+  geom_point(aes(color=spec), size=3.0) +
   geom_text(aes(label=sprintf("%.1f%%", est), y=as.numeric(group)+label_nudge),
             size=3.3, show.legend=FALSE, fontface="bold", color="#252525") +
-  geom_text(data=compare_wide, aes(x=mid, y=as.numeric(group)-0.55, label=attenuation_label),
-            inherit.aes=FALSE, color="grey40", size=3.0, fontface="italic") +
-  scale_size_manual(values=c("Task Groups and Year Only"=2.6, "With Controls"=3.6), guide="none") +
   geom_vline(xintercept=0, linetype="dashed", linewidth=0.4) +
   scale_color_manual(values=c("Task Groups and Year Only"=ORANGE, "With Controls"=GREEN)) +
   scale_y_discrete(expand=expansion(add=0.7)) +
@@ -336,7 +328,7 @@ cv_means=cv_folds.groupby("model", as_index=False)["r2"].mean().rename(columns={
 #| label: fig-modelcomp
 #| echo: false
 #| warning: false
-#| fig-cap: "**Ordinary Least Squares and Random Forest Score Similarly Across Folds.** Held out R² across the five grouped cross validation folds, for the linear model and the random forest, both fit on the log target and scored on the dollar scale after back transformation, with the mean marked. The gap between the model means is small relative to the spread across folds."
+#| fig-cap: "**Held Out R² by Fold, Linear Model vs. Random Forest.** Held out R² across the five grouped cross validation folds, for the linear model and the random forest, both fit on the log target and scored on the dollar scale after back transformation, with the mean marked. The gap between the model means is small relative to the spread across folds."
 %%R -i cv_folds -i cv_means -w 8 -h 4 -u in -r 150
 cv_means$mean_label <- sprintf("%.3f", cv_means$mean_r2)
 cv_means$label_x <- ifelse(cv_means$model=="Ordinary Least Squares", 0.74, 2.26)
@@ -351,7 +343,7 @@ ggplot(cv_folds, aes(x=model, y=r2, color=model)) +
   scale_color_manual(values=c("Ordinary Least Squares"=GREEN,
                               "Random forest"=PINK)) +
   scale_x_discrete(expand=expansion(add=0.6)) +
-  labs(title="Ordinary Least Squares and Random Forest Score Similarly Across Folds",
+  labs(title="Held Out R² by Fold, Linear Model vs. Random Forest",
        x=NULL, y="Held Out R² (Dollar Scale)") +
   guides(color="none")
 ```
@@ -359,7 +351,7 @@ ggplot(cv_folds, aes(x=model, y=r2, color=model)) +
 ```{python}
 #| label: tbl-modelmetrics
 #| echo: false
-#| tbl-cap: "Held out performance on the same held out counties from the single grouped split."
+#| tbl-cap: "**Model Performance on the Held Out Counties.** Held out R² and mean absolute error on the same counties from the single grouped split."
 
 metrics_df=pd.DataFrame({
     "Model": ["Ordinary Least Squares","Random Forest","Neural Network"],
@@ -368,11 +360,10 @@ metrics_df=pd.DataFrame({
 })
 
 style_table(GT(metrics_df)
-  .tab_header(title="Model Performance on the Held Out Counties")
   .fmt_number(columns="R²", decimals=3)
   .fmt_currency(columns="Mean Absolute Error ($)", decimals=0)
   .tab_source_note("Ordinary Least Squares and Random Forest are fit on the log target and scored on the dollar scale after back transformation.")
-  .tab_source_note("Neural network results are from this single split only; Table 3 reports cross validated results for the other two models."))
+  .tab_source_note("Neural network results are from this single split only; Table 4 reports cross validated results for the other two models."))
 ```
 
 This is the ladder's stopping rule working as designed: a random forest can represent any interaction or curvature the data contain, yet it finds nothing beyond what the log transformation already captured. The binned comparison in @fig-binned confirms the same conclusion, this time in the units of the outcome itself. Specifically, the relationship is not monotonic across these bins: purchasing power rises with routine cognitive share through the lower part of its observed range, peaks near 20 percent, and then declines as the share continues to rise. The forest's predictions track this same shape closely rather than discovering a different pattern of their own, which is further evidence that the flexible model adds little beyond what the log linear specification already captures.
@@ -394,7 +385,7 @@ binned_long=binned_means.melt(id_vars="rc", value_vars=["Actual","Random Forest"
 #| label: fig-binned
 #| echo: false
 #| warning: false
-#| fig-cap: "**Actual vs. Random Forest Purchasing Power by Routine Cognitive Share.** Mean actual and predicted purchasing power across ten equal count bins of routine cognitive work, on the held out test counties, with predictions from the log target forest back transformed into dollars; each point marks a bin's mean routine cognitive share. The relationship rises then declines rather than moving monotonically; the forest reproduces this same shape rather than finding a different one."
+#| fig-cap: "**Actual vs. Predicted Purchasing Power.** Mean actual and predicted purchasing power across ten equal count bins of routine cognitive work, on the held out test counties, with predictions from the log target forest back transformed into dollars; each point marks a bin's mean routine cognitive share. The relationship rises then declines rather than moving monotonically; the forest reproduces this same shape rather than finding a different one."
 %%R -i binned_long -i rf_log_test_r2 -i rf_log_test_mae -w 9 -h 4.5 -u in -r 150
 OBSERVED <- "#252525"
 binned_long$rc_pct <- binned_long$rc*100
@@ -415,7 +406,7 @@ ggplot(binned_long, aes(x=rc_pct, y=pp, color=series)) +
                       breaks=scales::pretty_breaks(n=8),
                       expand=expansion(mult=c(0.02, 0.28))) +
   scale_y_continuous(labels=function(v) sprintf("$%s", formatC(round(v), format="d", big.mark=","))) +
-  labs(title="Actual vs. Random Forest Purchasing Power by Routine Cognitive Share",
+  labs(title="Actual vs. Predicted Purchasing Power",
        x="Routine Cognitive Share (Percent)", y="Purchasing Power")
 ```
 
@@ -437,7 +428,7 @@ ablation_df["drop"]=ablation_df["full_r2"]-ablation_df["r2"]
 #| label: fig-ablation
 #| echo: false
 #| warning: false
-#| fig-cap: "**Loss in Held Out R² When Each Feature Block Is Removed.** From the log target random forest, relative to the full model's 0.876. Removing poverty and unemployment costs more than four times as much as removing the task groups."
+#| fig-cap: "**Held Out R² Loss From Feature Block Removal.** From the log target random forest, relative to the full model's 0.876. Removing poverty and unemployment costs more than four times as much as removing the task groups."
 %%R -i ablation_df -w 7 -h 3 -u in -r 150
 ablation_df$model <- factor(ablation_df$model, levels=c("Task groups","Poverty and unemployment"))
 
@@ -446,7 +437,7 @@ ggplot(ablation_df, aes(x=drop, y=model, fill=model)) +
   geom_text(aes(label=sprintf("%.3f", drop)), hjust=-0.25, size=4.0, fontface="bold", color="#252525") +
   scale_fill_manual(values=c("Task groups"=GREEN, "Poverty and unemployment"=ORANGE), guide="none") +
   scale_x_continuous(limits=c(0, 0.20), breaks=seq(0, 0.20, 0.05), expand=c(0,0)) +
-  labs(title="Loss in Held Out R² When Each Feature Block Is Removed",
+  labs(title="Held Out R² Loss From Feature Block Removal",
        x="Loss in Held Out R²", y=NULL)
 ```
 
@@ -584,8 +575,8 @@ ggplot(area_df, aes(x=year, y=share, fill=group)) +
   scale_color_identity() +
   geom_vline(xintercept=2009.5, linetype="dashed", linewidth=1.0, color="#0B0B0B") +
   geom_vline(xintercept=2020, linetype="dashed", linewidth=0.6, color="grey45") +
-  annotate("text", x=2009.5, y=1.06, label="Census coding change", hjust=0.5, vjust=0.5, size=3.1, fontface="bold", color="#0B0B0B") +
-  annotate("text", x=2020, y=1.06, label="No data", hjust=0.5, vjust=0.5, size=3.1, fontface="bold", color="grey45") +
+  annotate("text", x=2009.65, y=1.06, label="Census coding change", hjust=0, vjust=0.5, size=3.1, fontface="bold", color="#0B0B0B") +
+  annotate("text", x=2020.15, y=1.06, label="No data", hjust=0, vjust=0.5, size=3.1, fontface="bold", color="grey45") +
   scale_fill_manual(values=TASKAREA_COLORS, guide="none") +
   scale_y_continuous(labels=function(v) sprintf("%.0f%%", v*100), breaks=seq(0, 1, 0.25),
                       limits=c(0, 1.13), expand=c(0,0)) +
@@ -596,12 +587,12 @@ ggplot(area_df, aes(x=year, y=share, fill=group)) +
         plot.margin=margin(10, 5.5, 5.5, 5.5))
 ```
 
-Individual counties hold their positions as well, not just the national aggregate. @tbl-rankcorr reports the rank correlation of each group's county ordering between 2010 and 2023, computed from 2010 onward to step over the coding change. Routine manual and non-routine cognitive hold their orderings most strongly, so the counties with the most of each in 2010 are largely the same counties in 2023. Non-routine manual is more mobile, and routine cognitive reorders the most, which is consistent with it being the one group carrying substantial within county movement in the variance decomposition of @sec-analysis.
+Individual counties hold their positions too, beyond the national aggregate. @tbl-rankcorr reports the rank correlation of each group's county ordering between 2010 and 2023, computed from 2010 onward to step over the coding change. Routine manual and non-routine cognitive hold their orderings most strongly, so the counties with the most of each in 2010 are largely the same counties in 2023. Non-routine manual is more mobile, and routine cognitive reorders the most, which is consistent with it being the one group carrying substantial within county movement in the variance decomposition of @sec-analysis.
 
 ```{python}
 #| label: tbl-rankcorr
 #| echo: false
-#| tbl-cap: "Spearman rank correlation of county orderings between 2010 and 2023, by task group, across counties present in both years."
+#| tbl-cap: "**County Ordering Stability, 2010 to 2023.** Spearman rank correlation of county orderings between the two years, by task group, across counties present in both."
 from scipy.stats import spearmanr
 
 wide_2010=df[df["year"]==2010].set_index("county_fips")
@@ -615,7 +606,6 @@ for col, name in area_names.items():
 rankcorr_df=pd.DataFrame(rank_rows)
 
 style_table(GT(rankcorr_df)
-  .tab_header(title="County Ordering Stability, 2010 to 2023")
   .fmt_number(columns="Rank correlation, 2010 to 2023", decimals=2)
   .cols_align(align="right", columns="Rank correlation, 2010 to 2023")
   .tab_source_note("Computed from 2010 onward to avoid the Census occupation coding change."))
@@ -655,7 +645,7 @@ change_bound=float(change_long["change"].abs().quantile(0.98))
 #| label: fig-taskchange-map
 #| echo: false
 #| warning: false
-#| fig-cap: "**Change in Task Group Value by County, 2010 to 2023.** Percentage point change in each task group's value, the same two years used in @tbl-rankcorr. Color scale shared across panels so magnitude is comparable across groups. Routine manual and non-routine manual show small, mixed change; routine cognitive and non-routine cognitive show larger, more uniformly signed change."
+#| fig-cap: "**County Task Group Change, 2010 to 2023.** Percentage point change in each task group's value, the same two years used in @tbl-rankcorr. Color scale shared across panels so magnitude is comparable across groups. Routine manual and non-routine manual show small, mixed change; routine cognitive and non-routine cognitive show larger, more uniformly signed change."
 %%R -i change_bound -w 9.5 -h 7 -u in -r 150
 suppressMessages(library(sf))
 
@@ -672,7 +662,7 @@ ggplot(change_sf) +
                         name="Change in Task Group Value (Percentage Points)") +
   coord_sf(crs=st_crs(5070), datum=NA) +
   theme_void() +
-  labs(title="Change in Task Group Value by County, 2010 to 2023") +
+  labs(title="County Task Group Change, 2010 to 2023") +
   theme(legend.position="bottom", legend.key.width=unit(1.3,"cm"),
         plot.title=element_text(face="bold", size=13, hjust=0.5),
         strip.text=element_text(size=11, face="bold"),
