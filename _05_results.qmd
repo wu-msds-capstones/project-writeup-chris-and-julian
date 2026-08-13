@@ -60,6 +60,46 @@ ggplot(coef_df, aes(x=est, y=group, color=group)) +
        x="Change in Purchasing Power per Percentage Point Shift (at Panel Mean)", y=NULL)
 ```
 
+@tbl-panel-coefs reports the level specification directly: dollar coefficients for the task groups and controls, their standard errors, t-statistics, and p-values, alongside the model's overall F-test. Poverty rate carries the largest and most precisely estimated coefficient. Unemployment rate and log population are smaller but still distinguishable from zero at the 0.05 level.
+
+```{python}
+#| include: false
+level_coef_terms=["routine_cognitive_share","routine_manual_share","non_routine_manual_share",
+                   "poverty_rate","unemployment_rate","log_population"]
+level_coef_labels={
+    "routine_cognitive_share":"Routine cognitive",
+    "routine_manual_share":"Routine manual",
+    "non_routine_manual_share":"Non-routine manual",
+    "poverty_rate":"Poverty rate",
+    "unemployment_rate":"Unemployment rate",
+    "log_population":"Log population",
+}
+level_coef_df=pd.DataFrame({
+    "Variable": [level_coef_labels[t] for t in level_coef_terms],
+    "Coefficient ($)": [model.params[t] for t in level_coef_terms],
+    "Std. Error": [model.bse[t] for t in level_coef_terms],
+    "t": [model.tvalues[t] for t in level_coef_terms],
+    "p-value": [model.pvalues[t] for t in level_coef_terms],
+})
+level_f_note=(f"F({int(model.df_model)}, {int(model.df_resid)}) = {model.fvalue:.1f}, "
+              f"p {'< 0.001' if model.f_pvalue < 0.001 else f'= {model.f_pvalue:.3f}'}; "
+              f"n = {int(model.nobs):,}; R² = {model.rsquared:.3f}. "
+              "Standard errors clustered by county.")
+```
+
+```{python}
+#| label: tbl-panel-coefs
+#| echo: false
+#| tbl-cap: "Level panel regression coefficients for the task groups and controls, with standard errors, t-statistics, and p-values. Non-routine cognitive is the reference task group."
+
+style_table(GT(level_coef_df)
+  .tab_header(title="Panel Regression Coefficients, Level Specification")
+  .fmt_number(columns=["Coefficient ($)","Std. Error"], decimals=0, use_seps=True)
+  .fmt_number(columns="t", decimals=2)
+  .fmt_number(columns="p-value", decimals=3)
+  .tab_source_note(level_f_note))
+```
+
 ## Not poverty in disguise
 
 A natural objection is that the task groups merely proxy for poverty, since poor counties hold more routine work. @fig-baseline-maps shows the two conventional distress measures side by side, mean poverty rate (Panel A) and mean unemployment rate (Panel B) by county across the study period. Both run highest across the rural South, the Mississippi Delta, and pockets of the Southwest border region. That is the same broad area where @fig-afford-map shows purchasing power running lowest, which is exactly why the objection is worth taking seriously. Unemployment (Panel B) carries a second concentration along the California coast and Central Valley that poverty (Panel A) does not share, evidence the two measures are not interchangeable with each other or with what follows.

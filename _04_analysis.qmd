@@ -321,7 +321,7 @@ resid_log_df$std_resid <- as.numeric(scale(resid_log_df$resid_log))
 
 p1 <- ggplot(resid_df, aes(x=fitted, y=resid)) +
   geom_bin2d(bins=55, aes(fill=after_stat(count))) +
-  scale_fill_gradient(low="#E8EEF4", high=BLUE, guide="none") +
+  scale_fill_gradient(low="#E7F3F6", high=BLUE, guide="none") +
   geom_hline(yintercept=0, linewidth=0.4, linetype="dashed", color="grey40") +
   geom_smooth(method="loess", formula=y~x, se=FALSE, color=ORANGE, linewidth=0.9) +
   scale_x_continuous(labels=dollar_axis) +
@@ -335,7 +335,7 @@ p2 <- ggplot(resid_df, aes(sample=std_resid)) +
 
 p3 <- ggplot(resid_log_df, aes(x=fitted_log, y=resid_log)) +
   geom_bin2d(bins=55, aes(fill=after_stat(count))) +
-  scale_fill_gradient(low="#E8F4EE", high=GREEN, guide="none") +
+  scale_fill_gradient(low="#FDF9E5", high=GREEN, guide="none") +
   geom_hline(yintercept=0, linewidth=0.4, linetype="dashed", color="grey40") +
   geom_smooth(method="loess", formula=y~x, se=FALSE, color=PINK, linewidth=0.9) +
   labs(x="Fitted Purchasing Power", y="Residual, Log")
@@ -604,7 +604,8 @@ ggplot(state_df, aes(x=mean_pp, y=state_label)) +
            size=3, color="black", hjust=0, vjust=0) +
   geom_segment(aes(x=state_median, xend=mean_pp, yend=state_label), linewidth=0.9, alpha=0.5, color="black") +
   geom_point(size=2.6, color="black") +
-  scale_x_continuous(labels=label_dollar(scale=1e-3, suffix="k"), breaks=scales::pretty_breaks(n=10)) +
+  scale_x_continuous(labels=label_dollar(scale=1e-3, suffix="k"), breaks=scales::pretty_breaks(n=10),
+                     limits=c(0, NA)) +
   scale_y_discrete(expand=expansion(add=c(0.6, 2.6))) +
   labs(title="Mean Purchasing Power by State",
        x="Mean Purchasing Power", y=NULL) +

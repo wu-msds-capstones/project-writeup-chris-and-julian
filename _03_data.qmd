@@ -103,17 +103,19 @@ Processed data are then written to an analytical warehouse containing eleven tab
 import graphviz
 
 def entity(name, rows):
-    body = f'<TR><TD COLSPAN="3" BGCOLOR="#2A78D6"><FONT COLOR="white" POINT-SIZE="15"><B>{name}</B></FONT></TD></TR>'
+    body = f'<TR><TD COLSPAN="3" BGCOLOR="#3B9AB2"><FONT COLOR="white" POINT-SIZE="15"><B>{name}</B></FONT></TD></TR>'
     for typ, col, marker in rows:
-        m = f'<FONT COLOR="#8F8D87" POINT-SIZE="10">{marker}</FONT>' if marker else ""
+        m = f'<FONT COLOR="#8D8680" POINT-SIZE="10">{marker}</FONT>' if marker else ""
         body += f'<TR><TD ALIGN="LEFT"><FONT POINT-SIZE="10">{typ}</FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="13">{col}</FONT></TD><TD ALIGN="LEFT">{m}</TD></TR>'
     return f'<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3">{body}</TABLE>>'
 
-CENSUS_FILL = "#DCEEF7"; CENSUS_BORDER = "#2A78D6"
-BEA_FILL = "#DCF3EA"; BEA_BORDER = "#1BAF7A"
-BLS_FILL = "#F7DCE6"; BLS_BORDER = "#C2255C"
-OUT_FILL = "#FBE3D3"; OUT_BORDER = "#EB6834"
-LAKE_FILL = "#EDEDEA"; LAKE_BORDER = "#8F8D87"
+# Fill/border pairs recomputed 13 Aug 2026 to match the Zissou1-derived general palette in
+# capstone.qmd (BLUE/ORANGE/GREEN/PINK/GREY) — fills are ~17% tints of each border color.
+CENSUS_FILL = "#DEEEF2"; CENSUS_BORDER = "#3B9AB2"
+BEA_FILL = "#FCF6DB"; BEA_BORDER = "#EBCC2A"
+BLS_FILL = "#FAF1D4"; BLS_BORDER = "#E1AF00"
+OUT_FILL = "#E8F3F5"; OUT_BORDER = "#78B7C5"
+LAKE_FILL = "#ECEAE9"; LAKE_BORDER = "#8D8680"
 
 dot = f'''
 digraph architecture {{
