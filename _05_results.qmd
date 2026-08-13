@@ -506,18 +506,25 @@ pdp_df=pd.concat(pdp_frames, ignore_index=True)
 #| label: fig-pdp
 #| echo: false
 #| warning: false
-#| fig-cap: "**Partial Dependence on Each Task Group.** Random forest partial dependence of predicted purchasing power on each non-reference task group, computed on the held out test counties. Each curve moves one group across its observed range with all other features held at their values, so lines can span different segments of the x axis. The smooth, near monotonic declines match a proportional association."
-%%R -i pdp_df -w 8 -h 4.5 -u in -r 150
-pdp_df$group <- factor(pdp_df$group, levels=c("Routine Cognitive","Routine Manual","Non-Routine Manual"))
-PDP_COLORS <- TASK_COLORS[c("Routine Cognitive","Routine Manual","Non-Routine Manual")]
+#| fig-cap: "**Partial Dependence on Each Task Group.** Random forest partial dependence of predicted purchasing power, in dollars, on each non-reference task group, computed on the held out test counties. A) routine cognitive, B) routine manual, C) non-routine manual. Each curve moves one group across its observed range with all other features held at their values, so a panel's line covers only the segment of the shared x axis that group occupies. Panels share both axes, so the declines are comparable across groups. The smooth, near monotonic declines match a proportional association."
+%%R -i pdp_df -w 9 -h 3.5 -u in -r 150
+pdp_levels <- c("Routine Cognitive","Routine Manual","Non-Routine Manual")
+pdp_df$group <- factor(pdp_df$group, levels=pdp_levels)
+PDP_COLORS <- TASK_COLORS[pdp_levels]
+
+# one panel per group, letter tagged; the facet strip carries the group name so
+# the color legend would only repeat it
+panel_labs <- setNames(paste0(LETTERS[seq_along(pdp_levels)], ") ", pdp_levels), pdp_levels)
+pdp_df$panel <- factor(panel_labs[as.character(pdp_df$group)], levels=panel_labs)
 
 ggplot(pdp_df, aes(x=x, y=y, color=group)) +
   geom_line(linewidth=1.0) +
-  scale_color_manual(values=PDP_COLORS, name=NULL) +
+  facet_wrap(~panel, ncol=3) +
+  scale_color_manual(values=PDP_COLORS, guide="none") +
   scale_y_continuous(labels=function(v) sprintf("$%s", formatC(round(v), format="d", big.mark=","))) +
   labs(title="Partial Dependence on Each Task Group",
        x="Task Group Value", y="Predicted Purchasing Power") +
-  theme(legend.position="bottom")
+  theme(panel.spacing=unit(1.2, "lines"))
 ```
 
 ## The differences are durable
@@ -582,13 +589,17 @@ ggplot(area_df, aes(x=year, y=share, fill=group)) +
   annotate("text", x=2009.65, y=0.97, label="Census coding change", hjust=0, vjust=0.5, size=3.1, fontface="bold", color="#0B0B0B") +
   annotate("text", x=2020.15, y=0.97, label="No data", hjust=0, vjust=0.5, size=3.1, fontface="bold", color="grey35") +
   scale_fill_manual(values=TASKAREA_COLORS, guide="none") +
+  # no limits= on either scale: it drops rows outside the range rather than
+  # zooming, and the stack tops land a hair above 1.0 in floating point, which
+  # punched gaps in the top band. expand=c(0,0) sets the areas flush to both axes.
   scale_y_continuous(labels=function(v) sprintf("%.0f%%", v*100), breaks=seq(0, 1, 0.25),
-                      limits=c(0, 1), expand=expansion(mult=c(0.02, 0))) +
-  scale_x_continuous(breaks=2008:2023, limits=c(2008, 2023),
-                      expand=expansion(mult=c(0.015, 0.015))) +
+                      expand=c(0, 0)) +
+  scale_x_continuous(breaks=2008:2023, expand=c(0, 0)) +
+  coord_cartesian(ylim=c(0, 1), xlim=c(2008, 2023)) +
   labs(title="Average County Task Group Value by Year",
        x="Year", y="Mean Group Value Across Counties") +
   theme(axis.text.x=element_text(angle=0, hjust=0.5),
+        panel.grid.major=element_blank(), panel.grid.minor=element_blank(),
         plot.margin=margin(10, 5.5, 5.5, 5.5))
 ```
 
@@ -675,25 +686,19 @@ ggplot(change_sf) +
         plot.background=element_rect(fill="#FCFCFB", color=NA))
 ```
 
-@fig-taskchange-arrows collapses task group change from 2008 to 2023 into a single map by using the two axes that already structure the four task groups in @fig-taskframework: horizontal position shows movement between manual and cognitive work, vertical position shows movement between routine and non-routine work. This figure alone starts at 2008 rather than 2010; every other change measurement in this study starts at 2010 specifically to avoid the Census occupation coding change described in @sec-data, which can inflate apparent movement for routine cognitive and non-routine cognitive. Reading this map, keep in mind that some of the movement shown for those two groups reflects that coding change rather than a real shift in county employment. Most counties point up and to the left, toward non-routine cognitive work, consistent with routine cognitive and non-routine cognitive being the pair that moved most in @fig-taskarea. A county's color marks whether it moved toward or away from non-routine cognitive work, the reference group and the only one of the four positively associated with purchasing power, so counties colored red moved toward the three groups this study associates with lower purchasing power.
+@fig-taskchange-arrows collapses task group change from 2010 to 2023 into a single map by using the two axes that already structure the four task groups in @fig-taskframework: horizontal position shows movement between manual and cognitive work, vertical position shows movement between routine and non-routine work. The window matches every other change measurement in this study, which starts at 2010 to avoid the Census occupation coding change described in @sec-data. Most counties point up and to the left, toward non-routine cognitive work, consistent with routine cognitive and non-routine cognitive being the pair that moved most in @fig-taskarea. A county's color marks whether it moved toward or away from non-routine cognitive work, the reference group and the only one of the four positively associated with purchasing power, so counties colored red moved toward the three groups this study associates with lower purchasing power.
 
 ```{python}
 #| label: taskchange-arrows-data
 #| include: false
-# this figure alone runs 2008 to 2023 rather than 2010 to 2023; a separate wide/common
-# pair keeps this from disturbing tbl-rankcorr and fig-taskchange-map, which deliberately
-# start at 2010 to avoid the Census occupation coding change
-wide_2008=df[df["year"]==2008].set_index("county_fips")
-common_08=wide_2008.index.intersection(wide_2023.index)
-change_wide_08=(wide_2023.loc[common_08, list(area_names.keys())]
-                -wide_2008.loc[common_08, list(area_names.keys())])*100
-change_wide_08.columns=[area_names[c] for c in change_wide_08.columns]
-
-manual_change_arrows=change_wide_08["Routine Manual"]+change_wide_08["Non-Routine Manual"]
-nonroutine_change_arrows=change_wide_08["Non-Routine Cognitive"]+change_wide_08["Non-Routine Manual"]
+# shares the 2010 to 2023 window with tbl-rankcorr and fig-taskchange-map: it covers
+# more counties than a 2008 start (a county needs data at both endpoints to have a
+# change) and avoids the Census occupation coding change
+manual_change_arrows=change_wide["Routine Manual"]+change_wide["Non-Routine Manual"]
+nonroutine_change_arrows=change_wide["Non-Routine Cognitive"]+change_wide["Non-Routine Manual"]
 
 arrow_shift_df=pd.DataFrame({
-    "fips": change_wide_08.index.astype(str).str.zfill(5),
+    "fips": change_wide.index.astype(str).str.zfill(5),
     "manual_change": manual_change_arrows.values,
     "nonroutine_change": nonroutine_change_arrows.values,
 })
@@ -704,7 +709,7 @@ arrow_shift_df["shift_magnitude"]=np.sqrt(arrow_shift_df["manual_change"]**2+arr
 # moving away from it (a negative change in its share) is moving toward the three groups that
 # are all associated with lower purchasing power
 arrow_shift_df["risk_direction"]=np.where(
-    change_wide_08["Non-Routine Cognitive"].values<0, "More At Risk", "Less At Risk")
+    change_wide["Non-Routine Cognitive"].values<0, "More At Risk", "Less At Risk")
 
 # cap the top 5 percent of shifts so a handful of outlier counties don't dominate the figure;
 # direction is unchanged, only the arrow length is scaled back for those counties
@@ -725,7 +730,7 @@ arrow_data=gdf_arrows[["fips","cx","cy"]].merge(arrow_shift_df, on="fips", how="
 #| label: fig-taskchange-arrows
 #| echo: false
 #| warning: false
-#| fig-cap: "**Change in County Task Composition, 2008 to 2023.** Each arrow starts at a county's centroid; direction combines movement on the manual-cognitive axis (horizontal) and the routine-non-routine axis (vertical) from @fig-taskframework. Color marks whether a county moved toward or away from non-routine cognitive work, the regression's reference group and the only one of the four task groups positively associated with purchasing power. Arrow length is capped at the 95th percentile of shift magnitude so a handful of outlier counties do not dominate the figure. Unlike other change measurements in this study, this window starts at 2008 rather than 2010, so some routine cognitive and non-routine cognitive movement may reflect the Census occupation coding change rather than a real shift."
+#| fig-cap: "**Change in County Task Groups, 2010 to 2023.** Each arrow starts at a county's centroid; direction combines movement on the manual-cognitive axis (horizontal) and the routine-non-routine axis (vertical) from @fig-taskframework. Color marks whether a county moved toward or away from non-routine cognitive work, the regression's reference group and the only one of the four task groups positively associated with purchasing power. Arrow length is capped at the 95th percentile of shift magnitude so a handful of outlier counties do not dominate the figure. Counties are those with data at both endpoints, the same window used in @tbl-rankcorr and @fig-taskchange-map; grey counties carry no arrow."
 %%R -i arrow_data -w 9.5 -h 6.5 -u in -r 150
 suppressMessages(library(sf))
 
@@ -747,7 +752,7 @@ ggplot() +
   scale_color_manual(values=c("More At Risk"="#C0392B", "Less At Risk"=GREEN), name=NULL) +
   coord_sf(crs=st_crs(5070), datum=NA) +
   theme_void(base_size=11) +
-  labs(title="Change in County Task Composition, 2008 to 2023") +
+  labs(title="Change in County Task Groups, 2010 to 2023") +
   theme(legend.position="bottom",
         plot.title=element_text(face="bold", size=13, hjust=0.5),
         plot.background=element_rect(fill="#FCFCFB", color=NA))

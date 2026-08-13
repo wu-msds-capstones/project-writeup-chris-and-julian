@@ -545,19 +545,19 @@ bw_df$component <- factor(bw_df$component,
     levels=c("Within Counties Over Time","Between Counties"))
 bw_text_df$group <- factor(bw_text_df$group, levels=levels(bw_df$group))
 
-# One color for all three groups now; only alpha (between vs. within) varies,
-# so text contrast only needs to track that, not which group the bar belongs to.
+# Two solid fills rather than one color at two opacities: each in-bar label then
+# clears the 4.5:1 contrast floor (grey with ink 5.9, purple with white 13.6).
 bw_text_df$text_color <- ifelse(bw_text_df$component=="Within Counties Over Time",
                                  "white", "#0B0B0B")
 
-ggplot(bw_df, aes(x=value, y=group, alpha=component)) +
-  geom_col(fill=BLUE, width=0.7) +
+ggplot(bw_df, aes(x=value, y=group, fill=component)) +
+  geom_col(width=0.7) +
   geom_text(data=bw_text_df, aes(x=x, y=group, label=label, color=text_color),
             inherit.aes=FALSE, size=3.4) +
   scale_color_identity() +
-  scale_alpha_manual(values=c("Between Counties"=0.32,
-                              "Within Counties Over Time"=1),
-                     name=NULL, guide=guide_legend(override.aes=list(fill=BLUE))) +
+  scale_fill_manual(values=c("Between Counties"=GREY,
+                             "Within Counties Over Time"=PURPLE), name=NULL) +
+  scale_x_continuous(expand=expansion(mult=c(0, 0.02))) +
   scale_y_discrete(expand=expansion(add=c(0.3, 0.3))) +
   labs(title="Between-County vs. Within-County Variation by Task Group",
        x="Share of Variance (%)", y=NULL) +
@@ -696,11 +696,10 @@ pp_range <- range(state_df$mean_pp)
 x_lo <- 0
 x_hi <- pp_range[2] * 1.05
 
-step <- pretty(c(0, x_hi - state_median), n=5)
-step <- step[step > 0][1]
-offsets_up <- seq(0, x_hi - state_median, by=step)
-offsets_down <- seq(0, state_median - x_lo, by=step)
-state_breaks <- sort(unique(c(state_median - offsets_down, state_median + offsets_up)))
+# round $20k breaks. Offsets from the median were tried and reverted: anchoring
+# every tick to the median produced labels like $4.47k and $9.47k that collided.
+# The median keeps its own dotted line and its labeled annotation instead.
+state_breaks <- seq(0, 200000, by=20000)
 state_breaks <- state_breaks[state_breaks >= x_lo & state_breaks <= x_hi]
 
 # annotation centered within each visual half of the zero-anchored panel
@@ -858,7 +857,7 @@ Logging the target resolves the pattern here the same way it did for the panel r
 ```{python}
 #| label: tbl-ols-comparison
 #| echo: false
-#| tbl-cap: "**Coefficients Across the Three OLS Specifications.** Baseline, full raw target, and full log target fits, with log target coefficients also converted to percent change per one percentage point shift. Task group coefficients are per unit of group proportion."
+#| tbl-cap: "**OLS Coefficients Across Model Specifications and Outcome Scales.** Coefficients from the baseline, full level, and full log Ordinary Least Squares fits."
 
 log_coefs=ols_model_log.params[feature_cols_base]
 
@@ -884,20 +883,30 @@ label_map={
     "unemployment_rate":"Unemployment rate",
 }
 
+task_feats={"routine_cognitive_share","routine_manual_share","non_routine_manual_share"}
+
 comparison_ols=pd.DataFrame({
+    "Group": ["Task groups" if f in task_feats else "Economic controls"
+              for f in feature_cols_base],
     "Variable": [label_map[f] for f in feature_cols_base],
     "Baseline": ols_model_base.params[feature_cols_base].values,
-    "With Controls": ols_model.params[feature_cols_base].values,
-    "With Controls (log)": ols_model_log.params[feature_cols_base].values,
-    "Percent Change per Point": [pct_change_per_point[f] for f in feature_cols_base],
+    "Full": ols_model.params[feature_cols_base].values,
+    "Coefficient": ols_model_log.params[feature_cols_base].values,
+    "Percent per point": [pct_change_per_point[f] for f in feature_cols_base],
 })
+task_rows=[i for i,g in enumerate(comparison_ols["Group"]) if g=="Task groups"]
 
-style_table(GT(comparison_ols)
-  .fmt_currency(columns=["Baseline","With Controls"], decimals=0)
-  .fmt_number(columns="With Controls (log)", decimals=4)
-  .fmt_number(columns="Percent Change per Point", decimals=2)
+style_table(GT(comparison_ols, rowname_col="Variable", groupname_col="Group")
+  .fmt_currency(columns=["Baseline","Full"], decimals=0)
+  .fmt_number(columns="Coefficient", decimals=3)
+  .fmt_number(columns="Percent per point", decimals=2)
+  .cols_label(**{"Percent per point": "% per 1 pp"})
+  .tab_spanner(label="Purchasing power ($)", columns=["Baseline","Full"])
+  .tab_spanner(label="Log purchasing power", columns=["Coefficient","Percent per point"])
   .tab_style(style=style.text(weight="bold"), locations=loc.column_labels())
-  .tab_source_note("Task group coefficients are per unit of group proportion."))
+  .tab_style(style=style.text(weight="bold"),
+             locations=loc.body(columns="Percent per point", rows=task_rows))
+  .tab_source_note("Non-routine cognitive is the reference task group. Task group coefficients in the three model columns are per unit of group proportion; the final column converts the log coefficients to the percent change in purchasing power associated with a one percentage point shift."))
 ```
 
 The sign flip in `unemployment_rate` holds across all three fitted forms. Task group coefficients shrink in magnitude from baseline to raw controls while the poverty coefficient grows, from roughly −1,376 to −1,729, so the controls sharpen the task group association rather than displacing it.
@@ -907,21 +916,23 @@ Each additional percentage point of poverty rate is associated with roughly 2.9 
 ```{python}
 #| include: false
 spec_summary = pd.DataFrame({
-    "Metric": ["Outcome", "Year + state FE", "R²", "Residual diagnostics", "Retained for inference"],
+    "Metric": ["Outcome", "Year and state controls", "R²",
+               "Residual diagnostics", "Primary specification"],
     "Baseline": ["Purchasing power", "No", f"{ols_model_base.rsquared:.3f}", "—", "No"],
-    "Full, levels": ["Purchasing power", "Yes", f"{ols_model.rsquared:.3f}", "Failed", "No"],
-    "Full, log": ["log(Purchasing power)", "Yes", f"{ols_model_log.rsquared:.3f}", "Passed", "Yes"],
+    "Full model": ["Purchasing power", "Yes", f"{ols_model.rsquared:.3f}", "Failed", "No"],
+    "Log model": ["log(Purchasing power)", "Yes", f"{ols_model_log.rsquared:.3f}", "Passed", "Yes"],
 })
 ```
 
 ```{python}
 #| label: tbl-specmatrix
 #| echo: false
-#| tbl-cap: "**Model Specification Comparison.** Fit summary across the baseline, full raw target, and full log target Ordinary Least Squares specifications."
+#| tbl-cap: "**Model Specification Comparison.** Fit summary across the baseline, full level, and full log Ordinary Least Squares specifications."
 
 style_table(GT(spec_summary, rowname_col="Metric")
+  .tab_style(style=style.text(weight="bold"), locations=loc.column_labels())
   .tab_style(style=style.text(weight="bold"),
-             locations=loc.body(columns="Full, log", rows=[2, 3, 4]))
+             locations=loc.body(columns="Log model", rows=[2, 3, 4]))
   .tab_source_note("R² is in sample, fit on the training split only."))
 ```
 
@@ -1197,7 +1208,7 @@ nn_reg_df=pd.DataFrame({
 #| label: fig-nn-curves
 #| echo: false
 #| warning: false
-#| fig-cap: "**Training and Validation Loss Across Model Specifications.** In the initial network, validation loss declines briefly then rises while training loss keeps falling, the signature of overfitting; the shaded region marks where validation loss turns upward. After adding L2 regularization, heavier dropout, and a shorter early stopping patience, the two curves stay much closer together."
+#| fig-cap: "**Training and Validation Loss Across Model Specifications.** Loss is mean squared error on the standardized target; both panels share the same y axis. In the initial network, validation loss declines briefly then rises while training loss keeps falling, the signature of overfitting; the shaded region marks where validation loss turns upward. After adding L2 regularization, heavier dropout, and a shorter early stopping patience, the two curves stay much closer together."
 %%R -i nn_init_df -i nn_reg_df -w 10 -h 4.5 -u in -r 150
 ymax <- max(c(nn_init_df$loss, nn_reg_df$loss)) * 1.05
 y_breaks <- seq(0, 0.8, by=0.2)
@@ -1256,7 +1267,8 @@ p1 + p2 +
                   tag_levels="A", tag_suffix=")",
                   theme=theme(plot.title=element_text(face="bold", size=13, hjust=0.5),
                               plot.tag=element_text(face="bold", size=11, color="#0B0B0B"))) &
-  theme(panel.grid.major.y=element_blank(), panel.grid.major.x=element_blank())
+  theme(panel.grid.major.y=element_blank(), panel.grid.major.x=element_blank(),
+        axis.text.y=element_text(), axis.text.x=element_text())
 ```
 
 The gap narrows after regularization, but the network still does not beat the random forest or the log target linear model, both of which are far cheaper to fit and tune. This project is built to explain the relationship between task groups and purchasing power rather than to maximize predictive accuracy, so we stop tuning here and carry the linear and forest models forward as the primary results.
