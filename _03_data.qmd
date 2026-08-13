@@ -6,27 +6,33 @@ A longitudinal county analysis depends on measures that remain comparable across
 ```{python}
 #| label: tbl-sources
 #| echo: false
-#| tbl-cap: "**Federal Data Sources.** Each source, the number of records retrieved, the variables supplied, and the warehouse table it feeds."
+#| tbl-cap: "**Federal Data Sources.** The five federal datasets combined to build the county year panel. Each row names the source, the number of records retrieved, the variables it supplies, and the warehouse table it feeds."
 import pandas as pd
 from great_tables import GT
 
 sources_df=pd.DataFrame({
-    "Source": ["Census SAIPE","BEA Regional Price Parities","Census CBSA delineation",
-               "ACS 1 year estimates","BLS LAUS"],
-    "Records retrieved": [50283, 884, 387, 15690, 88004],
-    "Variables supplied": ["median household income, poverty rate",
-                           "county price level relative to the national average",
-                           "county to metropolitan area crosswalk",
-                           "population, occupational employment by category",
-                           "unemployment rate"],
-    "Warehouse table": ["`county_baseline`","`cbsa_rpp`","`cbsa`",
-                        "`county_baseline`, `county_task_exposure`","`county_baseline`"],
+    "Data source": ["Small Area Income and Poverty Estimates<br>**Census SAIPE**",
+                    "Bureau of Economic Analysis Regional Price Parities<br>**BEA RPP**",
+                    "Core Based Statistical Area delineation<br>**Census CBSA**",
+                    "American Community Survey 1 year estimates<br>**Census ACS**",
+                    "Bureau of Labor Statistics Local Area Unemployment Statistics<br>**BLS LAUS**"],
+    "Records": [50283, 884, 387, 15690, 88004],
+    "Measures": ["median household income, poverty rate",
+                 "county price level relative to the national average",
+                 "county to metropolitan area crosswalk",
+                 "population, occupational employment by category",
+                 "unemployment rate"],
+    "Destination table": ["`county_baseline`","`cbsa_rpp`","`cbsa`",
+                          "`county_baseline`, `county_task_exposure`","`county_baseline`"],
 })
 
 style_table(GT(sources_df)
-  .fmt_integer(columns="Records retrieved", use_seps=True)
-  .fmt_markdown(columns="Warehouse table")
-  .cols_align(align="right", columns="Records retrieved")
+  .fmt_integer(columns="Records", use_seps=True)
+  .fmt_markdown(columns=["Data source","Destination table"])
+  .cols_align(align="center", columns=["Data source","Records","Measures","Destination table"])
+  .tab_options(column_labels_font_weight="bold")
+  .tab_source_note("Scale: 3,143 counties per year, 15 years (2008 to 2023, excluding 2020), 47,140 county year universe, 11,983 rows in the analytical panel.")
+  .tab_source_note("Records count rows retrieved from each source rather than analytical observations. The ACS publishes 1 year estimates only for areas above 65,000 residents, which reduces the universe to the 848 county panel.")
   .tab_source_note("All sources retrieved June 2026 through agency APIs or bulk file download."))
 ```
 
@@ -74,6 +80,80 @@ BEA does not publish a separate Regional Price Parity for counties outside metro
 ## Control variables
 
 The models include three county level covariates to account for economic conditions that may be associated with both task groups and purchasing power. Poverty rate is drawn from Census SAIPE, unemployment rate from the Bureau of Labor Statistics (BLS) Local Area Unemployment Statistics (LAUS) program [@bls_laus], and population from the ACS 1 year estimates. Poverty and unemployment capture differences in material hardship and labor market conditions across counties. Population accounts for variation in county scale and enters the models in logarithmic form because population size varies substantially across the analytical sample.
+
+@fig-baseline-dists shows the distribution of these three covariates, together with median household income, across the same task group panel @fig-dists uses for purchasing power and the task groups. Population is by far the most skewed of the four, which is why it enters the models in logarithmic form rather than its raw scale. Poverty rate, unemployment rate, and median household income are all right skewed but far less extreme, consistent with the moderate skew already documented for purchasing power itself.
+
+```{python}
+#| label: baseline-dists-data
+#| include: false
+import os
+from sqlalchemy import create_engine
+from dotenv import load_dotenv
+
+load_dotenv()
+baseline_engine=create_engine(os.environ["AUTORACK_URL"], pool_pre_ping=True, pool_recycle=300)
+baseline_df=pd.read_sql("""
+select ca.county_fips, ca.year, cb.poverty_rate, cb.unemployment_rate,
+    cb.population, cb.median_household_income
+from county_affordability ca
+join county_task_exposure cte on ca.county_fips=cte.county_fips and ca.year=cte.year
+join county_baseline cb on ca.county_fips=cb.county_fips and ca.year=cb.year
+""", baseline_engine)
+
+baseline_names={"poverty_rate":"Poverty Rate (%)", "unemployment_rate":"Unemployment Rate (%)",
+                "population":"Population", "median_household_income":"Median Household Income ($)"}
+baseline_long=baseline_df.melt(value_vars=list(baseline_names.keys()),
+                               var_name="variable", value_name="value")
+baseline_long["variable"]=baseline_long["variable"].map(baseline_names)
+```
+
+```{python}
+#| label: fig-baseline-dists
+#| echo: false
+#| warning: false
+#| fig-cap: "**Distribution of the Control Variables.** Across the same 12,087 county year task group panel as @fig-dists, shown as violin plots with an embedded box marking the median, interquartile range, and outliers. (A) Poverty rate and (B) unemployment rate are both right skewed, with unemployment the more extreme of the two. (C) Population spans several orders of magnitude and is shown on a logarithmic scale; this skew is why the models use its log form. (D) Median household income is right skewed with a moderate upper tail."
+%%R -i baseline_long -w 9 -h 7 -u in -r 150
+baseline_order <- c("Poverty Rate (%)","Unemployment Rate (%)","Population","Median Household Income ($)")
+baseline_long$variable <- factor(baseline_long$variable, levels=baseline_order)
+
+p_pov <- ggplot(subset(baseline_long, variable=="Poverty Rate (%)"), aes(x=variable, y=value)) +
+  geom_violin(fill=ORANGE, color=ORANGE, alpha=0.35, linewidth=0.6, trim=TRUE) +
+  geom_boxplot(width=0.12, fill="white", color="grey30", alpha=0.7,
+               outlier.size=0.8, outlier.alpha=0.5) +
+  labs(title="Poverty Rate", x=NULL, y="Percent") +
+  theme(axis.text.x=element_blank())
+
+p_unemp <- ggplot(subset(baseline_long, variable=="Unemployment Rate (%)"), aes(x=variable, y=value)) +
+  geom_violin(fill=PINK, color=PINK, alpha=0.35, linewidth=0.6, trim=TRUE) +
+  geom_boxplot(width=0.12, fill="white", color="grey30", alpha=0.7,
+               outlier.size=0.8, outlier.alpha=0.5) +
+  labs(title="Unemployment Rate", x=NULL, y="Percent") +
+  theme(axis.text.x=element_blank())
+
+p_pop <- ggplot(subset(baseline_long, variable=="Population"), aes(x=variable, y=value)) +
+  geom_violin(fill=GREY, color=GREY, alpha=0.35, linewidth=0.6, trim=TRUE) +
+  geom_boxplot(width=0.12, fill="white", color="grey30", alpha=0.7,
+               outlier.size=0.8, outlier.alpha=0.5) +
+  scale_y_log10(labels=label_comma()) +
+  labs(title="Population", x=NULL, y="Population (Log Scale)") +
+  theme(axis.text.x=element_blank())
+
+p_inc <- ggplot(subset(baseline_long, variable=="Median Household Income ($)"), aes(x=variable, y=value)) +
+  geom_violin(fill=GREEN, color=GREEN, alpha=0.35, linewidth=0.6, trim=TRUE) +
+  geom_boxplot(width=0.12, fill="white", color="grey30", alpha=0.7,
+               outlier.size=0.8, outlier.alpha=0.5) +
+  scale_y_continuous(labels=dollar_axis) +
+  labs(title="Median Household Income", x=NULL, y="Income") +
+  theme(axis.text.x=element_blank())
+
+(p_pov | p_unemp) / (p_pop | p_inc) +
+  plot_annotation(title="Distribution of the Control Variables",
+                  tag_levels="A",
+                  theme=theme(plot.title=element_text(face="bold", size=13, hjust=0.5),
+                              plot.tag=element_text(face="bold", size=11, color="#0B0B0B")))
+```
+
+Every covariate here is right skewed to some degree, but only population is skewed enough to change how it enters the models. Poverty rate, unemployment rate, and median household income are used in their raw form throughout, consistent with the log respecification decision in @sec-analysis resting on the outcome's own skew rather than a blanket rule applied to every variable.
 
 ## The analytical dataset
 
@@ -129,7 +209,7 @@ digraph architecture {{
 
   subgraph cluster_source {{
     label="DATA SOURCES"
-    labeljust="l"
+    labeljust="c"
     fontsize=16
     fontname="Helvetica-Bold"
     style="rounded"
@@ -144,7 +224,7 @@ digraph architecture {{
 
   subgraph cluster_lake {{
     label="DATA LAKE"
-    labeljust="l"
+    labeljust="c"
     fontsize=16
     fontname="Helvetica-Bold"
     style="rounded"
@@ -156,8 +236,8 @@ digraph architecture {{
   }}
 
   subgraph cluster_warehouse {{
-    label="DATA WAREHOUSE 3NF"
-    labeljust="l"
+    label="DATA WAREHOUSE (3NF)"
+    labeljust="c"
     fontsize=16
     fontname="Helvetica-Bold"
     style="rounded"
@@ -169,7 +249,7 @@ digraph architecture {{
     state [label={entity("state", [("varchar","state_code","PK"),("varchar","state_name","")])}]
     county [label={entity("county", [("bigint","county_fips","PK"),("varchar","county_name",""),("varchar","state_code","FK")])}]
     county_baseline [label={entity("county_baseline", [("bigint","county_fips","PK,FK"),("int","year","PK"),("numeric","population",""),("numeric","median_household_income",""),("numeric","poverty_rate",""),("numeric","unemployment_rate","")])}]
-    county_task_exposure [label={entity("county_task_exposure", [("bigint","county_fips","PK,FK"),("int","year","PK"),("numeric","routine_cognitive",""),("numeric","routine_manual",""),("numeric","non_routine_cognitive",""),("numeric","non_routine_manual",""),("numeric","routine_cognitive_share","generated"),("numeric","routine_manual_share","generated"),("numeric","non_routine_cognitive_share","generated"),("numeric","non_routine_manual_share","generated")])}]
+    county_task_exposure [label={entity("county_task_exposure", [("bigint","county_fips","PK,FK"),("int","year","PK"),("numeric","routine_cognitive_share","generated"),("numeric","routine_manual_share","generated"),("numeric","non_routine_cognitive_share","generated"),("numeric","non_routine_manual_share","generated")])}]
     county_affordability [label={entity("county_affordability", [("bigint","county_fips","PK,FK"),("int","year","PK"),("numeric","affordability_salary","")])}]
     county_cbsa_code [label={entity("county_cbsa_code", [("bigint","county_fips","PK,FK"),("varchar","cbsa_code","PK,FK")])}]
     cbsa [label={entity("cbsa", [("varchar","cbsa_code","PK"),("varchar","cbsa_name","")])}]
@@ -188,7 +268,7 @@ digraph architecture {{
 
   subgraph cluster_output {{
     label="ANALYSIS OUTPUTS"
-    labeljust="l"
+    labeljust="c"
     fontsize=16
     fontname="Helvetica-Bold"
     style="rounded"

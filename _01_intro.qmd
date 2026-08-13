@@ -12,7 +12,7 @@ This study examines whether a county's task groups are associated with its purch
 #| label: fig-taskframework
 #| echo: false
 #| warning: false
-#| fig-cap: "**The Four Task Groups.** Occupations split by whether machines can follow a fixed rule (columns) and whether the work involves information or people and hands (rows), following the task framework of Autor (2003) and the occupation taxonomy of Autor and Dorn (2013). Non-routine cognitive, outlined with a dashed border, is the reference group omitted from the regression."
+#| fig-cap: "**The Four Task Groups.** Each occupation falls in one cell of the Autor (2003) task framework. Routine tasks follow explicit rules that a machine can be programmed to carry out; non-routine tasks require judgment, adaptability, or in person interaction. Cognitive tasks work primarily with information; manual tasks work with physical objects and people. Occupation groupings follow Autor and Dorn (2013). Non-routine cognitive, outlined with a dashed border, is the reference group omitted from the regression."
 %%R -w 8.5 -h 6 -u in -r 150
 quad_df <- data.frame(
   group = c("Non-Routine Cognitive", "Non-Routine Manual", "Routine Cognitive", "Routine Manual"),
@@ -30,12 +30,11 @@ box_w <- 0.42; box_h <- 0.42
 
 col_headers <- data.frame(
   col = c(1, 2),
-  label = c("Rule Following", "Judgment or In Person"),
-  sub = c("(machines can be programmed)", "(machines struggle)")
+  label = c("Routine", "Non-Routine")
 )
 row_headers <- data.frame(
   row = c(2, 1),
-  label = c("Working with\nInformation", "Working with Hands\nand People")
+  label = c("Cognitive", "Manual")
 )
 
 ggplot(quad_df) +
@@ -45,19 +44,18 @@ ggplot(quad_df) +
   geom_text(aes(x=col, y=row+0.14, label=group_label, color=group),
             fontface="bold", size=4.6, lineheight=0.95) +
   geom_text(aes(x=col, y=row-0.20, label=examples), color="#52514E", size=3.1, lineheight=1.0) +
-  geom_text(data=col_headers, aes(x=col, y=2.72, label=label),
+  geom_text(data=col_headers, aes(x=col, y=2.65, label=label),
             fontface="bold", size=4.3, color="#0B0B0B", inherit.aes=FALSE) +
-  geom_text(data=col_headers, aes(x=col, y=2.58, label=sub),
-            size=3.0, color="#8D8680", fontface="italic", inherit.aes=FALSE) +
-  geom_text(data=row_headers, aes(x=0.35, y=row, label=label),
+  geom_text(data=row_headers, aes(x=0.52, y=row, label=label),
             hjust=1, size=3.6, color="#0B0B0B", lineheight=0.95, inherit.aes=FALSE) +
   scale_color_manual(values=TASK_COLORS, guide="none") +
   scale_linetype_identity() +
   scale_linewidth_identity() +
   coord_cartesian(xlim=c(0.05, 2.55), ylim=c(0.5, 2.85), clip="off") +
   theme_void() +
-  theme(plot.margin=margin(10, 10, 10, 55),
-        plot.background=element_rect(fill="#FCFCFB", color=NA)) +
+  theme(plot.margin=margin(10, 10, 10, 10),
+        plot.background=element_rect(fill="#FCFCFB", color=NA),
+        plot.title=element_text(face="bold", size=13, hjust=0.5)) +
   labs(title="The Four Task Groups")
 ```
 

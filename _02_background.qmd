@@ -130,7 +130,7 @@ p_rpp <- ggplot(context_sf) +
 
 (p_pov | p_unemp) / (p_inc | p_rpp) +
   plot_annotation(title="Four Views of County Economic Conditions",
-                  tag_levels="A",
+                  tag_levels="A", tag_suffix=")",
                   theme=theme(plot.title=element_text(face="bold", size=13, hjust=0.5),
                               plot.tag=element_text(face="bold", size=11, color="#0B0B0B")))
 ```

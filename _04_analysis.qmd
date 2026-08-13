@@ -79,10 +79,16 @@ uni_order=list(uni_labels.values())
 #| label: fig-univariate
 #| echo: false
 #| warning: false
-#| fig-cap: "**Purchasing Power Against Each Task Group.** Shown across the task group panel with no controls. Faint points are county years; solid points are means within twenty equal count bins of each group. The manual groups decline most steeply and non-routine cognitive rises, an ordering the adjusted estimates preserve."
+#| fig-cap: "**Purchasing Power Against Each Task Group.** County year purchasing power, in dollars at national average prices, plotted against each task group's value as a percent of county employment, before any controls. Faint points are individual county years; solid points are means within twenty equal count bins. Each panel keeps its own x axis range, since the four groups span different shares of county employment. The manual groups decline most steeply and non-routine cognitive rises, an ordering the adjusted estimates preserve."
 %%R -i uni_pts -i uni_bins -i uni_order -w 10 -h 6 -u in -r 150
 uni_pts$group <- factor(uni_pts$group, levels=unlist(uni_order))
 uni_bins$group <- factor(uni_bins$group, levels=unlist(uni_order))
+
+# panel labels carry the letter tag; group is kept separately so the palette still keys on it
+panel_labs <- setNames(paste0(LETTERS[seq_along(unlist(uni_order))], ") ", unlist(uni_order)),
+                       unlist(uni_order))
+uni_pts$panel <- factor(panel_labs[as.character(uni_pts$group)], levels=panel_labs)
+uni_bins$panel <- factor(panel_labs[as.character(uni_bins$group)], levels=panel_labs)
 
 # one color per task group, matching the palette used everywhere else in the report
 GROUP_COLORS <- TASK_COLORS
@@ -91,7 +97,7 @@ ggplot(uni_pts, aes(x=share, y=affordability_salary)) +
   geom_point(alpha=0.08, size=0.25, color="grey40") +
   geom_line(data=uni_bins, aes(color=group), linewidth=0.8, show.legend=FALSE) +
   geom_point(data=uni_bins, aes(color=group), size=1.8, show.legend=FALSE) +
-  facet_wrap(~group, scales="free_x", ncol=2) +
+  facet_wrap(~panel, ncol=2, scales="free_x") +
   scale_color_manual(values=GROUP_COLORS) +
   scale_x_continuous(breaks=scales::pretty_breaks(n=8)) +
   scale_y_continuous(labels=function(v) sprintf("$%s", formatC(v, format="d", big.mark=","))) +
@@ -158,30 +164,27 @@ vif_seg_df=pd.DataFrame({
 #| label: fig-vif
 #| echo: false
 #| warning: false
-#| fig-cap: "**Variance Inflation Factors by Task Specification.** Shown on a linear scale, with thin and dashed reference lines marking the conventional thresholds of 5 and 10. Every unnormalized total sits well above the threshold of 10; every estimated factor sits near one. Non-routine cognitive has no estimated point because it serves as the reference group, dropped from the regression since the four proportions sum to one."
+#| fig-cap: "**Variance Inflation Factors by Task Specification.** Variance inflation factors for each task group, on a linear scale, computed on the unnormalized employment totals and on the group proportions as estimated. Dotted and dashed vertical lines mark the conventional thresholds of 5 and 10. Every unnormalized total sits well above 10; every estimated factor sits near one. An asterisk marks non-routine cognitive as the reference group, which has no estimated factor because it is dropped from the regression, since the four proportions sum to one."
 %%R -i vif_dot_df -w 8 -h 4 -u in -r 150
 vif_dot_df$group <- factor(vif_dot_df$group,
     levels=rev(c("Routine Cognitive","Routine Manual",
                  "Non-Routine Cognitive","Non-Routine Manual")))
 vif_dot_df$spec <- factor(vif_dot_df$spec,
     levels=c("Group Proportions, as Estimated","Unnormalized Employment Totals"),
-    labels=c("Group proportions","Raw totals"))
-
-ref_label_df <- data.frame(group=factor("Non-Routine Cognitive", levels=levels(vif_dot_df$group)),
-                            x=1, label="Reference category")
+    labels=c("Group proportions, as estimated","Unnormalized employment totals"))
 
 ggplot(vif_dot_df, aes(x=vif, y=group)) +
-  geom_vline(xintercept=5, linetype="dotted", linewidth=0.35, color="#0B0B0B") +
-  geom_vline(xintercept=10, linetype="dashed", linewidth=0.7, color="#0B0B0B") +
-  annotate("text", x=5, y=Inf, label="VIF = 5", hjust=-0.15, vjust=1.4, color="grey45", size=3.1) +
-  annotate("text", x=10, y=Inf, label="VIF = 10", hjust=-0.15, vjust=1.4, color="grey30", size=3.3, fontface="bold") +
+  geom_vline(xintercept=5, linetype="dotted", linewidth=0.8, color="#0B0B0B") +
+  geom_vline(xintercept=10, linetype="dashed", linewidth=0.9, color="#0B0B0B") +
+  annotate("text", x=5, y=Inf, label="VIF = 5", hjust=-0.15, vjust=1.4, color="#0B0B0B", size=3.1) +
+  annotate("text", x=10, y=Inf, label="VIF = 10", hjust=-0.15, vjust=1.4, color="#0B0B0B", size=3.3, fontface="bold") +
   geom_line(aes(group=group), color="#0B0B0B", linewidth=0.6) +
   geom_point(aes(color=spec), size=3.2) +
   geom_text(aes(label=sprintf("%.1f", vif), color=spec), vjust=-1.1, size=3.2, show.legend=FALSE) +
-  geom_text(data=ref_label_df, aes(x=x, y=group, label=label), inherit.aes=FALSE,
-            hjust=0, vjust=-1.1, size=3.2, color="grey40", fontface="italic") +
   scale_x_continuous(limits=c(0, 30), breaks=seq(0, 30, by=5)) +
-  scale_color_manual(values=c("Group proportions"=GREEN, "Raw totals"=ORANGE)) +
+  scale_y_discrete(labels=function(x) ifelse(x=="Non-Routine Cognitive", "Non-Routine Cognitive *", x)) +
+  scale_color_manual(values=c("Group proportions, as estimated"=GREEN,
+                              "Unnormalized employment totals"=ORANGE)) +
   labs(title="Variance Inflation Factors by Task Specification",
        x="Variance Inflation Factor", y=NULL, color=NULL) +
   theme(legend.position="bottom",
@@ -225,7 +228,7 @@ p_pp <- ggplot(subset(dists_df, variable=="Purchasing Power ($)"), aes(x=variabl
                outlier.size=0.8, outlier.alpha=0.5) +
   scale_y_continuous(labels=dollar_axis) +
   coord_cartesian(ylim=pp_ylim) +
-  labs(title="Purchasing Power ($)", x=NULL, y="Purchasing Power") +
+  labs(title="Purchasing Power", x=NULL, y="Purchasing Power") +
   theme(axis.text.x=element_blank(), axis.ticks.x=element_blank(),
         plot.margin=margin(3, 6, 3, 6))
 
@@ -248,7 +251,7 @@ p_tasks <- ggplot(task_box_df, aes(x=variable, y=value, fill=variable, color=var
 
 (p_pp | p_tasks) + plot_layout(widths=c(1, 1.6)) +
   plot_annotation(title="Distribution of Purchasing Power and Task Groups",
-                  tag_levels="A",
+                  tag_levels="A", tag_suffix=")",
                   theme=theme(plot.title=element_text(face="bold", size=13, hjust=0.5),
                               plot.tag=element_text(face="bold", size=11, color="#0B0B0B")))
 ```
@@ -280,24 +283,39 @@ logt_order=[level_label, log_label]
 #| label: fig-log-transform
 #| echo: false
 #| warning: false
-#| fig-cap: "**Purchasing Power Before and After the Log Transform.** (A) The level distribution is right skewed with a long upper tail. (B) Logging pulls the tail in and leaves a distribution close to symmetric."
+#| fig-cap: "**Purchasing Power Before and After the Log Transform.** County year purchasing power across the analytical panel, in dollars at national average prices (A) and on the natural log scale (B). The black curve on each panel is a normal distribution fitted to that panel's mean and standard deviation, and the vertical lines mark the median (solid) and the mean (dashed). A) The level distribution is right skewed with a long upper tail, and its mean sits above its median. B) Logging pulls the tail in, the two lines converge, and the distribution tracks the normal curve closely."
 %%R -i logt_df -i logt_order -w 11 -h 3.5 -u in -r 150
 logt_df$dist <- factor(logt_df$dist, levels=unlist(logt_order))
 level_label <- unlist(logt_order)[1]
 log_label   <- unlist(logt_order)[2]
 
-p_level <- ggplot(subset(logt_df, dist==level_label), aes(x=value)) +
-  geom_histogram(bins=50, fill=ORANGE) +
-  scale_x_continuous(labels=dollar_axis) +
-  labs(title=level_label, x=NULL, y="Count")
+# normal curve fitted to each distribution, plus median (solid) and mean (dashed);
+# the gap between the two lines is the skew the panel titles report
+lv <- subset(logt_df, dist==level_label)$value
+lg <- subset(logt_df, dist==log_label)$value
 
-p_log <- ggplot(subset(logt_df, dist==log_label), aes(x=value)) +
-  geom_histogram(bins=50, fill=GREEN) +
-  labs(title=log_label, x=NULL, y="Count")
+p_level <- ggplot(data.frame(value=lv), aes(x=value)) +
+  geom_histogram(aes(y=after_stat(density)), bins=50, fill=ORANGE) +
+  stat_function(fun=dnorm, args=list(mean=mean(lv), sd=sd(lv)),
+                color="#0B0B0B", linewidth=0.7) +
+  geom_vline(xintercept=median(lv), color="#0B0B0B", linewidth=0.6) +
+  geom_vline(xintercept=mean(lv), color="#0B0B0B", linewidth=0.6, linetype="dashed") +
+  scale_x_continuous(labels=dollar_axis) +
+  labs(title=level_label, x="Purchasing Power", y="Density") +
+  theme(axis.text.y=element_blank(), axis.ticks.y=element_blank())
+
+p_log <- ggplot(data.frame(value=lg), aes(x=value)) +
+  geom_histogram(aes(y=after_stat(density)), bins=50, fill=GREEN) +
+  stat_function(fun=dnorm, args=list(mean=mean(lg), sd=sd(lg)),
+                color="#0B0B0B", linewidth=0.7) +
+  geom_vline(xintercept=median(lg), color="#0B0B0B", linewidth=0.6) +
+  geom_vline(xintercept=mean(lg), color="#0B0B0B", linewidth=0.6, linetype="dashed") +
+  labs(title=log_label, x="Log Purchasing Power", y="Density") +
+  theme(axis.text.y=element_blank(), axis.ticks.y=element_blank())
 
 (p_level | p_log) +
   plot_annotation(title="Purchasing Power Before and After the Log Transform",
-                  tag_levels="A",
+                  tag_levels="A", tag_suffix=")",
                   theme=theme(plot.title=element_text(face="bold", size=13, hjust=0.5),
                               plot.tag=element_text(face="bold", size=11, color="#0B0B0B")))
 ```
@@ -347,7 +365,7 @@ p4 <- ggplot(resid_log_df, aes(sample=std_resid)) +
 
 (p1 | p2) / (p3 | p4) +
   plot_annotation(title="Regression Diagnostics, Raw vs. Log Specification",
-                  tag_levels="A",
+                  tag_levels="A", tag_suffix=")",
                   theme=theme(plot.title=element_text(face="bold", size=13, hjust=0.5),
                               plot.tag=element_text(face="bold", size=11, color="#0B0B0B")))
 ```
@@ -398,7 +416,7 @@ The smoothed residual line does not lie perfectly flat even after the transforma
 
 ## Influential points
 
-A fourth diagnostic, Cook's distance, checks whether any single county year is disproportionately steering the level specification's coefficients. No observation crosses the conventional threshold of 1.0 for a point that should always be investigated; the largest value is 0.009. @fig-cooks-distance lists the ten highest, and the same few places recur across years: Loudoun County, Virginia and Stafford County, Virginia, both high purchasing power counties in the Washington D.C. exurbs; Williamson County, Tennessee, a high purchasing power Nashville exurb; and Apache County, Arizona, a low purchasing power county on the Navajo Nation. These are the same high end outliers @fig-dists already shows in the purchasing power distribution, rather than a new problem the earlier figure missed.
+A fourth diagnostic, Cook's distance, checks whether any single county year is disproportionately steering the level specification's coefficients. No observation crosses the conventional threshold of 1.0 for a point that should always be investigated; the largest value is 0.009. @fig-cooks-distance ranks the 10 counties with the largest Cook's distance in any single year, taking each county's own maximum across its years in the panel. Rather than collapsing each county to that one number, the figure also shows every year's value, which reveals that the ranking is not driven the same way for every county: Loudoun County, Virginia, the largest by far, gets there through real year to year volatility, while several counties lower in the ranking, such as McKinley County, New Mexico, sit consistently high across nearly every year instead. Loudoun and Stafford County, Virginia are both high purchasing power counties in the Washington D.C. exurbs; Williamson County, Tennessee is a high purchasing power Nashville exurb; and Apache County, Arizona is a low purchasing power county on the Navajo Nation. These are the same high end outliers @fig-dists already shows in the purchasing power distribution, rather than a new problem the earlier figure missed.
 
 ```{python}
 #| include: false
@@ -409,11 +427,22 @@ county_state_names=pd.read_sql(
     "select c.county_fips, c.county_name, s.state_name "
     "from county c join state s on c.state_code=s.state_code", engine)
 
-top_influential=(reg.nlargest(10, "cooks_d")
+# each county's own largest Cook's distance across its years in the panel,
+# so a persistently influential county appears once rather than once per year
+county_max_cooks=reg.groupby("county_fips")["cooks_d"].max().reset_index()
+top10_fips=county_max_cooks.nlargest(10, "cooks_d")["county_fips"]
+
+# every year's value for those 10 counties, not just each county's max,
+# so the figure can show the full range rather than a single collapsed number
+top_influential=(reg[reg["county_fips"].isin(top10_fips)][["county_fips","cooks_d"]]
                   .merge(county_state_names, on="county_fips", how="left"))
-top_influential["label"]=(top_influential["county_name"]+", "+top_influential["state_name"]
-                          +" ("+top_influential["year"].astype(str)+")")
-influence_plot_df=top_influential[["label","cooks_d"]].sort_values("cooks_d")
+top_influential["label"]=top_influential["county_name"]+", "+top_influential["state_name"]
+influence_plot_df=top_influential[["label","cooks_d"]]
+influence_range_df=(influence_plot_df.groupby("label")["cooks_d"]
+                     .agg(min_d="min", max_d="max").reset_index()
+                     .sort_values("max_d"))
+influence_plot_df["label"]=pd.Categorical(influence_plot_df["label"],
+                                          categories=influence_range_df["label"], ordered=True)
 
 # sensitivity check: refit excluding the top 1 percent most influential rows
 influence_cutoff=reg["cooks_d"].quantile(0.99)
@@ -433,26 +462,30 @@ sens_labels={
 }
 sensitivity_df=pd.DataFrame({
     "Variable": [sens_labels[c] for c in reg_cols],
-    "Full sample ($)": [model.params[c] for c in reg_cols],
-    "Excluding top 1% ($)": [model_robust.params[c] for c in reg_cols],
+    "Full Sample": [model.params[c] for c in reg_cols],
+    "Excluding Top 1%": [model_robust.params[c] for c in reg_cols],
 })
-sensitivity_df["Change (%)"]=(sensitivity_df["Excluding top 1% ($)"]/sensitivity_df["Full sample ($)"]-1)*100
+sensitivity_df["Change (%)"]=(sensitivity_df["Excluding Top 1%"]/sensitivity_df["Full Sample"]-1)*100
 ```
 
 ```{python}
 #| label: fig-cooks-distance
 #| echo: false
 #| warning: false
-#| fig-cap: "**Ten Highest Cook's Distance Values, Level Specification.** Every value falls far below the conventional threshold of 1.0 for a point requiring investigation; the same handful of high and low purchasing power counties recur across years."
-%%R -i influence_plot_df -w 8.5 -h 4.2 -u in -r 150
-influence_plot_df$label <- factor(influence_plot_df$label, levels=influence_plot_df$label)
+#| fig-cap: "**Ten Highest Cook's Distance Values by County, Level Specification.** Each translucent point is one year; the line spans that county's full range across the panel, with the maximum marked and labeled. Every value falls far below the conventional threshold of 1.0 for a point requiring investigation."
+%%R -i influence_plot_df -i influence_range_df -w 9 -h 5.5 -u in -r 150
+influence_plot_df$label <- factor(influence_plot_df$label, levels=influence_range_df$label)
+influence_range_df$label <- factor(influence_range_df$label, levels=influence_range_df$label)
 
-ggplot(influence_plot_df, aes(x=cooks_d, y=label)) +
-  geom_segment(aes(x=0, xend=cooks_d, yend=label), linewidth=1.1, color="#C8C8C5") +
-  geom_point(size=4, color=BLUE) +
-  geom_text(aes(label=sprintf("%.4f", cooks_d)), hjust=-0.3, size=3.4, color="#252525") +
-  scale_x_continuous(limits=c(0, 0.012), expand=c(0,0)) +
-  labs(title="Ten Highest Cook's Distance Values, Level Specification",
+ggplot() +
+  geom_segment(data=influence_range_df, aes(x=min_d, xend=max_d, y=label, yend=label),
+               linewidth=1.2, color="#C8C8C5", lineend="round") +
+  geom_point(data=influence_plot_df, aes(x=cooks_d, y=label), size=2.0, color=BLUE, alpha=0.45) +
+  geom_point(data=influence_range_df, aes(x=max_d, y=label), size=3.2, color=BLUE) +
+  geom_text(data=influence_range_df, aes(x=max_d, y=label, label=sprintf("%.4f", max_d)),
+            hjust=-0.35, size=3.2, color="#252525") +
+  scale_x_continuous(limits=c(0, 0.011), expand=c(0,0)) +
+  labs(title="Ten Highest Cook's Distance Values by County, Level Specification",
        x="Cook's Distance", y=NULL)
 ```
 
@@ -464,8 +497,9 @@ Because none of these points individually threatens the fit, the more informativ
 #| tbl-cap: "**Coefficient Sensitivity to Influential Points.** Level specification coefficients, full sample versus excluding the most influential 1 percent of county year observations by Cook's distance."
 
 style_table(GT(sensitivity_df)
-  .fmt_number(columns=["Full sample ($)","Excluding top 1% ($)"], decimals=0, use_seps=True)
+  .fmt_currency(columns=["Full Sample","Excluding Top 1%"], decimals=0)
   .fmt_number(columns="Change (%)", decimals=1)
+  .tab_style(style=style.text(weight="bold"), locations=loc.column_labels())
   .tab_source_note(f"{n_excluded} of {len(reg)} county year observations excluded, the top 1% by Cook's distance."))
 ```
 
@@ -511,19 +545,16 @@ bw_df$component <- factor(bw_df$component,
     levels=c("Within Counties Over Time","Between Counties"))
 bw_text_df$group <- factor(bw_text_df$group, levels=levels(bw_df$group))
 
-# Routine Cognitive's full color is a light teal, so white text loses contrast there
-# even on the saturated "within counties" segment; every other segment stays dark-on-light
-# or light-on-dark as before.
-bw_text_df$text_color <- ifelse(bw_text_df$component=="Within Counties Over Time" &
-                                   bw_text_df$group != "Routine Cognitive",
+# One color for all three groups now; only alpha (between vs. within) varies,
+# so text contrast only needs to track that, not which group the bar belongs to.
+bw_text_df$text_color <- ifelse(bw_text_df$component=="Within Counties Over Time",
                                  "white", "#0B0B0B")
 
-ggplot(bw_df, aes(x=value, y=group, fill=group, alpha=component)) +
-  geom_col(width=0.7) +
+ggplot(bw_df, aes(x=value, y=group, alpha=component)) +
+  geom_col(fill=BLUE, width=0.7) +
   geom_text(data=bw_text_df, aes(x=x, y=group, label=label, color=text_color),
             inherit.aes=FALSE, size=3.4) +
   scale_color_identity() +
-  scale_fill_manual(values=TASK_COLORS, guide="none") +
   scale_alpha_manual(values=c("Between Counties"=0.32,
                               "Within Counties Over Time"=1),
                      name=NULL, guide=guide_legend(override.aes=list(fill=BLUE))) +
@@ -746,7 +777,8 @@ ggplot(vif_plot_df, aes(x=VIF, y=Indicator)) +
   annotate("text", x=5, y=Inf, label="VIF = 5", hjust=1.1, vjust=1.3, color="grey30", size=3.5) +
   scale_x_continuous(limits=c(0, 5.6), breaks=0:5, expand=c(0,0)) +
   labs(title="Highest Variance Inflation Factors, Year and State Indicators",
-       x="Variance Inflation Factor", y="Year")
+       x="Variance Inflation Factor", y="Year") +
+  theme(panel.grid.major.y=element_blank())
 ```
 
 @fig-vif-ml lists the highest variance inflation factors after the reference group is removed. No offenders remain, since every feature falls comfortably below the threshold of 5.
@@ -854,16 +886,17 @@ label_map={
 
 comparison_ols=pd.DataFrame({
     "Variable": [label_map[f] for f in feature_cols_base],
-    "Baseline ($)": ols_model_base.params[feature_cols_base].values,
-    "With controls ($)": ols_model.params[feature_cols_base].values,
-    "With controls (log)": ols_model_log.params[feature_cols_base].values,
-    "Percent change per point": [pct_change_per_point[f] for f in feature_cols_base],
+    "Baseline": ols_model_base.params[feature_cols_base].values,
+    "With Controls": ols_model.params[feature_cols_base].values,
+    "With Controls (log)": ols_model_log.params[feature_cols_base].values,
+    "Percent Change per Point": [pct_change_per_point[f] for f in feature_cols_base],
 })
 
 style_table(GT(comparison_ols)
-  .fmt_number(columns=["Baseline ($)","With controls ($)"], decimals=0, use_seps=True)
-  .fmt_number(columns="With controls (log)", decimals=4)
-  .fmt_number(columns="Percent change per point", decimals=2)
+  .fmt_currency(columns=["Baseline","With Controls"], decimals=0)
+  .fmt_number(columns="With Controls (log)", decimals=4)
+  .fmt_number(columns="Percent Change per Point", decimals=2)
+  .tab_style(style=style.text(weight="bold"), locations=loc.column_labels())
   .tab_source_note("Task group coefficients are per unit of group proportion."))
 ```
 
@@ -965,7 +998,8 @@ ggplot(rf_resid_df, aes(x=pred, y=resid)) +
   scale_x_continuous(labels=dollar_axis) +
   scale_y_continuous(labels=dollar_axis) +
   labs(title="Random Forest Residuals vs. Predicted Values",
-       x="Predicted Values", y="Residuals")
+       x="Predicted Values", y="Residuals") +
+  theme(panel.grid.major.y=element_blank())
 ```
 
 Unlike the raw target OLS residuals, @fig-rf-resid shows no systematic curve or trend across the range of predicted values.
@@ -1195,7 +1229,7 @@ p1 <- ggplot(nn_init_df, aes(x=epoch, y=loss, color=series)) +
            label.padding=unit(0.12, "lines")) +
   scale_color_manual(values=c(Train=BLUE, Validation=ORANGE), guide="none") +
   scale_y_continuous(limits=c(0, ymax), breaks=y_breaks) +
-  scale_x_continuous(expand=expansion(mult=c(0.02, 0.28))) +
+  scale_x_continuous(breaks=scales::pretty_breaks(n=10), expand=expansion(mult=c(0.02, 0.28))) +
   labs(x="Epoch", y="Loss (MSE, Standardized)", title="Initial Model",
        subtitle="Patience 15")
 
@@ -1213,15 +1247,16 @@ p2 <- ggplot(nn_reg_df, aes(x=epoch, y=loss, color=series)) +
            label.padding=unit(0.12, "lines")) +
   scale_color_manual(values=c(Train=BLUE, Validation=ORANGE), guide="none") +
   scale_y_continuous(limits=c(0, ymax), breaks=y_breaks) +
-  scale_x_continuous(expand=expansion(mult=c(0.02, 0.28))) +
+  scale_x_continuous(breaks=scales::pretty_breaks(n=10), expand=expansion(mult=c(0.02, 0.28))) +
   labs(x="Epoch", y=NULL, title="Regularized Model",
        subtitle="L2 regularization, patience 8")
 
 p1 + p2 +
   plot_annotation(title="Training and Validation Loss Across Model Specifications",
-                  tag_levels="A",
+                  tag_levels="A", tag_suffix=")",
                   theme=theme(plot.title=element_text(face="bold", size=13, hjust=0.5),
-                              plot.tag=element_text(face="bold", size=11, color="#0B0B0B")))
+                              plot.tag=element_text(face="bold", size=11, color="#0B0B0B"))) &
+  theme(panel.grid.major.y=element_blank(), panel.grid.major.x=element_blank())
 ```
 
 The gap narrows after regularization, but the network still does not beat the random forest or the log target linear model, both of which are far cheaper to fit and tune. This project is built to explain the relationship between task groups and purchasing power rather than to maximize predictive accuracy, so we stop tuning here and carry the linear and forest models forward as the primary results.
@@ -1277,6 +1312,7 @@ cv_summary.columns=["Model","Mean R²","SD"]
 style_table(GT(cv_summary)
   .fmt_number(columns=["Mean R²","SD"], decimals=4)
   .cols_align(align="right", columns=["Mean R²","SD"])
+  .cols_width(cases={"Model": "130px", "Mean R²": "90px", "SD": "90px"})
   .tab_source_note("Both models are fit on the log target and scored on the dollar scale after back transformation."))
 ```
 
