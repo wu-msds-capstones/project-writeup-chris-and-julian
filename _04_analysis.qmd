@@ -174,10 +174,12 @@ vif_dot_df$spec <- factor(vif_dot_df$spec,
     labels=c("Group proportions, as estimated","Unnormalized employment totals"))
 
 ggplot(vif_dot_df, aes(x=vif, y=group)) +
-  geom_vline(xintercept=5, linetype="dotted", linewidth=0.8, color="#0B0B0B") +
-  geom_vline(xintercept=10, linetype="dashed", linewidth=0.9, color="#0B0B0B") +
-  annotate("text", x=5, y=Inf, label="VIF = 5", hjust=-0.15, vjust=1.4, color="#0B0B0B", size=3.1) +
-  annotate("text", x=10, y=Inf, label="VIF = 10", hjust=-0.15, vjust=1.4, color="#0B0B0B", size=3.3, fontface="bold") +
+  # PINK for the thresholds: a different hue family from the green and orange
+  # points, so the VIF = 10 line stays legible where it crosses the orange ones
+  geom_vline(xintercept=5, linetype="dotted", linewidth=0.8, color=PINK) +
+  geom_vline(xintercept=10, linetype="dashed", linewidth=0.9, color=PINK) +
+  annotate("text", x=5, y=Inf, label="VIF = 5", hjust=-0.15, vjust=1.4, color=PINK, size=3.1) +
+  annotate("text", x=10, y=Inf, label="VIF = 10", hjust=-0.15, vjust=1.4, color=PINK, size=3.3, fontface="bold") +
   geom_line(aes(group=group), color="#0B0B0B", linewidth=0.6) +
   geom_point(aes(color=spec), size=3.2) +
   geom_text(aes(label=sprintf("%.1f", vif), color=spec), vjust=-1.1, size=3.2, show.legend=FALSE) +
@@ -499,7 +501,6 @@ Because none of these points individually threatens the fit, the more informativ
 style_table(GT(sensitivity_df)
   .fmt_currency(columns=["Full Sample","Excluding Top 1%"], decimals=0)
   .fmt_number(columns="Change (%)", decimals=1)
-  .tab_style(style=style.text(weight="bold"), locations=loc.column_labels())
   .tab_source_note(f"{n_excluded} of {len(reg)} county year observations excluded, the top 1% by Cook's distance."))
 ```
 
@@ -545,8 +546,9 @@ bw_df$component <- factor(bw_df$component,
     levels=c("Within Counties Over Time","Between Counties"))
 bw_text_df$group <- factor(bw_text_df$group, levels=levels(bw_df$group))
 
-# Two solid fills rather than one color at two opacities: each in-bar label then
-# clears the 4.5:1 contrast floor (grey with ink 5.9, purple with white 13.6).
+# Two solid fills rather than one color at two opacities, so each in-bar label
+# clears the 4.5:1 contrast floor: green with ink 7.0, pink with white 5.7.
+# BLUE is deliberately not used here; it fails at 4.5 against both white and ink.
 bw_text_df$text_color <- ifelse(bw_text_df$component=="Within Counties Over Time",
                                  "white", "#0B0B0B")
 
@@ -555,8 +557,8 @@ ggplot(bw_df, aes(x=value, y=group, fill=component)) +
   geom_text(data=bw_text_df, aes(x=x, y=group, label=label, color=text_color),
             inherit.aes=FALSE, size=3.4) +
   scale_color_identity() +
-  scale_fill_manual(values=c("Between Counties"=GREY,
-                             "Within Counties Over Time"=PURPLE), name=NULL) +
+  scale_fill_manual(values=c("Between Counties"=GREEN,
+                             "Within Counties Over Time"=PINK), name=NULL) +
   scale_x_continuous(expand=expansion(mult=c(0, 0.02))) +
   scale_y_discrete(expand=expansion(add=c(0.3, 0.3))) +
   labs(title="Between-County vs. Within-County Variation by Task Group",
@@ -687,13 +689,11 @@ median_label <- sprintf("Median: $%.0fk", state_median/1000)
 n_states <- length(levels(state_df$state_label))
 pp_range <- range(state_df$mean_pp)
 
-# axis anchored at zero rather than centered on the median — a symmetric,
-# median-centered range was tried and reverted because it pulled the left edge
-# away from zero (to roughly state_median - half_range), a truncated axis that
-# risks visually overstating differences between states (Tufte's Lie Factor).
-# The median still gets its own tick, via state_breaks below, and its own
-# labeled reference line, without needing the panel itself to look centered.
-x_lo <- 0
+# axis starts at $20k rather than zero. The Lie Factor concern that motivated a
+# zero anchor does not bind here: each segment runs from the median line to the
+# state's value, so its length encodes deviation from the median rather than
+# absolute magnitude, and moving the left edge rescales every segment equally.
+x_lo <- 20000
 x_hi <- pp_range[2] * 1.05
 
 # round $20k breaks. Offsets from the median were tried and reverted: anchoring
@@ -711,10 +711,14 @@ ggplot(state_df, aes(x=mean_pp, y=state_label)) +
            fill="#C0392B", alpha=0.10) +
   annotate("rect", xmin=state_median, xmax=Inf, ymin=-Inf, ymax=Inf,
            fill=GREEN, alpha=0.10) +
-  annotate("text", x=low_mid, y=n_states / 2, label="Lower Purchasing Power",
-           color="#C0392B", fontface="bold", size=6, hjust=0.5, vjust=0.5, alpha=0.25) +
-  annotate("text", x=high_mid, y=n_states / 2, label="Higher Purchasing Power",
-           color=GREEN, fontface="bold", size=6, hjust=0.5, vjust=0.5, alpha=0.25) +
+  # wrapped onto two lines so neither label crosses the median line or runs off
+  # the panel edge, which the single line versions did at size 6
+  annotate("text", x=low_mid, y=n_states / 2, label="Lower\nPurchasing\nPower",
+           color="#C0392B", fontface="bold", size=5, hjust=0.5, vjust=0.5,
+           alpha=0.25, lineheight=0.95) +
+  annotate("text", x=high_mid, y=n_states / 2, label="Higher\nPurchasing\nPower",
+           color=GREEN, fontface="bold", size=5, hjust=0.5, vjust=0.5,
+           alpha=0.25, lineheight=0.95) +
   geom_vline(xintercept=state_median, linetype="dotted", linewidth=0.6, color="black") +
   annotate("text", x=state_median, y=n_states + 1.9, label=median_label,
            size=3, color="black", hjust=0, vjust=0) +
@@ -903,7 +907,6 @@ style_table(GT(comparison_ols, rowname_col="Variable", groupname_col="Group")
   .cols_label(**{"Percent per point": "% per 1 pp"})
   .tab_spanner(label="Purchasing power ($)", columns=["Baseline","Full"])
   .tab_spanner(label="Log purchasing power", columns=["Coefficient","Percent per point"])
-  .tab_style(style=style.text(weight="bold"), locations=loc.column_labels())
   .tab_style(style=style.text(weight="bold"),
              locations=loc.body(columns="Percent per point", rows=task_rows))
   .tab_source_note("Non-routine cognitive is the reference task group. Task group coefficients in the three model columns are per unit of group proportion; the final column converts the log coefficients to the percent change in purchasing power associated with a one percentage point shift."))
@@ -930,7 +933,6 @@ spec_summary = pd.DataFrame({
 #| tbl-cap: "**Model Specification Comparison.** Fit summary across the baseline, full level, and full log Ordinary Least Squares specifications."
 
 style_table(GT(spec_summary, rowname_col="Metric")
-  .tab_style(style=style.text(weight="bold"), locations=loc.column_labels())
   .tab_style(style=style.text(weight="bold"),
              locations=loc.body(columns="Log model", rows=[2, 3, 4]))
   .tab_source_note("R² is in sample, fit on the training split only."))
@@ -1211,7 +1213,9 @@ nn_reg_df=pd.DataFrame({
 #| fig-cap: "**Training and Validation Loss Across Model Specifications.** Loss is mean squared error on the standardized target; both panels share the same y axis. In the initial network, validation loss declines briefly then rises while training loss keeps falling, the signature of overfitting; the shaded region marks where validation loss turns upward. After adding L2 regularization, heavier dropout, and a shorter early stopping patience, the two curves stay much closer together."
 %%R -i nn_init_df -i nn_reg_df -w 10 -h 4.5 -u in -r 150
 ymax <- max(c(nn_init_df$loss, nn_reg_df$loss)) * 1.05
-y_breaks <- seq(0, 0.8, by=0.2)
+# breaks run the whole axis rather than stopping at 0.8 and leaving the top of the
+# validation curve untick-marked
+y_breaks <- seq(0, ceiling(ymax*10)/10, by=0.1)
 
 best_init <- nn_init_df[nn_init_df$series=="Validation",]
 best_init_epoch <- best_init$epoch[which.min(best_init$loss)]
@@ -1233,10 +1237,13 @@ p1 <- ggplot(nn_init_df, aes(x=epoch, y=loss, color=series)) +
   geom_point(data=best_init[best_init$epoch==best_init_epoch,], aes(x=epoch, y=loss),
              inherit.aes=FALSE, color=ORANGE, size=2.2) +
   geom_label(data=label_df1, aes(label=series, y=label_y), hjust=-0.1, size=3.4, fontface="bold",
-             fill="#FCFCFB", linewidth=0, label.padding=unit(0.08, "lines"), show.legend=FALSE) +
-  annotate("label", x=best_init_epoch, y=best_init_loss + ymax*0.1,
+             fill=NA, linewidth=0, label.padding=unit(0.08, "lines"), show.legend=FALSE) +
+  # the minimum sits near the left edge here, so the label reads rightward off the
+  # marker instead of running off the panel and into the y axis title. Nudged
+  # further right and up so the now transparent label clears the validation curve.
+  annotate("label", x=best_init_epoch + 0.6, y=best_init_loss + ymax*0.26,
            label=paste0("Minimum validation loss\nepoch ", best_init_epoch),
-           hjust=1, size=2.9, color="grey35", fill="#FCFCFB", linewidth=0,
+           hjust=0, size=2.9, color="grey35", fill=NA, linewidth=0,
            label.padding=unit(0.12, "lines")) +
   scale_color_manual(values=c(Train=BLUE, Validation=ORANGE), guide="none") +
   scale_y_continuous(limits=c(0, ymax), breaks=y_breaks) +
@@ -1251,10 +1258,12 @@ p2 <- ggplot(nn_reg_df, aes(x=epoch, y=loss, color=series)) +
   geom_point(data=best_reg[best_reg$epoch==best_reg_epoch,], aes(x=epoch, y=loss),
              inherit.aes=FALSE, color=ORANGE, size=2.2) +
   geom_label(data=label_df2, aes(label=series, y=label_y), hjust=-0.1, size=3.4, fontface="bold",
-             fill="#FCFCFB", linewidth=0, label.padding=unit(0.08, "lines"), show.legend=FALSE) +
-  annotate("label", x=best_reg_epoch, y=best_reg_loss + ymax*0.1,
+             fill=NA, linewidth=0, label.padding=unit(0.08, "lines"), show.legend=FALSE) +
+  # lifted for the same reason as panel A: the opaque fill was cutting a gap
+  # through the validation line it sat on top of
+  annotate("label", x=best_reg_epoch, y=best_reg_loss + ymax*0.18,
            label=paste0("Minimum validation loss\nepoch ", best_reg_epoch),
-           hjust=1, size=2.9, color="grey35", fill="#FCFCFB", linewidth=0,
+           hjust=1, size=2.9, color="grey35", fill=NA, linewidth=0,
            label.padding=unit(0.12, "lines")) +
   scale_color_manual(values=c(Train=BLUE, Validation=ORANGE), guide="none") +
   scale_y_continuous(limits=c(0, ymax), breaks=y_breaks) +
@@ -1284,7 +1293,7 @@ from sklearn.model_selection import GroupKFold
 group_kfold_cv=GroupKFold(n_splits=5)
 cv_results={
     "Ordinary Least Squares": [],
-    "Random forest": [],
+    "Random Forest": [],
 }
 
 y_log=np.log(y)  # full data log target, same idea as y_train_log/y_test_log
@@ -1303,7 +1312,7 @@ for fold, (tr_idx, val_idx) in enumerate(group_kfold_cv.split(X_ml, y, groups)):
     rf_fold=RandomForestRegressor(**best_params, random_state=42, n_jobs=-1)
     rf_fold.fit(X_tr, y_tr_log)
     pred_rf=np.exp(rf_fold.predict(X_val))
-    cv_results["Random forest"].append(r2_score(y_val, pred_rf))
+    cv_results["Random Forest"].append(r2_score(y_val, pred_rf))
 
 cv_folds=pd.DataFrame([
     {"model": m, "fold": i+1, "r2": s}
