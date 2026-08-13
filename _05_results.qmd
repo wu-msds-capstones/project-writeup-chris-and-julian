@@ -67,12 +67,12 @@ ggplot(coef_df, aes(x=est, y=group, color=group)) +
 level_coef_terms=["routine_cognitive_share","routine_manual_share","non_routine_manual_share",
                    "poverty_rate","unemployment_rate","log_population"]
 level_coef_labels={
-    "routine_cognitive_share":"Routine cognitive",
-    "routine_manual_share":"Routine manual",
-    "non_routine_manual_share":"Non-routine manual",
-    "poverty_rate":"Poverty rate",
-    "unemployment_rate":"Unemployment rate",
-    "log_population":"Log population",
+    "routine_cognitive_share":"Routine Cognitive",
+    "routine_manual_share":"Routine Manual",
+    "non_routine_manual_share":"Non-Routine Manual",
+    "poverty_rate":"Poverty Rate",
+    "unemployment_rate":"Unemployment Rate",
+    "log_population":"Log Population",
 }
 level_coef_df=pd.DataFrame({
     "Variable": [level_coef_labels[t] for t in level_coef_terms],
@@ -225,7 +225,7 @@ ggplot(compare_df, aes(x=est, y=group)) +
                 color=spec),
             size=3.3, show.legend=FALSE, fontface="bold") +
   geom_vline(xintercept=0, linetype="dashed", linewidth=0.4) +
-  scale_color_manual(values=c("Task Groups and Year Only"=GREY, "With Controls"=BLUE)) +
+  scale_color_manual(values=c("Task Groups and Year Only"=ORANGE, "With Controls"=GREEN)) +
   scale_y_discrete(expand=expansion(add=0.7)) +
   labs(title="Task Group Coefficients Before and After Controls",
        x="Percent Change in Purchasing Power per Percentage Point Shift", y=NULL, color=NULL) +
@@ -441,16 +441,26 @@ cv_means=cv_folds.groupby("model", as_index=False)["r2"].mean().rename(columns={
 cv_means$mean_label <- sprintf("%.3f", cv_means$mean_r2)
 cv_means$label_x <- ifelse(cv_means$model=="Ordinary Least Squares", 0.74, 2.26)
 
-ggplot(cv_folds, aes(x=model, y=r2, color=model)) +
-  geom_line(aes(x=model, y=r2, group=fold), inherit.aes=FALSE, color="grey75", linewidth=0.5) +
+# evenly spread each fold's point off the shared category center, so the five folds
+# per model don't stack into one vertical clump; the y values (and axis scale) are
+# untouched, only the x position within each category changes
+cv_folds$model_num <- as.numeric(factor(cv_folds$model, levels=c("Ordinary Least Squares","Random Forest")))
+fold_ids <- sort(unique(cv_folds$fold))
+fold_offset <- setNames(seq(-0.15, 0.15, length.out=length(fold_ids)), fold_ids)
+cv_folds$x_spread <- cv_folds$model_num + fold_offset[as.character(cv_folds$fold)]
+cv_means$model_num <- as.numeric(factor(cv_means$model, levels=c("Ordinary Least Squares","Random Forest")))
+
+ggplot(cv_folds, aes(x=x_spread, y=r2, color=model)) +
+  geom_line(aes(x=x_spread, y=r2, group=fold), inherit.aes=FALSE, color="grey75", linewidth=0.5) +
   geom_point(size=2.6) +
-  geom_crossbar(data=cv_means, aes(x=model, y=mean_r2, ymin=mean_r2, ymax=mean_r2),
+  geom_crossbar(data=cv_means, aes(x=model_num, y=mean_r2, ymin=mean_r2, ymax=mean_r2),
                 width=0.35, linewidth=0.5, color="grey30", inherit.aes=FALSE) +
   geom_text(data=cv_means, aes(x=label_x, y=mean_r2, label=mean_label, color=model),
             size=3.4, fontface="bold", vjust=0.5, show.legend=FALSE) +
   scale_color_manual(values=c("Ordinary Least Squares"=BLUE,
                               "Random Forest"=PINK)) +
-  scale_x_discrete(expand=expansion(add=0.6)) +
+  scale_x_continuous(breaks=c(1,2), labels=c("Ordinary Least Squares","Random Forest"),
+                      expand=expansion(add=0.6)) +
   # R² is bounded at 1, so the axis carries a readable slice of that scale rather than
   # closing tightly on the folds, which magnified a 0.006 mean gap into a visual chasm
   scale_y_continuous(breaks=seq(0.85, 1.00, 0.025)) +
@@ -565,6 +575,7 @@ pre_df  <- area_df[area_df$period=="pre",]
 post_df <- area_df[area_df$period=="post",]
 
 label_year <- 2016
+label_x <- 2016.5  # drawn between the 2016 and 2017 ticks rather than on top of either
 label_df <- area_df[area_df$year==label_year,]
 label_df <- label_df[match(group_levels, label_df$group),]
 label_df$cum <- cumsum(label_df$share)
@@ -578,14 +589,14 @@ ggplot(area_df, aes(x=year, y=share, fill=group)) +
   annotate("rect", xmin=2019.9, xmax=2020.1, ymin=0, ymax=1, fill="grey60", alpha=0.35) +
   geom_area(data=pre_df, stat="identity", position=position_stack(reverse=TRUE), linewidth=0) +
   geom_area(data=post_df, stat="identity", position=position_stack(reverse=TRUE), linewidth=0) +
-  geom_text(data=label_df, aes(x=label_year, y=mid, label=group, color=text_color),
+  geom_text(data=label_df, aes(x=label_x, y=mid, label=group, color=text_color),
             hjust=0.5, size=3.3, fontface="bold") +
   scale_color_identity() +
   geom_vline(xintercept=2009.5, linetype="dashed", linewidth=1.0, color="#0B0B0B") +
   # both labels sit above the panel rather than on top of the top band, which
   # needs clip="off" on the coord below and headroom in the top plot margin
-  annotate("text", x=2009.65, y=1.02, label="Census coding change", hjust=0, vjust=0, size=3.1, fontface="bold", color="#0B0B0B") +
-  annotate("text", x=2020.15, y=1.02, label="No data", hjust=0, vjust=0, size=3.1, fontface="bold", color="#0B0B0B") +
+  annotate("text", x=2009.5, y=1.02, label="Census coding change", hjust=0.5, vjust=0, size=3.1, fontface="bold", color="#0B0B0B") +
+  annotate("text", x=2020, y=1.02, label="No data", hjust=0.5, vjust=0, size=3.1, fontface="bold", color="#0B0B0B") +
   scale_fill_manual(values=TASKAREA_COLORS, guide="none") +
   # no limits= on either scale: it drops rows outside the range rather than
   # zooming, and the stack tops land a hair above 1.0 in floating point, which
@@ -616,17 +627,17 @@ common=wide_2010.index.intersection(wide_2023.index)
 rank_rows=[]
 for col, name in area_names.items():
     rho=spearmanr(wide_2010.loc[common, col], wide_2023.loc[common, col]).statistic
-    rank_rows.append({"Task group":name, "Rank correlation":rho})
+    rank_rows.append({"Task Group":name, "Rank Correlation":rho})
 rankcorr_df=pd.DataFrame(rank_rows)
 
 style_table(GT(rankcorr_df)
-  .fmt_number(columns="Rank correlation", decimals=2)
-  .cols_align(align="right", columns="Rank correlation")
-  .cols_width(cases={"Task group": "140px", "Rank correlation": "120px"})
+  .fmt_number(columns="Rank Correlation", decimals=2)
+  .cols_align(align="right", columns="Rank Correlation")
+  .cols_width(cases={"Task Group": "140px", "Rank Correlation": "120px"})
   .tab_source_note("Computed from 2010 onward to avoid the Census occupation coding change."))
 ```
 
-@fig-taskchange-map shows this stability geographically, using the same two years as @tbl-rankcorr. Routine manual and non-routine manual, the two groups with almost no net movement in @fig-taskarea, show small changes that run in both directions across counties, consistent with variation that sits between counties rather than within them. Routine cognitive and non-routine cognitive, the pair whose national levels moved most in @fig-taskarea, show a change that is both larger and far more uniform in direction across the map, matching the within county movement identified in the variance decomposition of @sec-analysis.
+@fig-taskchange-map shows this stability across individual counties, using the same two years as @tbl-rankcorr. Routine manual and non-routine manual, the two groups with almost no net movement in @fig-taskarea, are centered near zero and run in both directions across counties, consistent with variation that sits between counties rather than within them. Routine cognitive and non-routine cognitive, the pair whose national levels moved most in @fig-taskarea, show a change that is both larger and far more uniform in direction, matching the within county movement identified in the variance decomposition of @sec-analysis.
 
 ```{python}
 #| label: taskchange-map-data
@@ -660,28 +671,24 @@ change_bound=float(change_long["change"].abs().quantile(0.98))
 #| label: fig-taskchange-map
 #| echo: false
 #| warning: false
-#| fig-cap: "**County Task Group Change, 2010 to 2023.** Percentage point change in each task group's value, the same two years used in @tbl-rankcorr. Color scale shared across panels so magnitude is comparable across groups. Routine manual and non-routine manual show small, mixed change; routine cognitive and non-routine cognitive show larger, more uniformly signed change."
-%%R -i change_bound -w 9.5 -h 7 -u in -r 150
-suppressMessages(library(sf))
+#| fig-cap: "**County Task Group Change, 2010 to 2023.** Percentage point change in each task group's value, the same two years used in @tbl-rankcorr, one dot per county on a shared scale so magnitude and direction are directly comparable across groups. The black tick marks each group's median. Routine manual and non-routine manual are centered near zero with mixed direction; routine cognitive and non-routine cognitive show larger, more uniformly signed change in opposite directions."
+%%R -i change_long -w 9 -h 5.5 -u in -r 150
+change_long$group <- factor(change_long$group,
+    levels=rev(c("Routine Cognitive","Routine Manual","Non-Routine Cognitive","Non-Routine Manual")))
+change_med <- aggregate(change ~ group, change_long, median)
+change_bound_strip <- max(abs(change_long$change), na.rm=TRUE) * 1.05
 
-change_sf <- st_read("output/taskchange_map.geojson", quiet=TRUE)
-change_sf$group <- factor(change_sf$group,
-    levels=c("Routine Cognitive","Routine Manual","Non-Routine Cognitive","Non-Routine Manual"))
-
-ggplot(change_sf) +
-  geom_sf(aes(fill=change), color="white", linewidth=0.03) +
-  facet_wrap(~group, ncol=2) +
-  scale_fill_distiller(palette="PuOr", direction=1, limits=c(-change_bound, change_bound),
-                        oob=scales::squish, na.value="#eeeeee",
-                        labels=function(v) sprintf("%+.0fpp", v),
-                        name="Change in Task Group Value (Percentage Points)") +
-  coord_sf(crs=st_crs(5070), datum=NA) +
-  theme_void() +
-  labs(title="County Task Group Change, 2010 to 2023") +
-  theme(legend.position="bottom", legend.key.width=unit(1.3,"cm"),
-        plot.title=element_text(face="bold", size=13, hjust=0.5),
-        strip.text=element_text(size=11, face="bold"),
-        plot.background=element_rect(fill="#FCFCFB", color=NA))
+ggplot(change_long, aes(x=change, y=group, color=group)) +
+  geom_vline(xintercept=0, linewidth=0.4, color="#0B0B0B") +
+  geom_jitter(height=0.32, width=0, size=1.1, alpha=0.35) +
+  geom_point(data=change_med, aes(x=change, y=group), inherit.aes=FALSE,
+             shape="|", size=10, color="#0B0B0B", stroke=1.5) +
+  scale_color_manual(values=TASK_COLORS, guide="none") +
+  scale_x_continuous(limits=c(-change_bound_strip, change_bound_strip),
+                      labels=function(v) sprintf("%+.0fpp", v)) +
+  labs(title="County Task Group Change, 2010 to 2023",
+       x="Percentage Point Change, 2010 to 2023", y=NULL) +
+  theme(panel.grid.major.y=element_blank())
 ```
 
 @fig-taskchange-arrows collapses task group change from 2010 to 2023 into a single map by using the two axes that already structure the four task groups in @fig-taskframework: horizontal position shows movement between manual and cognitive work, vertical position shows movement between routine and non-routine work. The window matches every other change measurement in this study, which starts at 2010 to avoid the Census occupation coding change described in @sec-data. Most counties point up and to the left, toward non-routine cognitive work, consistent with routine cognitive and non-routine cognitive being the pair that moved most in @fig-taskarea. A county's color marks whether it moved toward or away from non-routine cognitive work, the reference group and the only one of the four positively associated with purchasing power, so counties colored red moved toward the three groups this study associates with lower purchasing power.
@@ -813,7 +820,7 @@ ggplot() +
   scale_size_manual(values=window_sizes, guide="none") +
   scale_x_continuous(labels=function(v) sprintf("%.1f%%", v)) +
   labs(title="Task Group Coefficients Across Time Windows",
-       x="Percent Change per Point Shifted Out of Non-Routine Cognitive Work", y=NULL) +
+       x="Percent Change in Purchasing Power", y=NULL) +
   theme(legend.position="bottom")
 ```
 

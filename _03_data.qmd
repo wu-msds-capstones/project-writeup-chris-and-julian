@@ -11,7 +11,7 @@ import pandas as pd
 from great_tables import GT
 
 sources_df=pd.DataFrame({
-    "Data source": ["Small Area Income and Poverty Estimates<br>**Census SAIPE**",
+    "Data Source": ["Small Area Income and Poverty Estimates<br>**Census SAIPE**",
                     "Bureau of Economic Analysis Regional Price Parities<br>**BEA RPP**",
                     "Core Based Statistical Area delineation<br>**Census CBSA**",
                     "American Community Survey 1 year estimates<br>**Census ACS**",
@@ -22,21 +22,21 @@ sources_df=pd.DataFrame({
                  "county to metropolitan area crosswalk",
                  "population, occupational employment by category",
                  "unemployment rate"],
-    "Destination table": ["`county_baseline`","`cbsa_rpp`","`cbsa`",
+    "Destination Table": ["`county_baseline`","`cbsa_rpp`","`cbsa`",
                           "`county_baseline`, `county_task_exposure`","`county_baseline`"],
 })
 
 style_table(GT(sources_df)
   .fmt_integer(columns="Records", use_seps=True)
-  .fmt_markdown(columns=["Data source","Destination table"])
-  .cols_align(align="center", columns=["Data source","Records","Measures","Destination table"])
+  .fmt_markdown(columns=["Data Source","Destination Table"])
+  .cols_align(align="center", columns=["Data Source","Records","Measures","Destination Table"])
   .tab_source_note("Scale: 3,143 counties per year, 15 years (2008 to 2023, excluding 2020), 47,140 county year universe, 11,983 rows in the analytical panel.")
   .tab_source_note("Records count rows retrieved from each source rather than analytical observations. The ACS publishes 1 year estimates only for areas above 65,000 residents, which reduces the universe to the 848 county panel.")
   .tab_source_note("All sources retrieved June 2026 through agency APIs or bulk file download."))
 ```
 
 
-The five sources do not begin at the same geographic level. Most observations are reported by county and year, while Regional Price Parities are published at the metropolitan area level. To create a common county year structure, county Federal Information Processing Standards (FIPS) code and year are the primary join keys. Regional Price Parities require an additional step. Counties are first linked to their metropolitan area using the Census Core Based Statistical Area (CBSA) delineation file and then matched to the corresponding BEA price measure [@bea_rpp; @census_cbsa].
+The five sources do not begin at the same geographic level. Most observations are reported by county and year, while Regional Price Parities (RPP) are published at the metropolitan area level. To create a common county year structure, county Federal Information Processing Standards (FIPS) code and year are the primary join keys. Regional Price Parities require an additional step. Counties are first linked to their metropolitan area using the Census Core Based Statistical Area (CBSA) delineation file and then matched to the corresponding Bureau of Economic Analysis (BEA) price measure [@bea_rpp; @census_cbsa].
 
 The study covers 2008 through 2023, excluding 2020. The American Community Survey (ACS) did not publish its standard 1 year estimates in 2020 following disruptions to data collection during the COVID pandemic [@census_acs]. Because these estimates provide the occupational employment counts used to construct the task groups, the same year is excluded from the panel. Across the remaining fifteen years, the Small Area Income and Poverty Estimates (SAIPE) program provides an initial frame of 47,140 county year observations.[^universe]
 
@@ -44,7 +44,7 @@ The study covers 2008 through 2023, excluding 2020. The American Community Surve
 
 ## Measuring task groups
 
-Following the task framework introduced in @sec-background, we grouped the broad occupational categories reported in the ACS 1 year estimates into four task groups: routine cognitive, routine manual, non routine cognitive, and non routine manual. Because the Census categories do not carry these labels directly, we applied the classification logic of @AutorDorn2013. Clerical and sales occupations were classified as routine cognitive, production and construction occupations as routine manual, managerial, professional, and technical occupations as non routine cognitive, and service occupations as non routine manual. For each county and year, employment was then summed across the occupational categories assigned to each group, as shown in @eq-totals.
+Following the task framework introduced in @sec-background, we grouped the broad occupational categories reported in the ACS 1 year estimates into four task groups: routine cognitive, routine manual, non-routine cognitive, and non-routine manual. Because the Census categories do not carry these labels directly, we applied the classification logic of @AutorDorn2013. Clerical and sales occupations were classified as routine cognitive, production and construction occupations as routine manual, managerial, professional, and technical occupations as non-routine cognitive, and service occupations as non-routine manual. For each county and year, employment was then summed across the occupational categories assigned to each group, as shown in @eq-totals.
 
 $$
 T_{g,c,t} = \sum_{o \in g} E_{o,c,t}
@@ -56,7 +56,7 @@ $$
 G_{g,c,t} = \frac{T_{g,c,t}}{\sum_{g'} T_{g',c,t}}
 $$ {#eq-group}
 
-These proportions place counties of different sizes on a common scale, allowing the analysis to compare task groups rather than the size of the workforce. Because the four proportions sum to one, one group must be omitted from the regression to avoid perfect collinearity. Non routine cognitive work is the reference group, so the remaining coefficients are interpreted relative to it. @sec-analysis explains how this composition is incorporated into the models.
+These proportions place counties of different sizes on a common scale, allowing the analysis to compare task groups rather than the size of the workforce. Because the four proportions sum to one, one group must be omitted from the regression to avoid perfect collinearity. Non-routine cognitive work is the reference group, so the remaining coefficients are interpreted relative to it. @sec-analysis explains how this composition is incorporated into the models.
 
 We retain all four task groups in the data rather than combining them into a single routine intensity index because the type of work matters. Under a single index, a county shifting away from clerical work and a county shifting away from assembly work could appear identical even though the underlying changes in task groups are different.
 
@@ -70,7 +70,7 @@ $$
 A_{c,t} = \frac{\text{Median household income}_{c,t}}{\text{RPP}_{c,t} / 100}
 $$ {#eq-afford}
 
-A county with a median household income of $60,000 and a Regional Price Parity of 120 has purchasing power of $50,000. In practical terms, that income buys roughly what $50,000 would buy at national average prices. This adjustment makes household income more comparable across counties by accounting for differences in local prices.
+A county with a median household income of \$60,000 and a Regional Price Parity of 120 has purchasing power of \$50,000. In practical terms, that income buys roughly what \$50,000 would buy at national average prices. This adjustment makes household income more comparable across counties by accounting for differences in local prices.
 
 Regional Price Parities adjust for differences across places, but not for changes in the national price level over time. Purchasing power is therefore reported in U.S. dollars. Deflating those dollars to a constant base year with a national price index is the familiar alternative, and the regression uses year indicators instead. A national deflator assigns a single value to every county in a year, so in the log specification used for inference it shifts each year's observations by a constant the year indicators already absorb, leaving the task group estimates unchanged. The indicators also absorb changes shared across counties within a year that a price index does not measure, such as common movements in incomes. @sec-analysis explains how these year effects enter the model, and @sec-conclusions states what this choice costs.
 
@@ -297,7 +297,7 @@ graphviz.Source(dot)
 
 The warehouse is organized around the county table, which is keyed by FIPS code and linked to state as a reference table. Three analytical tables join to each county by FIPS code and year. county_baseline contains population, median household income, poverty rate, and unemployment rate. county_task_exposure contains the four task group totals defined in @eq-totals, while county_affordability contains the purchasing power outcome.
 
-Two table names reflect earlier stages of the project. county_task_exposure was originally created for a measure based on Occupational Information Network (O*NET) task ratings [@onet], although the current table contains the employment based task measures used in this study. Likewise, county_affordability and its affordability_salary column predate the purchasing power terminology adopted in the report. The normalized task shares defined in @eq-group are stored as generated columns, allowing the database to derive them directly from the four task totals and maintain a consistent calculation across the analysis.
+Two table names reflect earlier stages of the project. county_task_exposure was originally created for a measure based on Occupational Information Network (O*NET) task ratings [@onet], although the current table contains the employment based task measures used in this study. Likewise, county_affordability and its affordability_salary column predate the purchasing power terminology adopted in the report. The normalized task proportions defined in @eq-group are stored as generated columns, allowing the database to derive them directly from the four task totals and maintain a consistent calculation across the analysis.
 
 Regional Price Parities follow a separate relational path because BEA reports them at the metropolitan level. County membership in a metropolitan area is stored in the county_cbsa_code junction table, which links county to cbsa and then to cbsa_rpp. Keeping these relationships separate preserves the geographic level at which BEA reports the price measures and avoids duplicating the same metropolitan parity across multiple county records.
 
