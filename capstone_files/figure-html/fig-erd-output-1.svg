@@ -8,8 +8,7 @@
  viewBox="0.00 0.00 1397.00 1249.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 1245.4)">
 <title>architecture</title>
-<polygon fill="#fcfcfb" stroke="none" points="-4,4 -4,-1245.4 1393,-1245.4 1393,4 -4,4"/>
-<text xml:space="preserve" text-anchor="start" x="345.38" y="-1216.65" font-family="Helvetica,sans-Serif" font-weight="bold" font-size="24.00">Data Pipeline Architecture, Source to Analysis Ready Output</text>
+<text xml:space="preserve" text-anchor="start" x="544.12" y="-1216.65" font-family="Helvetica,sans-Serif" font-weight="bold" font-size="24.00">Data Pipeline Architecture</text>
 <g id="clust1" class="cluster">
 <title>cluster_source</title>
 <path fill="#f9f9f7" stroke="#c3c2b7" d="M20,-1098.95C20,-1098.95 527,-1098.95 527,-1098.95 533,-1098.95 539,-1104.95 539,-1110.95 539,-1110.95 539,-1184.65 539,-1184.65 539,-1190.65 533,-1196.65 527,-1196.65 527,-1196.65 20,-1196.65 20,-1196.65 14,-1196.65 8,-1190.65 8,-1184.65 8,-1184.65 8,-1110.95 8,-1110.95 8,-1104.95 14,-1098.95 20,-1098.95"/>
@@ -28,7 +27,7 @@
 <g id="clust5" class="cluster">
 <title>cluster_output</title>
 <path fill="#f9f9f7" stroke="#c3c2b7" d="M1032,-8C1032,-8 1369,-8 1369,-8 1375,-8 1381,-14 1381,-20 1381,-20 1381,-217.22 1381,-217.22 1381,-223.22 1375,-229.22 1369,-229.22 1369,-229.22 1032,-229.22 1032,-229.22 1026,-229.22 1020,-223.22 1020,-217.22 1020,-217.22 1020,-20 1020,-20 1020,-14 1026,-8 1032,-8"/>
-<text xml:space="preserve" text-anchor="middle" x="1200.5" y="-210.03" font-family="Helvetica,sans-Serif" font-weight="bold" font-size="16.00">ANALYSIS OUTPUTS</text>
+<text xml:space="preserve" text-anchor="middle" x="1200.5" y="-210.03" font-family="Helvetica,sans-Serif" font-weight="bold" font-size="16.00">MODELING TABLES</text>
 </g>
 <!-- src_census -->
 <g id="node1" class="node">
@@ -216,17 +215,17 @@
 <!-- analysis_table -->
 <g id="node13" class="node">
 <title>analysis_table</title>
-<path fill="#fbe3d3" stroke="#eb6834" d="M1235.7,-186.72C1235.7,-186.72 1050.3,-186.72 1050.3,-186.72 1044.3,-186.72 1038.3,-180.72 1038.3,-174.72 1038.3,-174.72 1038.3,-161.53 1038.3,-161.53 1038.3,-155.53 1044.3,-149.53 1050.3,-149.53 1050.3,-149.53 1235.7,-149.53 1235.7,-149.53 1241.7,-149.53 1247.7,-155.53 1247.7,-161.53 1247.7,-161.53 1247.7,-174.72 1247.7,-174.72 1247.7,-180.72 1241.7,-186.72 1235.7,-186.72"/>
-<text xml:space="preserve" text-anchor="middle" x="1143" y="-169.82" font-family="Helvetica,sans-Serif" font-size="14.00">Analysis ready county&#45;year table</text>
-<text xml:space="preserve" text-anchor="middle" x="1143" y="-154.82" font-family="Helvetica,sans-Serif" font-size="14.00">(joined on county_fips and year)</text>
+<path fill="#fbe3d3" stroke="#eb6834" d="M1234.33,-186.72C1234.33,-186.72 1049.67,-186.72 1049.67,-186.72 1043.67,-186.72 1037.67,-180.72 1037.67,-174.72 1037.67,-174.72 1037.67,-161.53 1037.67,-161.53 1037.67,-155.53 1043.67,-149.53 1049.67,-149.53 1049.67,-149.53 1234.33,-149.53 1234.33,-149.53 1240.33,-149.53 1246.33,-155.53 1246.33,-161.53 1246.33,-161.53 1246.33,-174.72 1246.33,-174.72 1246.33,-180.72 1240.33,-186.72 1234.33,-186.72"/>
+<text xml:space="preserve" text-anchor="middle" x="1142" y="-169.82" font-family="Helvetica,sans-Serif" font-size="14.00">Analysis ready county year table</text>
+<text xml:space="preserve" text-anchor="middle" x="1142" y="-154.82" font-family="Helvetica,sans-Serif" font-size="14.00">(joined on county_fips and year)</text>
 </g>
 <!-- county_baseline&#45;&gt;analysis_table -->
 <!-- county_task_exposure&#45;&gt;analysis_table -->
 <!-- county_affordability&#45;&gt;analysis_table -->
 <g id="edge14" class="edge">
 <title>county_affordability&#45;&gt;analysis_table</title>
-<path fill="none" stroke="black" d="M1012,-329.43C1038.98,-296.41 1066.45,-262.8 1089.22,-234.94"/>
-<polygon fill="black" stroke="black" points="1090.76,-236.37 1092.93,-230.39 1087.51,-233.71 1090.76,-236.37"/>
+<path fill="none" stroke="black" d="M1012,-328.85C1038.73,-296.01 1065.89,-262.63 1088.43,-234.94"/>
+<polygon fill="black" stroke="black" points="1089.97,-236.37 1092.13,-230.4 1086.72,-233.72 1089.97,-236.37"/>
 </g>
 <!-- cbsa -->
 <g id="node11" class="node">
@@ -276,8 +275,8 @@
 <!-- analysis_table&#45;&gt;models -->
 <g id="edge8" class="edge">
 <title>analysis_table&#45;&gt;models</title>
-<path fill="none" stroke="black" d="M1140.05,-149.11C1136.6,-128.03 1130.87,-93.04 1127.01,-69.51"/>
-<polygon fill="black" stroke="black" points="1129.12,-69.38 1126.08,-63.8 1124.98,-70.06 1129.12,-69.38"/>
+<path fill="none" stroke="black" d="M1139.2,-149.11C1135.92,-128.03 1130.47,-93.04 1126.81,-69.51"/>
+<polygon fill="black" stroke="black" points="1128.92,-69.4 1125.92,-63.8 1124.77,-70.05 1128.92,-69.4"/>
 </g>
 <!-- figures -->
 <g id="node15" class="node">
@@ -288,8 +287,8 @@
 <!-- analysis_table&#45;&gt;figures -->
 <g id="edge9" class="edge">
 <title>analysis_table&#45;&gt;figures</title>
-<path fill="none" stroke="black" d="M1166.17,-149.11C1194.23,-127.27 1241.51,-90.5 1271.7,-67.01"/>
-<polygon fill="black" stroke="black" points="1272.86,-68.77 1276.31,-63.43 1270.28,-65.46 1272.86,-68.77"/>
+<path fill="none" stroke="black" d="M1165.31,-149.11C1193.56,-127.27 1241.13,-90.5 1271.52,-67.01"/>
+<polygon fill="black" stroke="black" points="1272.7,-68.76 1276.16,-63.43 1270.13,-65.43 1272.7,-68.76"/>
 </g>
 </g>
 </svg>

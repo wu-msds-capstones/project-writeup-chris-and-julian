@@ -2,7 +2,7 @@
 
 ## Summary of findings
 
-The introduction opened with national concern about automation. At the county level, the evidence shows that a county's task groups are associated with real differences in residents' purchasing power. Across 848 counties and fifteen years, counties with higher concentrations of routine and manual work tend to have lower purchasing power than counties where non-routine cognitive work dominates. This pattern persists after accounting for poverty, unemployment, population, and year. At the panel mean, a one percentage point shift from non-routine cognitive to non-routine manual work is associated with roughly \$846 less in purchasing power, with a 95 percent interval of plus or minus \$38. The diagnostics suggest this relationship is better represented as proportional rather than linear in dollars. Neither the random forest nor the neural network improved on the log linear specification, and across five grouped cross validation folds the difference between the linear model and the forest was smaller than the variation between folds, so the added complexity provided little benefit.
+The introduction opened with national concern about automation. At the county level, the evidence shows that a county's task groups are associated with real differences in residents' purchasing power. Across 848 counties and fifteen years, counties with higher concentrations of routine and manual work tend to have lower purchasing power than counties where non-routine cognitive work dominates. This pattern persists after accounting for poverty, unemployment, population, and year. At the panel mean, a one percentage point shift from non-routine cognitive to non-routine manual work is associated with roughly \$846 less in purchasing power, with a 95 percent interval of plus or minus \$38. The diagnostics suggest this relationship is better represented as proportional rather than linear in dollars. Neither the random forest nor the neural network improved on the log linear specification, and across five grouped cross validation folds the difference between the linear model and the forest was smaller than the variation between folds, and the added complexity provided little benefit.
 
 ## Contributions
 
@@ -20,17 +20,17 @@ For economic development agencies and other organizations making place based inv
 
 Five limitations bound what the results can support. The findings are associations rather than causal effects, since counties were not assigned their task groups. Any factor tied to both the work a county contains and its purchasing power could account for part of the relationship.
 
-The panel covers only counties above 65,000 residents, so rural counties are underrepresented and the estimates describe the more populous three quarters of the population rather than counties in general.
+The panel covers only counties above 65,000 residents. Rural counties are therefore underrepresented, and the estimates describe the more populous three quarters of the population rather than counties in general.
 
-The panel regression carries no state effects, so its estimates absorb whatever varies systematically by state. The predictive models, which do include state indicators, suggest that variation is modest once poverty, unemployment, and time are present, but the two specifications are not identical on this point.
+The panel regression carries no state effects, and its estimates therefore absorb whatever varies systematically by state. The predictive models, which do include state indicators, suggest that variation is modest once poverty, unemployment, and time are present, but the two specifications are not identical on this point.
 
-Purchasing power is also not deflated to a constant base year, so the year indicators absorb national price drift alongside every other change common to a year, rather than the panel correcting for inflation directly. @sec-analysis treats them as nuisance parameters for this reason. That choice means the year effects cannot be read as a measure of purchasing power's growth over time.
+Purchasing power is also not deflated to a constant base year, and the year indicators therefore absorb national price drift alongside every other change common to a year, rather than the panel correcting for inflation directly. @sec-analysis treats them as nuisance parameters for this reason. That choice means the year effects cannot be read as a measure of purchasing power's growth over time.
 
-A majority of panel rows carry a state level price parity rather than a local one, so the outcome is measured more coarsely in nonmetropolitan counties, and the analysis does not separate the two.
+A majority of panel rows carry a state level price parity rather than a local one. The outcome is therefore measured more coarsely in nonmetropolitan counties, and the analysis does not separate the two.
 
 ## Ethical considerations
 
-The design also carries ethical boundaries that shape how the results should be read. The unit of analysis is the county, so every claim describes places rather than people, and inferring anything about an individual worker from these results would be an ecological fallacy.
+The design also carries ethical boundaries that shape how the results should be read. Because the unit of analysis is the county, every claim describes places rather than people, and inferring anything about an individual worker from these results would be an ecological fallacy.
 
 The population threshold means the smallest and most rural counties are absent, a representation bias built into the source data rather than introduced by the analysis. Any application of these findings to such places would be extrapolation beyond the data.
 
@@ -38,7 +38,7 @@ The associational framing constrains what these estimates can support, since pre
 
 Describing counties as exposed carries a related risk, since that language could stigmatize communities or steer investment away from the places these findings are meant to help.
 
-The study uses public aggregate data only, so no individual's information enters the analysis at any point.
+The study uses public aggregate data only, and no individual's information enters the analysis at any point.
 
 ## Future directions
 

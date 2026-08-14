@@ -77,7 +77,7 @@ merged_context[["fips", "poverty_rate", "unemployment_rate",
 #| echo: false
 #| warning: false
 #| fig-cap: "**Four Views of County Economic Conditions.** (A) Poverty rate and (B) unemployment rate describe economic distress. (C) Median household income describes nominal household resources. (D) Regional Price Parity shows how local prices vary relative to the national average, before the two are combined into purchasing power in later sections. All panels use the same year and geographic coverage. Continental United States, 2023. Each panel is clipped at the 2nd and 98th percentiles; counties without a value are shown in gray."
-%%R -i pov_ctx_vmin -i pov_ctx_vmax -i unemp_ctx_vmin -i unemp_ctx_vmax -i inc_ctx_vmin -i inc_ctx_vmax -i rpp_ctx_vmin -i rpp_ctx_vmax -w 10 -h 9 -u in -r 150
+%%R -i pov_ctx_vmin -i pov_ctx_vmax -i unemp_ctx_vmin -i unemp_ctx_vmax -i inc_ctx_vmin -i inc_ctx_vmax -i rpp_ctx_vmin -i rpp_ctx_vmax -w 10 -h 9 -u in -r 150 -b transparent
 suppressMessages(library(sf))
 
 context_sf <- st_read("output/county_context.geojson", quiet=TRUE)
@@ -85,13 +85,13 @@ context_sf <- st_read("output/county_context.geojson", quiet=TRUE)
 context_panel_theme <- theme_void() +
   theme(legend.position="bottom", legend.key.width=unit(1.1, "cm"),
         plot.title=element_text(face="bold", size=11, hjust=0.5),
-        plot.background=element_rect(fill="#FCFCFB", color=NA))
+        plot.background=element_rect(fill=NA, color=NA))
 
 bottom_guide <- guide_colorbar(direction="horizontal", title.position="bottom", title.hjust=0.5)
 
 p_pov <- ggplot(context_sf) +
   geom_sf(aes(fill=poverty_rate), color="white", linewidth=0.05) +
-  scale_fill_gradient(low="#FCFCFB", high=ORANGE, limits=c(pov_ctx_vmin, pov_ctx_vmax),
+  scale_fill_gradient(low="#FCFCFB", high="#ff7f00", limits=c(pov_ctx_vmin, pov_ctx_vmax),
                       oob=scales::squish, na.value="#EEEEEE", name="Poverty Rate (%)",
                       guide=bottom_guide) +
   coord_sf(crs=st_crs(5070), datum=NA) +
@@ -100,7 +100,7 @@ p_pov <- ggplot(context_sf) +
 
 p_unemp <- ggplot(context_sf) +
   geom_sf(aes(fill=unemployment_rate), color="white", linewidth=0.05) +
-  scale_fill_gradient(low="#FCFCFB", high=PINK, limits=c(unemp_ctx_vmin, unemp_ctx_vmax),
+  scale_fill_gradient(low="#FCFCFB", high="#fb9a99", limits=c(unemp_ctx_vmin, unemp_ctx_vmax),
                       oob=scales::squish, na.value="#EEEEEE", name="Unemployment Rate (%)",
                       guide=bottom_guide) +
   coord_sf(crs=st_crs(5070), datum=NA) +
@@ -109,7 +109,7 @@ p_unemp <- ggplot(context_sf) +
 
 p_inc <- ggplot(context_sf) +
   geom_sf(aes(fill=median_household_income), color="white", linewidth=0.05) +
-  scale_fill_gradient(low="#FCFCFB", high=GREEN, limits=c(inc_ctx_vmin, inc_ctx_vmax),
+  scale_fill_gradient(low="#FCFCFB", high="#33a02c", limits=c(inc_ctx_vmin, inc_ctx_vmax),
                       oob=scales::squish, na.value="#EEEEEE",
                       labels=function(v) sprintf("$%.0fk", v/1000),
                       name="Median Household Income",
@@ -120,7 +120,7 @@ p_inc <- ggplot(context_sf) +
 
 p_rpp <- ggplot(context_sf) +
   geom_sf(aes(fill=rpp), color="white", linewidth=0.05) +
-  scale_fill_gradient(low="#FCFCFB", high=BLUE, limits=c(rpp_ctx_vmin, rpp_ctx_vmax),
+  scale_fill_gradient(low="#FCFCFB", high="#1f78b4", limits=c(rpp_ctx_vmin, rpp_ctx_vmax),
                       oob=scales::squish, na.value="#EEEEEE",
                       name="Regional Price Parity",
                       guide=bottom_guide) +

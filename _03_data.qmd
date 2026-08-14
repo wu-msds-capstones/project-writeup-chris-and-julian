@@ -56,7 +56,7 @@ $$
 G_{g,c,t} = \frac{T_{g,c,t}}{\sum_{g'} T_{g',c,t}}
 $$ {#eq-group}
 
-These proportions place counties of different sizes on a common scale, allowing the analysis to compare task groups rather than the size of the workforce. Because the four proportions sum to one, one group must be omitted from the regression to avoid perfect collinearity. Non-routine cognitive work is the reference group, so the remaining coefficients are interpreted relative to it. @sec-analysis explains how these task groups are incorporated into the models.
+These proportions place counties of different sizes on a common scale, allowing the analysis to compare task groups rather than the size of the workforce. Because the four proportions sum to one, one group must be omitted from the regression to avoid perfect collinearity. Non-routine cognitive work is the reference group, and the remaining coefficients are interpreted relative to it. @sec-analysis explains how these task groups are incorporated into the models.
 
 We retain all four task groups in the data rather than combining them into a single routine intensity index because the type of work matters. Under a single index, a county shifting away from clerical work and a county shifting away from assembly work could appear identical even though the underlying changes in task groups are different.
 
@@ -72,7 +72,7 @@ $$ {#eq-afford}
 
 A county with a median household income of \$60,000 and a Regional Price Parity of 120 has purchasing power of \$50,000. In practical terms, that income buys roughly what \$50,000 would buy at national average prices. This adjustment makes household income more comparable across counties by accounting for differences in local prices.
 
-Regional Price Parities adjust for differences across places, but not for changes in the national price level over time. Purchasing power is therefore reported in U.S. dollars. Deflating those dollars to a constant base year with a national price index is the familiar alternative, and the regression uses year indicators instead. A national deflator assigns a single value to every county in a year, so in the log specification used for inference it shifts each year's observations by a constant the year indicators already absorb, leaving the task group estimates unchanged. The indicators also absorb changes shared across counties within a year that a price index does not measure, such as common movements in incomes. @sec-analysis explains how these year effects enter the model, and @sec-conclusions states what this choice costs.
+Regional Price Parities adjust for differences across places, but not for changes in the national price level over time. Purchasing power is therefore reported in U.S. dollars. Deflating those dollars to a constant base year with a national price index is the familiar alternative, and the regression uses year indicators instead. A national deflator assigns a single value to every county in a year, and in the log specification used for inference it therefore shifts each year's observations by a constant the year indicators already absorb, leaving the task group estimates unchanged. The indicators also absorb changes shared across counties within a year that a price index does not measure, such as common movements in incomes. @sec-analysis explains how these year effects enter the model, and @sec-conclusions states what this choice costs.
 
 BEA does not publish a separate Regional Price Parity for counties outside metropolitan areas. These counties are assigned the corresponding state level parity instead. Within the analytical panel, 45.5 percent of county year observations use a metropolitan parity and 54.5 percent use the state measure. This provides price coverage across the full analytical sample, but it also introduces a limitation because counties assigned the same state value may face different local prices.
 
@@ -110,44 +110,52 @@ baseline_long["variable"]=baseline_long["variable"].map(baseline_names)
 #| label: fig-baseline-dists
 #| echo: false
 #| warning: false
-#| fig-cap: "**Distribution of the Control Variables.** Across the same 12,087 county year task group panel as @fig-dists, shown as violin plots with an embedded box marking the median, interquartile range, and outliers. (A) Poverty rate and (B) unemployment rate are both right skewed, with unemployment the more extreme of the two. (C) Population spans several orders of magnitude and is shown on a logarithmic scale; this skew is why the models use its log form. (D) Median household income is right skewed with a moderate upper tail."
-%%R -i baseline_long -w 9 -h 7 -u in -r 150
+#| fig-cap: "**Distribution of the Control Variables.** Across the same 12,087 county year task group panel as @fig-dists, shown as violin plots with an embedded box marking the median, interquartile range, and outliers. A) Poverty rate and B) unemployment rate are both right skewed, with unemployment the more extreme of the two; both are shown in percentage points. C) Population is plotted on a logarithmic scale because it spans several orders of magnitude, which is also why the models use its log form. D) Median household income, in dollars, is right skewed with a moderate upper tail."
+%%R -i baseline_long -w 9 -h 7 -u in -r 150 -b transparent
+dollar_axis <- function(v) ifelse(is.na(v), "", ifelse(v == 0, "$0",
+  sprintf("%s$%s", ifelse(v < 0, "-", ""), formatC(abs(v), format="d", big.mark=","))))
 baseline_order <- c("Poverty Rate (%)","Unemployment Rate (%)","Population","Median Household Income ($)")
 baseline_long$variable <- factor(baseline_long$variable, levels=baseline_order)
 
 p_pov <- ggplot(subset(baseline_long, variable=="Poverty Rate (%)"), aes(x=variable, y=value)) +
-  geom_violin(fill=ORANGE, color=ORANGE, alpha=0.35, linewidth=0.6, trim=TRUE) +
+  geom_violin(fill="#ff7f00", color="#ff7f00", alpha=0.35, linewidth=0.6, trim=TRUE) +
   geom_boxplot(width=0.12, fill="white", color="grey30", alpha=0.7,
                outlier.size=0.8, outlier.alpha=0.5) +
-  labs(title="Poverty Rate", x=NULL, y="Percent") +
-  theme(axis.text.x=element_blank())
+  scale_y_continuous(labels=function(v) sprintf("%g%%", v)) +
+  labs(title="Poverty Rate", x=NULL, y="Rate") +
+  theme(axis.text.x=element_blank()) +
+  theme(plot.title=element_text(size=11))
 
 p_unemp <- ggplot(subset(baseline_long, variable=="Unemployment Rate (%)"), aes(x=variable, y=value)) +
-  geom_violin(fill=PINK, color=PINK, alpha=0.35, linewidth=0.6, trim=TRUE) +
+  geom_violin(fill="#fb9a99", color="#fb9a99", alpha=0.35, linewidth=0.6, trim=TRUE) +
   geom_boxplot(width=0.12, fill="white", color="grey30", alpha=0.7,
                outlier.size=0.8, outlier.alpha=0.5) +
-  labs(title="Unemployment Rate", x=NULL, y="Percent") +
-  theme(axis.text.x=element_blank())
+  scale_y_continuous(labels=function(v) sprintf("%g%%", v)) +
+  labs(title="Unemployment Rate", x=NULL, y="Rate") +
+  theme(axis.text.x=element_blank()) +
+  theme(plot.title=element_text(size=11))
 
 p_pop <- ggplot(subset(baseline_long, variable=="Population"), aes(x=variable, y=value)) +
-  geom_violin(fill=GREY, color=GREY, alpha=0.35, linewidth=0.6, trim=TRUE) +
+  geom_violin(fill="#8F8D87", color="#8F8D87", alpha=0.35, linewidth=0.6, trim=TRUE) +
   geom_boxplot(width=0.12, fill="white", color="grey30", alpha=0.7,
                outlier.size=0.8, outlier.alpha=0.5) +
   scale_y_log10(labels=label_comma()) +
-  labs(title="Population", x=NULL, y="Population (Log Scale)") +
-  theme(axis.text.x=element_blank())
+  labs(title="Population", x=NULL, y="Population") +
+  theme(axis.text.x=element_blank()) +
+  theme(plot.title=element_text(size=11))
 
 p_inc <- ggplot(subset(baseline_long, variable=="Median Household Income ($)"), aes(x=variable, y=value)) +
-  geom_violin(fill=GREEN, color=GREEN, alpha=0.35, linewidth=0.6, trim=TRUE) +
+  geom_violin(fill="#33a02c", color="#33a02c", alpha=0.35, linewidth=0.6, trim=TRUE) +
   geom_boxplot(width=0.12, fill="white", color="grey30", alpha=0.7,
                outlier.size=0.8, outlier.alpha=0.5) +
   scale_y_continuous(labels=dollar_axis) +
   labs(title="Median Household Income", x=NULL, y="Income") +
-  theme(axis.text.x=element_blank())
+  theme(axis.text.x=element_blank()) +
+  theme(plot.title=element_text(size=11))
 
 (p_pov | p_unemp) / (p_pop | p_inc) +
   plot_annotation(title="Distribution of the Control Variables",
-                  tag_levels="A",
+                  tag_levels="A", tag_suffix=")",
                   theme=theme(plot.title=element_text(face="bold", size=13, hjust=0.5),
                               plot.tag=element_text(face="bold", size=11, color="#0B0B0B")))
 ```
@@ -176,7 +184,7 @@ Processed data are then written to an analytical warehouse containing eleven tab
 
 ```{python}
 #| label: fig-erd
-#| fig-cap: "**Data Pipeline Architecture, Source to Analysis Ready Output.** Traces the full pipeline from source ingestion through the normalized warehouse to analysis ready outputs."
+#| fig-cap: "**Data Pipeline Architecture.** Traces the full pipeline from source ingestion through the normalized warehouse to analysis ready outputs."
 #| echo: false
 import graphviz
 
@@ -197,9 +205,9 @@ dot = f'''
 digraph architecture {{
   rankdir=TB
   compound=true
-  bgcolor="#FCFCFB"
+  bgcolor="transparent"
   fontname="Helvetica"
-  label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD><FONT FACE="Helvetica-Bold" POINT-SIZE="24">Data Pipeline Architecture, Source to Analysis Ready Output</FONT></TD></TR></TABLE>>
+  label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD><FONT FACE="Helvetica-Bold" POINT-SIZE="24">Data Pipeline Architecture</FONT></TD></TR></TABLE>>
   labelloc="t"
   nodesep=0.4
   ranksep=0.9
@@ -266,7 +274,7 @@ digraph architecture {{
   }}
 
   subgraph cluster_output {{
-    label="ANALYSIS OUTPUTS"
+    label="MODELING TABLES"
     labeljust="c"
     fontsize=16
     fontname="Helvetica-Bold"
@@ -275,7 +283,7 @@ digraph architecture {{
     bgcolor="#F9F9F7"
     margin=18
     node [style="filled,rounded", fillcolor="{OUT_FILL}", color="{OUT_BORDER}", margin="0.1,0.05", fontsize=14]
-    analysis_table [label="Analysis ready county-year table\\n(joined on county_fips and year)"]
+    analysis_table [label="Analysis ready county year table\\n(joined on county_fips and year)"]
     models [label="Statistical and ML models"]
     figures [label="Figures and tables"]
     {{rank=same; models; figures}}
@@ -300,5 +308,7 @@ The warehouse is organized around the county table, which is keyed by FIPS code 
 Two table names reflect earlier stages of the project. county_task_exposure was originally created for a measure based on Occupational Information Network (O*NET) task ratings [@onet], although the current table contains the employment based task measures used in this study. Likewise, county_affordability and its affordability_salary column predate the purchasing power terminology adopted in the report. The normalized task proportions defined in @eq-group are stored as generated columns, allowing the database to derive them directly from the four task totals and maintain a consistent calculation across the analysis.
 
 Regional Price Parities follow a separate relational path because BEA reports them at the metropolitan level. County membership in a metropolitan area is stored in the county_cbsa_code junction table, which links county to cbsa and then to cbsa_rpp. Keeping these relationships separate preserves the geographic level at which BEA reports the price measures and avoids duplicating the same metropolitan parity across multiple county records.
+
+Data processing, modeling, and machine learning were carried out in Python using pandas [@pandas2010], NumPy [@numpy2020], SciPy [@scipy2020], statsmodels [@statsmodels2010], scikit-learn [@sklearn2011], TensorFlow [@tensorflow2016], and GeoPandas [@geopandas2020]. Figures were produced in R [@rcoreteam2024] using ggplot2 [@ggplot2_2016], patchwork [@patchwork2024], scales [@scales2023], and sf [@sf2018].
 
 Together, these steps produce a consistent county year panel that integrates a county's task groups, purchasing power, and baseline economic conditions within a common analytical structure. This structure allows the analysis to compare how task groups and purchasing power vary across counties and over time.
