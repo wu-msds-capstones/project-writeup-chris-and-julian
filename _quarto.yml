@@ -1,21 +1,22 @@
 project:
   type: manuscript
   output-dir: _output
-
-resources:
-  - "_*.qmd"
+  resources:
+    - "_*.qmd"
 
 manuscript:
   article: capstone.qmd
+  notebooks: []
 
 format:
   html:
     embed-resources: true
+    notebook-view: false
+    css: styles.css
+    include-after-body: caption-bold.html
     theme:
       light: lightly
       dark: darkly
-    mermaid:
-      theme: neutral
 
 execute:
   echo: false

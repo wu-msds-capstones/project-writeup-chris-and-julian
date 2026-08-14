@@ -1,11 +1,62 @@
 # Introduction {#sec-intro}
 
-American workers anticipate that automation will transform their jobs. According to Gallup, concern about technology rendering jobs obsolete rose between 2021 and 2023 [@Gallup2023], and Pew reports that Americans expect automation to displace other workers while leaving their own jobs largely intact [@Pew2017]. Concern of this kind is a belief about the future, and it need not track the work a place actually contains. Across the counties analyzed in this study, which together house approximately 282 million people, or about 84 percent of the United States population [@census_popest2023], routine work accounts for roughly 37 percent of measured task content, and that figure varies widely from county to county. This study asks whether the balance of work in a county is associated with the purchasing power of the people who live there.
+American workers anticipate that automation will transform their jobs. According to Gallup, concern about technology rendering jobs obsolete rose between 2021 and 2023 [@Gallup2023], and Pew reports that Americans expect automation to displace other workers while leaving their own jobs largely intact [@Pew2017]. Concern of this kind is a belief about the future, and it need not track the work a place actually contains. Across the counties analyzed in this study, which together house approximately 282 million people, or about 84 percent of the United States population [@census_popest2023], routine work accounts for roughly 37 percent of measured task content, and that figure varies widely from county to county. If automation displaces work, the loss reaches households through income, and income matters through what it buys where its earners live. Because prices differ substantially across counties, differences in nominal income overstate differences in what residents can afford [@Moretti2013]. This study asks whether a county's task groups are associated with the purchasing power of the people who live there.
 
-Three studies established the framework we build on. @Autor2003 showed that computers substitute for routine tasks and complement non-routine ones, which makes it possible to identify occupations exposed to automation. Applying that idea to local labor markets, @AutorDorn2013 documented polarization in routine intensive areas, where employment grew at both the high and low ends of the wage distribution while middle wage employment declined. @AcemogluAutor2011 then generalized the argument into a model in which tasks are the unit of production and skill groups compete to supply them, and that model remains the standard reference for empirical work on automation and labor markets.
+Three studies established the framework we build on. @Autor2003 showed that computers substitute for routine tasks and complement non-routine ones, which makes it possible to identify occupations exposed to automation. Applying that idea to local labor markets, @AutorDorn2013 documented polarization in routine intensive areas, where employment grew at both the high and low ends of the wage distribution while middle wage employment declined. @AcemogluAutor2011 then generalized the argument into a model in which tasks are the unit of production and skill groups compete to supply them.
 
-None of this work speaks directly to purchasing power at the county level, for three reasons. Outcomes are reported in unadjusted wages and employment counts rather than in what those wages buy locally, the unit of analysis is the commuting zone rather than the county, and estimation is linear, so these designs cannot say whether purchasing power moves with the balance of work in fixed dollar steps or in proportion. None of the three is a flaw in the earlier studies, which were built for other questions. @sec-background takes each one up in turn.
+None of this work speaks directly to purchasing power at the county level, for three reasons. Outcomes are reported in unadjusted wages and employment counts rather than in what those wages buy locally, the unit of analysis is the commuting zone rather than the county, and estimation is linear, so these designs cannot say whether purchasing power moves with task groups in fixed dollar steps or in proportion. None of the three is a flaw in the earlier studies, which were built for other questions. @sec-background takes each one up in turn.
 
-This study examines whether the balance of work in a county is associated with its purchasing power, and whether any such association survives controls for poverty and unemployment. We build a county by year panel covering 2008 to 2023, excluding 2020, from datasets published by federal agencies. Each county year is described by four task groups, routine cognitive, routine manual, non-routine cognitive, and non-routine manual, following the task framework of @Autor2003 and the occupation taxonomy of @AutorDorn2013. The outcome is purchasing power, measured in dollars as county median household income divided by the local price level from the Bureau of Economic Analysis Regional Price Parities. The panel holds 848 counties and 11,983 county year observations. @sec-data describes the sources and how the panel was built.
+This study examines whether a county's task groups are associated with its purchasing power, and whether any such association survives controls for poverty and unemployment. We build a county by year panel covering 2008 to 2023, excluding 2020, from datasets published by federal agencies. Each county year is described by four task groups, routine cognitive, routine manual, non-routine cognitive, and non-routine manual, following the task framework of @Autor2003 and the occupation taxonomy of @AutorDorn2013, shown in @fig-taskframework. The outcome is purchasing power, measured in dollars as county median household income divided by the local price level from the Bureau of Economic Analysis Regional Price Parities. The panel holds 848 counties and 11,983 county year observations. @sec-data describes the sources and how the panel was built.
 
-We estimate a panel regression with year indicators and standard errors clustered by county, which recovers the association while accounting for the dependence among repeated observations of the same county. Residual plots, quantile quantile plots, and variance inflation factors test whether the specification holds. Those diagnostics show that purchasing power moves proportionally rather than in fixed dollar steps, and a log transformation captures most of that structure. Structured deviations remain in the residuals afterward, so we fit random forest and neural network models to test whether they find signal a linear form cannot. Complexity increases only where the diagnostics show a simpler specification falling short, and @sec-analysis reports where each model landed. The central estimate is that a one percentage point shift toward non-routine manual work and away from non-routine cognitive work is associated with roughly \$846 less in purchasing power, with a 95 percent interval of plus or minus \$38, evaluated at the panel mean.
+```{python}
+#| label: fig-taskframework
+#| echo: false
+#| warning: false
+#| fig-cap: "**The Four Task Groups.** Each occupation falls in one cell of the Autor (2003) task framework. Routine tasks follow explicit rules that a machine can be programmed to carry out; non-routine tasks require judgment, adaptability, or in person interaction. Cognitive tasks work primarily with information; manual tasks work with physical objects and people. Occupation groupings follow Autor and Dorn (2013). Non-routine cognitive, outlined with a dashed border, is the reference group omitted from the regression."
+%%R -w 8.5 -h 6 -u in -r 150
+quad_df <- data.frame(
+  group = c("Non-Routine Cognitive", "Non-Routine Manual", "Routine Cognitive", "Routine Manual"),
+  col = c(2, 2, 1, 1),
+  row = c(2, 1, 2, 1),
+  examples = c("Management, engineering,\nteaching", "Food service, care work,\ncleaning",
+               "Clerical, sales,\nclaims processing", "Production, assembly,\nmachine operation"),
+  is_reference = c(TRUE, FALSE, FALSE, FALSE)
+)
+quad_df$group_label <- gsub(" ", "\n", quad_df$group)
+quad_df$linetype <- ifelse(quad_df$is_reference, "dashed", "solid")
+quad_df$linewidth <- ifelse(quad_df$is_reference, 1.3, 0.9)
+
+box_w <- 0.42; box_h <- 0.42
+
+col_headers <- data.frame(
+  col = c(1, 2),
+  label = c("Routine", "Non-Routine")
+)
+row_headers <- data.frame(
+  row = c(2, 1),
+  label = c("Cognitive", "Manual")
+)
+
+ggplot(quad_df) +
+  geom_rect(aes(xmin=col-box_w, xmax=col+box_w, ymin=row-box_h, ymax=row+box_h,
+                color=group, linetype=linetype, linewidth=linewidth),
+            fill="#FCFCFB") +
+  geom_text(aes(x=col, y=row+0.14, label=group_label, color=group),
+            fontface="bold", size=4.6, lineheight=0.95) +
+  geom_text(aes(x=col, y=row-0.20, label=examples), color="#52514E", size=3.1, lineheight=1.0) +
+  geom_text(data=col_headers, aes(x=col, y=2.65, label=label),
+            fontface="bold", size=4.3, color="#0B0B0B", inherit.aes=FALSE) +
+  geom_text(data=row_headers, aes(x=0.52, y=row, label=label),
+            hjust=1, size=3.6, color="#0B0B0B", lineheight=0.95, inherit.aes=FALSE) +
+  scale_color_manual(values=TASK_COLORS, guide="none") +
+  scale_linetype_identity() +
+  scale_linewidth_identity() +
+  coord_cartesian(xlim=c(0.05, 2.55), ylim=c(0.5, 2.85), clip="off") +
+  theme_void() +
+  theme(plot.margin=margin(10, 10, 10, 10),
+        plot.background=element_rect(fill="#FCFCFB", color=NA),
+        plot.title=element_text(face="bold", size=13, hjust=0.5)) +
+  labs(title="The Four Task Groups")
+```
+
+We estimate a panel regression with year indicators and standard errors clustered by county, which recovers the association while accounting for the dependence among repeated observations of the same county. Residual plots, quantile quantile plots, and variance inflation factors test whether the specification holds. Those diagnostics show that purchasing power moves proportionally rather than in fixed dollar steps, and a log transformation captures most of that structure. Structured deviations remain in the residuals afterward, so we fit random forest and neural network models to test whether they find signal a linear form cannot. Complexity increases only where the diagnostics show a simpler specification falling short, and @sec-analysis reports where each model landed. Our primary finding is that a one percentage point shift toward non-routine manual work and away from non-routine cognitive work is associated with roughly \$846 less in purchasing power, with a 95 percent interval of plus or minus \$38, evaluated at the panel mean. An answer to this question has users beyond the study itself. Task groups can be measured for any county from public data, so where they are associated with purchasing power they point to economic strain that poverty and unemployment rates alone do not register. State and local governments deciding where to direct economic development funds, and workforce boards deciding where retraining programs belong, could weigh a county's task groups alongside the distress measures they already use.

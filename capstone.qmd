@@ -19,7 +19,114 @@ import os, sys
 os.environ["R_HOME"]=os.path.join(sys.prefix, "lib", "R")
 %load_ext rpy2.ipython
 import rpy2.robjects as ro
-ro.r('suppressMessages({library(ggplot2); library(patchwork)}); theme_set(theme_minimal(base_size=11))')
+from great_tables import style, loc
+ro.r('''
+suppressMessages({
+  library(ggplot2)
+  library(patchwork)
+  library(scales)
+})
+
+# Semantic palette. Switched 13 Aug 2026 to hex from ColorBrewer's "Paired" qualitative
+# palette, per Julian's request for more distinct colors across the report. Task groups
+# below draw from a separate dedicated qualitative-4 set instead, so all 9 Paired swatches
+# are free for general use — 5 used here, 4 left as reserve (see below), none repeated.
+# Unvalidated against this project's colorblind-separation checker (a colorblind-mode
+# toggle is planned separately to cover that need, per Julian's earlier call on the
+# Wes Anderson swap). Names are kept for role continuity with every figure that
+# references them.
+# BLUE substantive result, ORANGE failed specification,
+# GREEN corrected or preferred specification, PINK flexible model, GREY context.
+BLUE <- "#1f78b4"   # Paired: dark blue
+ORANGE <- "#ff7f00" # Paired: dark orange
+GREEN <- "#33a02c"  # Paired: dark green
+PINK <- "#fb9a99"   # Paired: light red
+GREY <- "#8F8D87"   # kept as an actual neutral gray — none of the 9 Paired colors are
+                    # neutral, and this role needs one; not one of the new 9
+
+# Reserve colors, not yet wired into most figures — pull from here if a new group needs its own
+# color, distinct from everything above. RED is in active use (fig-diagnostics trend line).
+# The first five are what's left of the 9-color Paired set after the general palette above.
+RED <- "#e31a1c"       # Paired: dark red
+LIGHT_BLUE <- "#a6cee3" # Paired: light blue
+LIGHT_GREEN <- "#b2df8a" # Paired: light green
+LIGHT_ORANGE <- "#fdbf6f" # Paired: light orange
+PURPLE <- "#cab2d6"    # Paired: light purple
+FOREST <- "#0B775E"    # Rushmore1
+BROWN <- "#79402E"     # IsleofDogs1
+MAGENTA <- "#E6A0C4"   # GrandBudapest2
+
+# Purchasing power's own "good/bad" red-green (fig-state-afford, fig-taskchange-arrows'
+# risk direction) stays on these dedicated shades, deliberately distinct from GREEN/ORANGE
+# above so the two meanings never share a hue even though both are green-ish/red-ish.
+PP_GOOD_GREEN <- "#1BAF7A"
+PP_BAD_RED <- "#C0392B"
+
+# Task group categorical palette. Switched 13 Aug 2026 to a dedicated ColorBrewer
+# qualitative-4 set (Set2), per Julian's request — separate from the general palette
+# above so the two don't have to split one 9-color set two ways. Scoped to these four
+# categorical series only. Purchasing power does not get its own swatch in this family;
+# its continuous maps use viridis instead (see fig-afford-map). Unvalidated against this
+# project's colorblind-separation checker, same as the general palette above.
+RC_TEAL <- "#66c2a5"    # Set2: teal-green (Routine Cognitive)
+RM_TEAL <- "#8da0cb"    # Set2: blue-purple (Routine Manual)
+NRC_ORANGE <- "#fc8d62" # Set2: orange (Non-Routine Cognitive)
+NRM_ORANGE <- "#e78ac3" # Set2: pink (Non-Routine Manual)
+
+# Task groups keep one color each wherever all four appear together.
+TASK_COLORS <- c(
+  "Non-Routine Cognitive" = NRC_ORANGE,
+  "Non-Routine Manual" = NRM_ORANGE,
+  "Routine Cognitive" = RC_TEAL,
+  "Routine Manual" = RM_TEAL
+)
+
+dollar_axis <- function(v) {
+  ifelse(is.na(v), "",
+    ifelse(v == 0, "$0",
+      sprintf("%s$%s", ifelse(v < 0, "-", ""),
+              formatC(abs(v), format="d", big.mark=","))))
+}
+
+theme_set(
+  theme_minimal(base_size=9.5) +
+    theme(
+      panel.background=element_rect(fill="#FCFCFB", color=NA),
+      plot.background=element_rect(fill="#FCFCFB", color=NA),
+      panel.grid.major=element_line(color="#8F8D87", linewidth=0.3),
+      panel.grid.minor=element_blank(),
+      plot.title=element_text(face="bold", size=10.5, color="#0B0B0B", hjust=0.5, margin=margin(b=4)),
+      plot.subtitle=element_text(size=8.5, color="#52514E", margin=margin(b=8)),
+      strip.background=element_blank(),
+      strip.text=element_text(face="bold", size=9, color="#0B0B0B"),
+      axis.line=element_line(color="#0B0B0B", linewidth=0.4),
+      axis.ticks=element_blank(),
+      axis.text=element_text(size=8.5, color="#0B0B0B", face="bold"),
+      axis.title=element_text(size=8.5, color="#0B0B0B"),
+      legend.position="bottom",
+      legend.title=element_blank(),
+      legend.text=element_text(size=8.5, color="#0B0B0B"),
+      legend.key=element_blank(),
+      plot.margin=margin(10, 14, 8, 10)
+    )
+)
+''')
+
+def style_table(gt):
+    """Shared table typography, applied to every GT table in the report so table
+    text reads clearly smaller than body prose (great_tables defaults to 16px,
+    matching body text)."""
+    return gt.tab_options(
+        table_font_size="12.5px",
+        heading_title_font_size="14px",
+        heading_subtitle_font_size="12px",
+        column_labels_font_size="12.5px",
+        column_labels_font_weight="bold",
+        source_notes_font_size="10.5px",
+    ).tab_style(
+        style=style.text(style="italic"),
+        locations=loc.source_notes(),
+    )
 ```
 
 {{< include _01_intro.qmd >}}
