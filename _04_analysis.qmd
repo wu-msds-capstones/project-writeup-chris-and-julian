@@ -172,9 +172,9 @@ The Census occupation coding change between 2009 and 2010, described in @sec-dat
 
 ## Model specification
 
-The four task group values defined in @eq-group sum to one, which prevents all four from entering a regression together. One serves as the reference group, and we use non-routine cognitive. Each remaining coefficient is the change in purchasing power associated with a shift out of non-routine cognitive work and into that group, holding the controls fixed, and each is a comparison against the reference rather than a standalone quantity. The group values run on a zero to one scale, and the per percentage point figures reported later divide the estimated coefficients by 100.
+Non-routine cognitive is the reference group. Each remaining coefficient is the change in purchasing power associated with a shift out of non-routine cognitive work and into that group, holding the controls fixed, and each is a comparison against the reference rather than a standalone quantity. The group values run on a zero to one scale, and the per percentage point figures reported later divide the estimated coefficients by 100.
 
-Year indicators capture conditions common to all counties within a year. These include the 2008 recession, the recovery through the 2010s, and the national price movement described in @sec-data. We treat the year effects as nuisance parameters rather than as evidence of rising purchasing power.
+Year indicators capture conditions common to all counties within a year. These include the 2008 recession, the recovery through the 2010s, and the national price movement described in @sec-data. The estimated year effects rise steadily across the panel under both specifications (@fig-year-effects), and we treat them as nuisance parameters rather than as evidence of rising purchasing power.
 
 ```{python}
 #| label: year-effects-data
@@ -300,7 +300,7 @@ ggplot(vif_dot_df, aes(x=vif, y=group)) +
         axis.ticks.length.x=unit(6, "pt"))
 ```
 
-This also explains a problem visible earlier in the project. Before normalization the coefficients were unstable and their standard errors were large relative to their magnitudes, both standard symptoms of multicollinearity.
+Before normalization the coefficients were unstable and their standard errors were large relative to their magnitudes, both standard symptoms of multicollinearity.
 
 ## Specification diagnostics
 
@@ -675,7 +675,7 @@ assert len(set(groups.iloc[train_idx]) & set(groups.iloc[test_idx]))==0
 
 #### Year and state indicators
 
-Treating year as a factor rather than as a numeric variable gives each year its own coefficient, with no assumption about ordering or spacing between them. One state serves as a reference in the same way. Every state with fewer than five distinct counties in the panel is relabeled as OTHER, since those states cannot support a stable coefficient of their own.
+Treating year as a factor rather than as a numeric variable gives each year its own coefficient, with no assumption about ordering or spacing between them. One state is the reference in the same way. Every state with fewer than five distinct counties in the panel is relabeled as OTHER, since those states cannot support a stable coefficient of their own.
 
 ```{python}
 #| include: false
@@ -699,6 +699,9 @@ state_affordability=model_df.groupby("state_code_grouped", observed=True)["affor
 
 median_state=state_affordability.index[len(state_affordability)//2]
 REFERENCE_STATE=median_state
+# resolved once here so the prose, the figure accent, and the held out indicator
+# all name the same state rather than each re-deriving it
+reference_state_label=state_name_map.get(REFERENCE_STATE, str(REFERENCE_STATE))
 
 year_dummies=pd.get_dummies(model_df["year"], prefix="year")
 year_dummies=year_dummies.drop(columns=[f"year_{REFERENCE_YEAR}"])
@@ -712,7 +715,7 @@ year_cols_model=list(year_dummies.columns)
 state_cols_model=list(state_dummies.columns)
 ```
 
-The reference state is the one whose mean purchasing power falls at the median of the state means, which is Texas. Texas is not a cost of living outlier in either direction, and it holds considerable within state diversity, with major metropolitan areas alongside a large number of rural counties, and reading other states as different from Texas gives an interpretable baseline. Most state coefficients sit within a few percent of the reference, though the largest departures reach 17 percent. The block contributes little to held out accuracy once the economic controls and time are present, as the permutation results below show.
+The reference state is the one whose mean purchasing power falls at the median of the state means, which is `{python} reference_state_label` (@fig-state-afford). It is not a cost of living outlier in either direction, and it holds considerable within state diversity, with major metropolitan areas alongside a large number of rural counties. Reading every other state against that baseline keeps the coefficients interpretable. Most state coefficients sit within a few percent of the reference, though the largest departures reach 17 percent. The block contributes little to held out accuracy once the economic controls and time are present, as the permutation results below show.
 
 ```{python}
 #| include: false
@@ -729,15 +732,16 @@ state_df["comparison"]=state_df["mean_pp"].ge(state_median).map({True:"Above Ave
 #| label: fig-state-afford
 #| echo: false
 #| warning: false
-#| fig-cap: "**Mean Purchasing Power by State.** County year purchasing power, 2008 to 2023, ranked with the median of the state means marked. Texas sits at the median, supporting its use as the reference state. States with fewer than five counties in the panel are pooled and excluded from this ranking."
-%%R -i state_df -i state_median -w 8 -h 10 -u in -r 150 -b transparent
+#| fig-cap: "**Mean Purchasing Power by State.** Mean county year purchasing power for each state, 2008 to 2023 excluding 2020, in dollars at national average prices. Each segment runs from the median of the state means to that state's own mean, making its length a measure of distance from the median rather than absolute level, and the axis starts at \\$20,000. Shading separates states below the median from those above it, and the highlighted point marks the reference state the models hold out. States with fewer than five counties in the panel are pooled into a single bucket, which the ranking does not display but which does enter the median."
+%%R -i state_df -i state_median -i reference_state_label -w 8 -h 10 -u in -r 150 -b transparent
 state_df$state_label <- factor(state_df$state_label, levels=state_df$state_label)
-# the reference state sits at the median of the state means; give it the one accent
-# colour in the figure so the median line and the state it anchors read as a pair
+# accent the state the models hold out as the reference. Matching on the label rather
+# than re-deriving the median keeps the figure and the fitted models in agreement;
+# %in% leaves every point unaccented if the reference is the pooled bucket
 ACCENT <- BLUE
-ref_i <- which.min(abs(state_df$mean_pp - state_median))
-state_df$pt_color <- ifelse(seq_len(nrow(state_df)) == ref_i, ACCENT, "#0B0B0B")
-state_df$pt_size  <- ifelse(seq_len(nrow(state_df)) == ref_i, 3.8, 2.6)
+ref_i <- which(state_df$state_label == reference_state_label)
+state_df$pt_color <- ifelse(seq_len(nrow(state_df)) %in% ref_i, ACCENT, "#0B0B0B")
+state_df$pt_size  <- ifelse(seq_len(nrow(state_df)) %in% ref_i, 3.8, 2.6)
 median_label <- sprintf("Median: $%.0fk", state_median/1000)
 n_states <- length(levels(state_df$state_label))
 pp_range <- range(state_df$mean_pp)
@@ -850,7 +854,7 @@ X_train_base, X_test_base=X_base.iloc[train_idx], X_base.iloc[test_idx]
 
 ### Linear benchmark
 
-This specification is a predictive benchmark rather than a second inferential model. It reuses the diagnostic lessons the panel regression above already established, now fit on the training split alone so it is directly comparable to the random forest and neural network that follow. We report two versions of each linear model, estimated by ordinary least squares (OLS). The baseline uses the task groups with poverty and unemployment only, and the full model adds year and state controls. The baseline shows what the relationship looks like before time and geography are accounted for, the full model is the one carried forward, and reporting both makes visible exactly what changes when time and geography enter.
+This specification is a predictive benchmark rather than a second inferential model. It reuses the diagnostic lessons the panel regression above already established, now fit on the training split alone, making it directly comparable to the random forest and neural network that follow. We report two versions of each linear model, estimated by ordinary least squares (OLS). The baseline uses the task groups with poverty and unemployment only, and the full model adds year and state controls. The baseline shows what the relationship looks like before time and geography are accounted for, the full model is the one carried forward, and reporting both makes visible exactly what changes when time and geography enter.
 
 #### Baseline specification
 
@@ -870,7 +874,7 @@ X_train_sm=sm.add_constant(X_train)
 ols_model=sm.OLS(y_train, X_train_sm).fit()
 ```
 
-Adding time and geography raises R² from 0.766 to 0.871, which shows these variables explain real variance. The `unemployment_rate` coefficient flips sign, which suggests the baseline coefficient absorbed some of the geographic and temporal confounding, and that is what we would expect, since places and periods with heavy unemployment also tend to be places and periods of low purchasing power. The full model's coefficient reflects the within state year relationship instead. The task group coefficients keep their direction and their relative ordering through the addition.
+Adding time and geography raises R² from 0.766 to 0.871, which shows these variables explain variance the task groups do not. The `unemployment_rate` coefficient flips sign, which suggests the baseline coefficient absorbed some of the geographic and temporal confounding, and that is what we would expect, since places and periods with heavy unemployment also tend to be places and periods of low purchasing power. The full model's coefficient reflects the within state year relationship instead. The task group coefficients keep their direction and their relative ordering through the addition.
 
 The raw target residuals show the same systematic curvature already documented in @fig-diagnostics (Panels A and B), and the linear specification is poorly suited to the untransformed target here as well.
 
@@ -1142,7 +1146,7 @@ year_drop=grouped_permutation_drop(year_cols_model)
 state_drop=grouped_permutation_drop(state_cols_model)
 ```
 
-Jointly permuting the task group proportions drops R² by 0.153, well beyond the 0.042 decline from removing them and refitting. The gap points to a real difference between the two methods. When the task groups are dropped before training, the forest can recover part of their signal from correlated predictors such as poverty and time. Permutation instead disrupts that information after the model has already learned to rely on it, and no such recovery is possible. The task groups overlap with poverty, unemployment, and time while still adding something those three do not capture on their own.
+Jointly permuting the task group proportions drops R² by 0.153, well beyond the 0.042 decline from removing them and refitting. The gap points to a difference between the two methods. When the task groups are dropped before training, the forest can recover part of their signal from correlated predictors such as poverty and time. Permutation instead disrupts that information after the model has already learned to rely on it, and no such recovery is possible. The task groups overlap with poverty, unemployment, and time while still adding something those three do not capture on their own.
 
 Year produces a substantially larger permutation decline than state. The drop is 0.128 for year against 0.008 for state, conditional on the economic controls and task groups already in the model. Time carries far more of the model's remaining predictive signal than geography does.
 
@@ -1394,4 +1398,4 @@ Three specifications answer three different questions. The panel regression, wit
 
 The predictive models answer a different question, which is how much of purchasing power can be explained at all, and by what. The random forest and the log target linear model perform comparably on held out data, and the curvature in the relationship adds little once poverty, unemployment, time, and geography are already in the model. The neural network improves on neither, and its added complexity is not justified by this feature set.
 
-Across both approaches the task groups carry real, independent explanatory power, while poverty rate remains the dominant single factor. That ordering, rather than any one model's fit statistic, is the finding this analysis is built to support, and it is what @sec-results carries forward.
+Across both approaches the task groups carry independent explanatory power, while poverty rate remains the dominant single factor. That ordering is the finding this analysis is built to support, and it is what @sec-results carries forward.
