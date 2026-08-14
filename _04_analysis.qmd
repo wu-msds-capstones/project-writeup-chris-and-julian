@@ -91,7 +91,7 @@ uni_pts$panel <- factor(panel_labs[as.character(uni_pts$group)], levels=panel_la
 uni_bins$panel <- factor(panel_labs[as.character(uni_bins$group)], levels=panel_labs)
 
 # one color per task group, matching the palette used everywhere else in the report
-GROUP_COLORS <- c("Non-Routine Cognitive"="#fc8d62", "Non-Routine Manual"="#e78ac3", "Routine Cognitive"="#66c2a5", "Routine Manual"="#8da0cb")
+GROUP_COLORS <- TASK_COLORS
 
 ggplot(uni_pts, aes(x=share, y=affordability_salary)) +
   geom_point(alpha=0.08, size=0.25, color="grey40") +
@@ -111,15 +111,61 @@ ggplot(uni_pts, aes(x=share, y=affordability_salary)) +
 
 ## Model specification
 
-The four task group values defined in @eq-group sum to one, which prevents all four from entering a regression together. One serves as the reference group, and we use non-routine cognitive. Each remaining coefficient is the change in purchasing power associated with a shift out of non-routine cognitive work and into that group, holding the controls fixed, and each is therefore a comparison against the reference rather than a standalone quantity. The group values run on a zero to one scale, and the per percentage point figures reported later divide the estimated coefficients by 100.
+The four task group values defined in @eq-group sum to one, which prevents all four from entering a regression together. One serves as the reference group, and we use non-routine cognitive. Each remaining coefficient is the change in purchasing power associated with a shift out of non-routine cognitive work and into that group, holding the controls fixed, and each is a comparison against the reference rather than a standalone quantity. The group values run on a zero to one scale, and the per percentage point figures reported later divide the estimated coefficients by 100.
 
 Year indicators capture conditions common to all counties within a year. These include the 2008 recession, the recovery through the 2010s, and the national price movement described in @sec-data. We treat the year effects as nuisance parameters rather than as evidence of rising purchasing power.
+
+```{python}
+#| label: year-effects-data
+#| include: false
+# year coefficients from both specifications, converted to their reporting units:
+# dollars for the level model, percent for the log model via (exp(b)-1)*100
+def _year_frame(m, pct=False):
+    co=m.params.filter(like="year_"); ci=m.conf_int().filter(like="year_", axis=0)
+    d=pd.DataFrame({"year":[int(s.split("_")[1]) for s in co.index],
+                    "estimate":co.values, "lo":ci[0].values, "hi":ci[1].values})
+    if pct:
+        for c in ["estimate","lo","hi"]: d[c]=(np.exp(d[c])-1)*100
+    return d
+
+year_eff_level=_year_frame(model)
+year_eff_log=_year_frame(model_log, pct=True)
+```
+
+```{python}
+#| label: fig-year-effects
+#| echo: false
+#| warning: false
+#| fig-cap: "**Year Effects Relative to 2008.** Estimated year coefficients with 95 percent intervals, each the difference from the 2008 baseline shared by every county in that year. (A) The level specification, in dollars of purchasing power. (B) The log specification, as a percent difference. The series carries national price drift together with every other movement common to a year, which is why it cannot be read as a measure of inflation."
+%%R -i year_eff_level -i year_eff_log -w 8 -h 6.5 -u in -r 150 -b transparent
+year_panel <- function(d, ylab, lab_fn) {
+  ggplot(d, aes(x=year, y=estimate)) +
+    geom_hline(yintercept=0, linetype="dashed", color=GREY, linewidth=0.4) +
+    geom_ribbon(aes(ymin=lo, ymax=hi), fill=BLUE, alpha=0.18) +
+    geom_line(color=BLUE, linewidth=0.7) +
+    geom_point(color=BLUE, size=1.8) +
+    scale_y_continuous(labels=lab_fn) +
+    labs(x=NULL, y=ylab)
+}
+
+p_lvl <- year_panel(year_eff_level, "Difference in Purchasing Power", dollar_axis) +
+  labs(title="Level Specification")
+p_log <- year_panel(year_eff_log, "Percent Difference", function(v) sprintf("%g%%", v)) +
+  labs(title="Log Specification")
+
+(p_lvl / p_log) +
+  plot_annotation(title="Year Effects Relative to 2008",
+                  tag_levels="A", tag_suffix=")",
+                  theme=theme(plot.title=element_text(face="bold", size=13, hjust=0.5),
+                              plot.tag=element_text(face="bold", size=11, color="#0B0B0B")))
+```
+
 
 Standard errors are clustered by county, because repeated observations of the same county across fifteen years are not independent draws. A Durbin Watson statistic of 0.496 is consistent with that dependence. @sec-results reports the estimated coefficients.
 
 ## Collinearity and the reference group
 
-The unnormalized employment totals of @eq-totals cannot support a regression. A variance inflation factor measures how much a coefficient is destabilized by its correlation with the other inputs, and a value above 10 is the conventional threshold for concern. The four totals carry factors between 13 and 27, because all four are employment counts that scale with county size, and they therefore move together and carry little independent information. The specification estimated fixes this twice over, as @fig-vif shows. Normalizing by the four group total, as @sec-data describes, removes the shared scale, and dropping non-routine cognitive as the reference group removes the constraint that the four proportions sum to one. Every factor on the estimated specification sits between 1.2 and 1.6.
+The unnormalized employment totals of @eq-totals cannot support a regression. A variance inflation factor measures how much a coefficient is destabilized by its correlation with the other inputs, and a value above 10 is the conventional threshold for concern. The four totals carry factors between 13 and 27, because all four are employment counts that scale with county size, and they move together and carry little independent information. The specification estimated fixes this twice over, as @fig-vif shows. Normalizing by the four group total, as @sec-data describes, removes the shared scale, and dropping non-routine cognitive as the reference group removes the constraint that the four proportions sum to one. Every factor on the estimated specification sits between 1.2 and 1.6.
 
 ```{python}
 #| include: false
@@ -174,17 +220,17 @@ vif_dot_df$spec <- factor(vif_dot_df$spec,
 ggplot(vif_dot_df, aes(x=vif, y=group)) +
   # Dark brown for the thresholds: 7.9 contrast against the surface, and clear of
   # both point colors (0.29 from the green, 0.31 from the orange) in OKLab
-  geom_vline(xintercept=5, linetype="dotted", linewidth=0.8, color="#79402E") +
-  geom_vline(xintercept=10, linetype="dashed", linewidth=0.9, color="#79402E") +
-  annotate("text", x=5, y=Inf, label="VIF = 5", hjust=-0.15, vjust=1.4, color="#79402E", size=3.1) +
-  annotate("text", x=10, y=Inf, label="VIF = 10", hjust=-0.15, vjust=1.4, color="#79402E", size=3.3, fontface="bold") +
+  geom_vline(xintercept=5, linetype="dotted", linewidth=0.8, color=BROWN) +
+  geom_vline(xintercept=10, linetype="dashed", linewidth=0.9, color=BROWN) +
+  annotate("text", x=5, y=Inf, label="VIF = 5", hjust=-0.15, vjust=1.4, color=BROWN, size=3.1) +
+  annotate("text", x=10, y=Inf, label="VIF = 10", hjust=-0.15, vjust=1.4, color=BROWN, size=3.3, fontface="bold") +
   geom_line(aes(group=group), color="#0B0B0B", linewidth=0.6) +
   geom_point(aes(color=spec), size=3.2) +
   geom_text(aes(label=sprintf("%.1f", vif), color=spec), vjust=-1.1, size=3.2, show.legend=FALSE) +
   scale_x_continuous(limits=c(0, 30), breaks=seq(0, 30, by=5)) +
   scale_y_discrete(labels=function(x) ifelse(x=="Non-Routine Cognitive", "Non-Routine Cognitive *", x)) +
-  scale_color_manual(values=c("Group proportions"="#33a02c",
-                              "Employment counts"="#ff7f00")) +
+  scale_color_manual(values=c("Group proportions"=GREEN,
+                              "Employment counts"=ORANGE)) +
   labs(title="Variance Inflation Factors by Task Specification",
        x="Variance Inflation Factor", y=NULL, color=NULL) +
   theme(legend.position="bottom",
@@ -217,15 +263,13 @@ dists_df["variable"]=dists_df["variable"].map(dist_label_map)
 #| label: fig-dists
 #| echo: false
 #| warning: false
-#| fig-cap: "**Distribution of Purchasing Power and Task Groups.** Across the 12,087 county year task group panel, before the 104 rows missing an unemployment rate are dropped, all shown as violin plots with an embedded box marking the median, interquartile range, and outliers. (A) Purchasing power, right skewed with a long upper tail and a heavy cluster of high end outliers. (B) The four task groups on a shared percentage scale; non-routine cognitive holds the highest concentration of county employment."
+#| fig-cap: "**Distribution of Purchasing Power and Task Groups.** Across the 12,087 county year task group panel, before the 104 rows missing an unemployment rate are dropped, all shown as violin plots with an embedded box marking the median, interquartile range, and outliers. (A) Purchasing power, in dollars at national average prices, right skewed with a long upper tail and a heavy cluster of high end outliers. (B) The four task groups on a shared percentage scale, with the axis restricted to 5 to 65 percent so the bodies of the distributions stay legible. Non-routine cognitive holds the highest concentration of county employment."
 %%R -i dists_df -w 10 -h 5.5 -u in -r 150 -b transparent
-dollar_axis <- function(v) ifelse(is.na(v), "", ifelse(v == 0, "$0",
-  sprintf("%s$%s", ifelse(v < 0, "-", ""), formatC(abs(v), format="d", big.mark=","))))
 pp_vals <- subset(dists_df, variable=="Purchasing Power ($)")$value
 pp_ylim <- c(0, max(pp_vals) * 1.02)
 
 p_pp <- ggplot(subset(dists_df, variable=="Purchasing Power ($)"), aes(x=variable, y=value)) +
-  geom_violin(fill="#1f78b4", color="#1f78b4", alpha=0.35, linewidth=0.6, trim=TRUE) +
+  geom_violin(fill=BLUE, color=BLUE, alpha=0.35, linewidth=0.6, trim=TRUE) +
   geom_boxplot(width=0.12, fill="white", color="grey30", alpha=0.7,
                outlier.size=0.8, outlier.alpha=0.5) +
   scale_y_continuous(labels=dollar_axis) +
@@ -244,8 +288,8 @@ p_tasks <- ggplot(task_box_df, aes(x=variable, y=value, fill=variable, color=var
   geom_violin(alpha=0.35, linewidth=0.6, trim=TRUE) +
   geom_boxplot(width=0.12, fill="white", alpha=0.7,
                outlier.size=0.6, outlier.alpha=0.4) +
-  scale_fill_manual(values=c("Non-Routine Cognitive"="#fc8d62", "Non-Routine Manual"="#e78ac3", "Routine Cognitive"="#66c2a5", "Routine Manual"="#8da0cb"), guide="none") +
-  scale_color_manual(values=c("Non-Routine Cognitive"="#fc8d62", "Non-Routine Manual"="#e78ac3", "Routine Cognitive"="#66c2a5", "Routine Manual"="#8da0cb"), guide="none") +
+  scale_fill_manual(values=TASK_COLORS, guide="none") +
+  scale_color_manual(values=TASK_COLORS, guide="none") +
   scale_y_continuous(labels=percent) +
   coord_cartesian(ylim=c(0.05, 0.65)) +
   scale_x_discrete(labels=function(x) gsub(" ", "\n", x)) +
@@ -287,8 +331,6 @@ logt_df=pd.concat([
 #| warning: false
 #| fig-cap: "**Distribution of Purchasing Power Before and After Log Transformation.** County year purchasing power across the analytical panel, shown as a kernel density. A) The original dollar scale is right skewed with a long upper tail, and the mean sits well above the median. B) On the natural log scale the tail pulls in and the two measures nearly coincide. Solid lines mark the median, dashed lines the mean; each panel reports its own skewness."
 %%R -i logt_df -i level_skew -i log_skew -w 11 -h 3.8 -u in -r 150 -b transparent
-dollar_axis <- function(v) ifelse(is.na(v), "", ifelse(v == 0, "$0",
-  sprintf("%s$%s", ifelse(v < 0, "-", ""), formatC(abs(v), format="d", big.mark=","))))
 
 lv <- subset(logt_df, dist=="level")$value
 lg <- subset(logt_df, dist=="log")$value
@@ -336,38 +378,36 @@ resid_log_df=reg[["fitted_log","resid_log"]].copy()
 #| label: fig-diagnostics
 #| echo: false
 #| warning: false
-#| fig-cap: "**Regression Diagnostics, Raw vs. Log Specification.** Columns are the diagnostic, rows are the specification. Residuals are shown as binned density with a loess smoother, since individual points would overplot; the raw specification shows systematic curvature and a heavy QQ tail, while the log specification is substantially flatter and tracks the reference line more closely."
+#| fig-cap: "**Regression Diagnostics, Raw vs. Log Specification.** Columns are the diagnostic, rows are the specification. Panels A and B show the raw specification, in dollars. Panels C and D show the log specification, in log dollars. Residuals are shown as binned density with a loess smoother, since individual points would overplot. The raw specification shows systematic curvature and a heavy QQ tail, while the log specification is substantially flatter and tracks the reference line more closely."
 %%R -i resid_df -i resid_log_df -w 9 -h 7 -u in -r 150 -b transparent
-dollar_axis <- function(v) ifelse(is.na(v), "", ifelse(v == 0, "$0",
-  sprintf("%s$%s", ifelse(v < 0, "-", ""), formatC(abs(v), format="d", big.mark=","))))
 resid_df$std_resid <- as.numeric(scale(resid_df$resid))
 resid_log_df$std_resid <- as.numeric(scale(resid_log_df$resid_log))
 
 p1 <- ggplot(resid_df, aes(x=fitted, y=resid)) +
   geom_bin2d(bins=55, aes(fill=after_stat(count))) +
-  scale_fill_gradient(low="#E8EEF4", high="#1f78b4", guide="none") +
+  scale_fill_gradient(low="#E8EEF4", high=BLUE, guide="none") +
   geom_hline(yintercept=0, linewidth=0.4, linetype="dashed", color="grey40") +
-  geom_smooth(method="loess", formula=y~x, se=FALSE, color="#e31a1c", linewidth=0.9) +
+  geom_smooth(method="loess", formula=y~x, se=FALSE, color=RED, linewidth=0.9) +
   scale_x_continuous(labels=dollar_axis) +
   scale_y_continuous(labels=dollar_axis) +
-  labs(x=NULL, y="Residual, Raw", title="Residuals vs. Fitted") +
+  labs(x="Fitted Purchasing Power", y="Residual, Raw", title="Residuals vs. Fitted") +
   theme(plot.title=element_text(size=11))
 
 p2 <- ggplot(resid_df, aes(sample=std_resid)) +
-  stat_qq(color="#1f78b4", alpha=0.35, size=0.8) +
+  stat_qq(color=BLUE, alpha=0.35, size=0.8) +
   stat_qq_line(color="#0B0B0B", linewidth=0.8) +
   labs(x=NULL, y="Standardized Residual", title="Normal Q-Q") +
   theme(plot.title=element_text(size=11))
 
 p3 <- ggplot(resid_log_df, aes(x=fitted_log, y=resid_log)) +
   geom_bin2d(bins=55, aes(fill=after_stat(count))) +
-  scale_fill_gradient(low="#E8F4EE", high="#33a02c", guide="none") +
+  scale_fill_gradient(low="#E8F4EE", high=GREEN, guide="none") +
   geom_hline(yintercept=0, linewidth=0.4, linetype="dashed", color="grey40") +
-  geom_smooth(method="loess", formula=y~x, se=FALSE, color="#e31a1c", linewidth=0.9) +
-  labs(x="Fitted Purchasing Power", y="Residual, Log")
+  geom_smooth(method="loess", formula=y~x, se=FALSE, color=RED, linewidth=0.9) +
+  labs(x="Fitted Log Purchasing Power", y="Residual, Log")
 
 p4 <- ggplot(resid_log_df, aes(sample=std_resid)) +
-  stat_qq(color="#33a02c", alpha=0.35, size=0.8) +
+  stat_qq(color=GREEN, alpha=0.35, size=0.8) +
   stat_qq_line(color="#0B0B0B", linewidth=0.8) +
   labs(x="Theoretical Quantiles", y="Standardized Residual")
 
@@ -405,7 +445,7 @@ bins_df=pd.concat([
 #| label: fig-binned-scale
 #| echo: false
 #| warning: false
-#| fig-cap: "**Binned Fit Accuracy, Raw vs. Log Specification.** Fitted values are cut into twenty equal count bins, and each point compares a bin's mean prediction with its mean actual value; points on the line indicate no systematic bias in that range. On the level scale both tails sit above the line. On the log scale the points track it throughout."
+#| fig-cap: "**Binned Fit Accuracy, Level vs. Log Specification.** Fitted values are cut into twenty equal count bins, and each point compares a bin's mean prediction with its mean actual value; points on the line indicate no systematic bias in that range. On the level scale both tails sit above the line. On the log scale the points track it throughout."
 %%R -i pts_df -i bins_df -w 13 -h 5.5 -u in -r 150 -b transparent
 pts_df$target <- factor(pts_df$target, levels=c("Level Target","Log Target"))
 bins_df$target <- factor(bins_df$target, levels=c("Level Target","Log Target"))
@@ -415,12 +455,12 @@ ggplot(pts_df, aes(x=fitted, y=actual)) +
   geom_abline(slope=1, intercept=0, linewidth=0.4) +
   geom_point(data=bins_df, aes(color=target), size=2.4, show.legend=FALSE) +
   facet_wrap(~target, scales="free") +
-  scale_color_manual(values=c("Level Target"="#ff7f00","Log Target"="#33a02c")) +
-  labs(title="Binned Fit Accuracy, Raw vs. Log Specification",
+  scale_color_manual(values=c("Level Target"=ORANGE,"Log Target"=GREEN)) +
+  labs(title="Binned Fit Accuracy, Level vs. Log Specification",
        x="Fitted Purchasing Power", y="Actual Purchasing Power")
 ```
 
-The smoothed residual line does not lie perfectly flat even after the transformation. What remains could be nonlinearity, interactions among the inputs, or a variable the model does not contain, and the residuals alone cannot separate the three. That is exactly the situation a flexible model is built for. A random forest searches all three at once without being told in advance which to look for, and it therefore tests the possibilities the diagnostics raise but cannot settle. It also fixes the standard the forest must meet, which is finding signal in held out counties that the log linear fit does not already capture.
+The smoothed residual line does not lie perfectly flat even after the transformation. What remains could be nonlinearity, interactions among the inputs, or a variable the model does not contain, and the residuals alone cannot separate the three. That is exactly the situation a flexible model is built for. A random forest searches all three at once without being told in advance which to look for, and it tests the possibilities the diagnostics raise but cannot settle. It also fixes the standard the forest must meet, which is finding signal in held out counties that the log linear fit does not already capture.
 
 ## Influential points
 
@@ -488,8 +528,8 @@ influence_range_df$label <- factor(influence_range_df$label, levels=influence_ra
 ggplot() +
   geom_segment(data=influence_range_df, aes(x=min_d, xend=max_d, y=label, yend=label),
                linewidth=1.2, color="#C8C8C5", lineend="round") +
-  geom_point(data=influence_plot_df, aes(x=cooks_d, y=label), size=2.0, color="#1f78b4", alpha=0.45) +
-  geom_point(data=influence_range_df, aes(x=max_d, y=label), size=3.2, color="#1f78b4") +
+  geom_point(data=influence_plot_df, aes(x=cooks_d, y=label), size=2.0, color=BLUE, alpha=0.45) +
+  geom_point(data=influence_range_df, aes(x=max_d, y=label), size=3.2, color=BLUE) +
   geom_text(data=influence_range_df, aes(x=max_d, y=label, label=sprintf("%.4f", max_d)),
             hjust=-0.35, size=3.2, color="#252525") +
   scale_x_continuous(limits=c(0, 0.011), expand=c(0,0)) +
@@ -497,7 +537,7 @@ ggplot() +
        x="Cook's Distance", y=NULL)
 ```
 
-Because none of these points individually threatens the fit, the more informative check is what happens to the coefficients when the most influential 1 percent of the panel, `{python} f"{n_excluded}"` county year observations, is removed and the model refit. @tbl-influence-sensitivity reports the result. The task group coefficients move by single digit to low double digit percentages, and the poverty coefficient barely moves at all. The associations this study leans on hardest are therefore not artifacts of a handful of extreme counties. Unemployment rate is the exception: already the smallest and least precisely estimated of the controls, as @sec-results reports, its coefficient shifts by roughly a third. That sensitivity is consistent with unemployment rate carrying the weakest evidence of the three controls throughout this study, rather than with a problem specific to this check.
+Because none of these points individually threatens the fit, the more informative check is what happens to the coefficients when the most influential 1 percent of the panel, `{python} f"{n_excluded}"` county year observations, is removed and the model refit. @tbl-influence-sensitivity reports the result. The task group coefficients move by single digit to low double digit percentages, and the poverty coefficient barely moves at all. The associations this study leans on hardest are not artifacts of a handful of extreme counties. Unemployment rate is the exception: already the smallest and least precisely estimated of the controls, as @sec-results reports, its coefficient shifts by roughly a third. That sensitivity is consistent with unemployment rate carrying the weakest evidence of the three controls throughout this study, rather than with a problem specific to this check.
 
 ```{python}
 #| label: tbl-influence-sensitivity
@@ -562,8 +602,8 @@ ggplot(bw_df, aes(x=value, y=group, fill=component)) +
   geom_text(data=bw_text_df, aes(x=x, y=group, label=label, color=text_color),
             inherit.aes=FALSE, size=3.4) +
   scale_color_identity() +
-  scale_fill_manual(values=c("Between Counties"="#33a02c",
-                             "Within Counties Over Time"="#fb9a99"), name=NULL) +
+  scale_fill_manual(values=c("Between Counties"=GREEN,
+                             "Within Counties Over Time"=PINK), name=NULL) +
   scale_x_continuous(expand=expansion(mult=c(0, 0.02))) +
   scale_y_discrete(expand=expansion(add=c(0.3, 0.3))) +
   labs(title="Between County vs. Within County Variation by Task Group",
@@ -571,7 +611,7 @@ ggplot(bw_df, aes(x=value, y=group, fill=component)) +
   theme(legend.position="bottom")
 ```
 
-The Census occupation coding change between 2009 and 2010, described in @sec-data, inflates apparent within county variation for the routine cognitive group. That inflation comes from how the source data were coded rather than from any property of the counties, and the figure is therefore computed on the panel restricted to 2010 onward with each year's cross county mean removed. We also refit the main estimates on pre pandemic (2010 to 2019) and post pandemic (2021 to 2023) windows, and @sec-results reports coefficient stability across them.
+The Census occupation coding change between 2009 and 2010, described in @sec-data, inflates apparent within county variation for the routine cognitive group. That inflation comes from how the source data were coded rather than from any property of the counties, and the figure is computed on the panel restricted to 2010 onward with each year's cross county mean removed. We also refit the main estimates on pre pandemic (2010 to 2019) and post pandemic (2021 to 2023) windows, and @sec-results reports coefficient stability across them.
 
 ## Predictive modeling
 
@@ -608,11 +648,11 @@ feature_cols=[
 model_df=df_ml.dropna(subset=feature_cols).reset_index(drop=True).copy()
 ```
 
-We define each task group as its proportion of employment across the four categories, and the four values sum to one. As with the panel regression, that constraint makes `non_routine_cognitive_share` the omitted reference, and coefficients on the remaining task groups therefore read as shifts toward each group and away from non-routine cognitive work.
+We define each task group as its proportion of employment across the four categories, and the four values sum to one. As with the panel regression, that constraint makes `non_routine_cognitive_share` the omitted reference, and coefficients on the remaining task groups read as shifts toward each group and away from non-routine cognitive work.
 
 ### Grouped train and test split
 
-This is not a forecasting exercise, and a time ordered split is therefore not required for its usual reason. A grouped split is still necessary, because a county's economic profile barely moves year to year, which makes its 2018 and 2019 rows near duplicates. If two adjacent rows land on opposite sides of the split, the model can recall a county rather than learn a relationship. We therefore group by `county_fips` and split on row membership before any further feature engineering. Every test set prediction therefore comes from a county the model has seen no rows of, which tests whether the pattern generalizes rather than whether it was memorized. The columns that make up the feature matrix are decided next and applied to this same split.
+This is not a forecasting exercise, and a time ordered split is not required for its usual reason. A grouped split is still necessary, because a county's economic profile barely moves year to year, which makes its 2018 and 2019 rows near duplicates. If two adjacent rows land on opposite sides of the split, the model can recall a county rather than learn a relationship. We group by `county_fips` and split on row membership before any further feature engineering. Every test set prediction comes from a county the model has seen no rows of, which tests whether the pattern generalizes rather than whether it was memorized. The columns that make up the feature matrix are decided next and applied to this same split.
 
 ```{python}
 #| include: false
@@ -687,12 +727,12 @@ state_df["comparison"]=state_df["mean_pp"].ge(state_median).map({True:"Above Ave
 #| label: fig-state-afford
 #| echo: false
 #| warning: false
-#| fig-cap: "**Mean Purchasing Power by State.** County year purchasing power, 2008 to 2023, ranked with the median of the state means marked. Texas sits at the median, supporting its use as the reference state. States represented by fewer than five county observations are pooled and excluded from this ranking."
+#| fig-cap: "**Mean Purchasing Power by State.** County year purchasing power, 2008 to 2023, ranked with the median of the state means marked. Texas sits at the median, supporting its use as the reference state. States with fewer than five counties in the panel are pooled and excluded from this ranking."
 %%R -i state_df -i state_median -w 8 -h 10 -u in -r 150 -b transparent
 state_df$state_label <- factor(state_df$state_label, levels=state_df$state_label)
 # the reference state sits at the median of the state means; give it the one accent
 # colour in the figure so the median line and the state it anchors read as a pair
-ACCENT <- "#1f78b4"
+ACCENT <- BLUE
 ref_i <- which.min(abs(state_df$mean_pp - state_median))
 state_df$pt_color <- ifelse(seq_len(nrow(state_df)) == ref_i, ACCENT, "#0B0B0B")
 state_df$pt_size  <- ifelse(seq_len(nrow(state_df)) == ref_i, 3.8, 2.6)
@@ -721,14 +761,14 @@ ggplot(state_df, aes(x=mean_pp, y=state_label)) +
   annotate("rect", xmin=-Inf, xmax=state_median, ymin=-Inf, ymax=Inf,
            fill="#C0392B", alpha=0.10) +
   annotate("rect", xmin=state_median, xmax=Inf, ymin=-Inf, ymax=Inf,
-           fill="#1BAF7A", alpha=0.10) +
+           fill=GREEN, alpha=0.10) +
   # wrapped onto two lines so neither label crosses the median line or runs off
   # the panel edge, which the single line versions did at size 6
   annotate("text", x=low_mid, y=n_states / 2, label="Lower\nPurchasing\nPower",
            color="#C0392B", fontface="bold", size=5.5, hjust=0.5, vjust=0.5,
            alpha=1, lineheight=0.95) +
   annotate("text", x=high_mid, y=n_states / 2, label="Higher\nPurchasing\nPower",
-           color="#1BAF7A", fontface="bold", size=5.5, hjust=0.5, vjust=0.5,
+           color=GREEN, fontface="bold", size=5.5, hjust=0.5, vjust=0.5,
            alpha=1, lineheight=0.95) +
   geom_vline(xintercept=state_median, linetype="dotted", linewidth=0.8, color=ACCENT) +
   annotate("text", x=state_median + (x_hi - x_lo) * 0.012, y=n_states + 1.9, label=median_label,
@@ -787,9 +827,9 @@ vif_plot_df=vif_top[["Indicator","VIF"]].sort_values("VIF")
 vif_plot_df$Indicator <- factor(vif_plot_df$Indicator, levels=vif_plot_df$Indicator)
 
 ggplot(vif_plot_df, aes(x=VIF, y=Indicator)) +
-  geom_col(width=0.6, fill="#1f78b4") +
+  geom_col(width=0.6, fill=BLUE) +
   geom_text(aes(label=sprintf("%.2f", VIF)), hjust=-0.3, size=3.6, color="#252525") +
-  geom_vline(xintercept=5, linetype="dashed", linewidth=0.7, color="#ff7f00") +
+  geom_vline(xintercept=5, linetype="dashed", linewidth=0.7, color=ORANGE) +
   annotate("text", x=5, y=Inf, label="VIF = 5", hjust=1.1, vjust=1.3, color="grey30", size=3.5) +
   scale_x_continuous(limits=c(0, 5.6), breaks=0:5, expand=c(0,0)) +
   labs(title="Highest Variance Inflation Factors, Year Indicators",
@@ -841,11 +881,11 @@ ols_model=sm.OLS(y_train, X_train_sm).fit()
 
 Adding time and geography raises R² from 0.766 to 0.871, which shows these variables explain real variance. The `unemployment_rate` coefficient flips sign, which suggests the baseline coefficient absorbed some of the geographic and temporal confounding, and that is what we would expect, since places and periods with heavy unemployment also tend to be places and periods of low purchasing power. The full model's coefficient reflects the within state year relationship instead. The task group coefficients keep their direction and their relative ordering through the addition.
 
-The raw target residuals show the same systematic curvature already documented in @fig-diagnostics (Panels A and B), and the linear specification is therefore poorly suited to the untransformed target here as well.
+The raw target residuals show the same systematic curvature already documented in @fig-diagnostics (Panels A and B), and the linear specification is poorly suited to the untransformed target here as well.
 
 #### Full specification on the logged outcome
 
-The binned means in @fig-binned-scale showed an approximately exponential pattern, and we therefore test whether logging the target makes a linear model appropriate here as well.
+The binned means in @fig-binned-scale showed an approximately exponential pattern, and we test whether logging the target makes a linear model appropriate here as well.
 
 ```{python}
 #| include: false
@@ -1006,7 +1046,7 @@ rf_train_r2=best_rf.score(X_train, y_train)
 
 The forest reaches a held out R² of 0.876 on the raw target. The log target OLS model's held out figure of 0.896 is the relevant comparison, since both are scored on the same held out counties, and the forest does not improve on it.
 
-The forest fits the training data far more closely than it fits unseen counties, 0.989 against 0.876. Its additional flexibility therefore captures patterns in the training sample that do not carry over to counties it has not seen.
+The forest fits the training data far more closely than it fits unseen counties, 0.989 against 0.876. Its additional flexibility captures patterns in the training sample that do not carry over to counties it has not seen.
 
 ```{python}
 #| include: false
@@ -1017,12 +1057,10 @@ rf_resid_df=pd.DataFrame({"pred":y_pred_rf, "resid":y_test-y_pred_rf})
 #| label: fig-rf-resid
 #| echo: false
 #| warning: false
-#| fig-cap: "**Random Forest Residuals vs. Predicted Values.** On the held out test set. No systematic curve or trend is visible across the range of predictions."
+#| fig-cap: "**Random Forest Residuals vs. Predicted Values.** Residuals from the raw target forest on the held out test counties, both axes in dollars. No systematic curve or trend is visible across the range of predictions."
 %%R -i rf_resid_df -w 7 -h 5 -u in -r 150 -b transparent
-dollar_axis <- function(v) ifelse(is.na(v), "", ifelse(v == 0, "$0",
-  sprintf("%s$%s", ifelse(v < 0, "-", ""), formatC(abs(v), format="d", big.mark=","))))
 ggplot(rf_resid_df, aes(x=pred, y=resid)) +
-  geom_point(alpha=0.3, size=0.6, color="#fb9a99") +
+  geom_point(alpha=0.3, size=0.6, color=PINK) +
   geom_hline(yintercept=0, linetype="dashed", linewidth=0.9, color="#0B0B0B") +
   scale_x_continuous(labels=dollar_axis) +
   scale_y_continuous(labels=dollar_axis) +
@@ -1081,7 +1119,7 @@ rf_no_econ.fit(X_train_ne2, y_train_log)
 rf_no_econ_r2=r2_score(y_test, np.exp(rf_no_econ.predict(X_test_ne2)))
 ```
 
-By comparison, a model with the task groups but without poverty and unemployment reaches an R² of 0.698. Task groups therefore carry substantial explanatory information on their own, but the strongest performance comes from combining them with the economic controls. All three models use the same forest specification, logged outcome, and held out counties, and their performance is therefore directly comparable.
+By comparison, a model with the task groups but without poverty and unemployment reaches an R² of 0.698. Task groups carry substantial explanatory information on their own, but the strongest performance comes from combining them with the economic controls. All three models use the same forest specification, logged outcome, and held out counties, and their performance is directly comparable.
 
 #### Grouped permutation importance
 
@@ -1113,9 +1151,9 @@ year_drop=grouped_permutation_drop(year_cols_model)
 state_drop=grouped_permutation_drop(state_cols_model)
 ```
 
-Jointly permuting the task group proportions drops R² by 0.153, well beyond the 0.042 decline from removing them and refitting. The gap points to a real difference between the two methods. When the task groups are dropped before training, the forest can recover part of their signal from correlated predictors such as poverty and time. Permutation instead disrupts that information after the model has already learned to rely on it, and no such recovery is possible. The task groups therefore overlap with poverty, unemployment, and time while still adding something those three do not capture on their own.
+Jointly permuting the task group proportions drops R² by 0.153, well beyond the 0.042 decline from removing them and refitting. The gap points to a real difference between the two methods. When the task groups are dropped before training, the forest can recover part of their signal from correlated predictors such as poverty and time. Permutation instead disrupts that information after the model has already learned to rely on it, and no such recovery is possible. The task groups overlap with poverty, unemployment, and time while still adding something those three do not capture on their own.
 
-Year produces a substantially larger permutation decline than state. The drop is 0.128 for year against 0.008 for state, conditional on the economic controls and task groups already in the model. Time therefore carries far more of the model's remaining predictive signal than geography does.
+Year produces a substantially larger permutation decline than state. The drop is 0.128 for year against 0.008 for state, conditional on the economic controls and task groups already in the model. Time carries far more of the model's remaining predictive signal than geography does.
 
 Among the three modeled proportions, `non_routine_manual_share` shows the largest individual permutation effect. None of the three should be read as additive or independent contributions, since the task groups are compositional and mechanically related to one another. This ranking is consistent with the panel regression, where non-routine manual carries the steepest coefficient among the task groups.
 
@@ -1251,7 +1289,7 @@ p1 <- ggplot(nn_init_df, aes(x=epoch, y=loss, color=series)) +
                inherit.aes=FALSE, linetype="dashed", linewidth=0.35, color="black") +
   geom_line(linewidth=0.8) +
   geom_point(data=best_init[best_init$epoch==best_init_epoch,], aes(x=epoch, y=loss),
-             inherit.aes=FALSE, color="#ff7f00", size=2.2) +
+             inherit.aes=FALSE, color=ORANGE, size=2.2) +
   geom_label(data=label_df1, aes(label=series, y=label_y), hjust=-0.1, size=3.4, fontface="bold",
              fill=NA, linewidth=0, label.padding=unit(0.08, "lines"), show.legend=FALSE) +
   # the minimum sits near the left edge here, so the label reads rightward off the
@@ -1261,7 +1299,7 @@ p1 <- ggplot(nn_init_df, aes(x=epoch, y=loss, color=series)) +
            label=paste0("Minimum validation loss\nepoch ", best_init_epoch),
            hjust=0, size=2.9, color="grey35", fill=NA, linewidth=0,
            label.padding=unit(0.12, "lines")) +
-  scale_color_manual(values=c(Train="#1f78b4", Validation="#ff7f00"), guide="none") +
+  scale_color_manual(values=c(Train=BLUE, Validation=ORANGE), guide="none") +
   scale_y_continuous(limits=c(0, ymax), breaks=y_breaks) +
   scale_x_continuous(breaks=scales::pretty_breaks(n=10), expand=expansion(mult=c(0.02, 0.28))) +
   labs(x="Epoch", y="Mean Squared Error (MSE)", title="Initial Model",
@@ -1272,7 +1310,7 @@ p2 <- ggplot(nn_reg_df, aes(x=epoch, y=loss, color=series)) +
                inherit.aes=FALSE, linetype="dashed", linewidth=0.35, color="black") +
   geom_line(linewidth=0.8) +
   geom_point(data=best_reg[best_reg$epoch==best_reg_epoch,], aes(x=epoch, y=loss),
-             inherit.aes=FALSE, color="#ff7f00", size=2.2) +
+             inherit.aes=FALSE, color=ORANGE, size=2.2) +
   geom_label(data=label_df2, aes(label=series, y=label_y), hjust=-0.1, size=3.4, fontface="bold",
              fill=NA, linewidth=0, label.padding=unit(0.08, "lines"), show.legend=FALSE) +
   # lifted for the same reason as panel A: the opaque fill was cutting a gap
@@ -1281,7 +1319,7 @@ p2 <- ggplot(nn_reg_df, aes(x=epoch, y=loss, color=series)) +
            label=paste0("Minimum validation loss\nepoch ", best_reg_epoch),
            hjust=1, size=2.9, color="grey35", fill=NA, linewidth=0,
            label.padding=unit(0.12, "lines")) +
-  scale_color_manual(values=c(Train="#1f78b4", Validation="#ff7f00"), guide="none") +
+  scale_color_manual(values=c(Train=BLUE, Validation=ORANGE), guide="none") +
   scale_y_continuous(limits=c(0, ymax), breaks=y_breaks) +
   scale_x_continuous(breaks=scales::pretty_breaks(n=10), expand=expansion(mult=c(0.02, 0.28))) +
   labs(x="Epoch", y="Mean Squared Error (MSE)", title="Regularized Model",
@@ -1296,7 +1334,7 @@ p1 + p2 +
         axis.text.y=element_text(), axis.text.x=element_text())
 ```
 
-The gap narrows after regularization, but the network still does not beat the random forest or the log target linear model, both of which are far cheaper to fit and tune. This project is built to explain the relationship between task groups and purchasing power rather than to maximize predictive accuracy, and we therefore stop tuning here and carry the linear and forest models forward as the primary results.
+The gap narrows after regularization, but the network still does not beat the random forest or the log target linear model, both of which are far cheaper to fit and tune. This project is built to explain the relationship between task groups and purchasing power rather than to maximize predictive accuracy, and we stop tuning here and carry the linear and forest models forward as the primary results.
 
 ### Cross validation
 
@@ -1353,7 +1391,7 @@ style_table(GT(cv_summary)
   .tab_source_note("Both models are fit on the log target and scored on the dollar scale after back transformation."))
 ```
 
-@tbl-cv-summary shows the two models performing at the same level across five folds. The difference between their means is smaller than the variation across folds, which means the models perform similarly relative to that variation. The single split result above is therefore not an artifact of one particular split, and both models generalize comparably across held out counties.
+@tbl-cv-summary shows the two models performing at the same level across five folds. The difference between their means is smaller than the variation across folds, which means the models perform similarly relative to that variation. The single split result above is not an artifact of one particular split, and both models generalize comparably across held out counties.
 
 The neural network is not included, since cross validating it would be expensive and it is not carried forward.
 
@@ -1363,6 +1401,6 @@ The neural network is not included, since cross validating it would be expensive
 
 Three specifications answer three different questions. The panel regression, with standard errors clustered by county, is the model used for inference. It shows that routine intensive work is associated with lower purchasing power even after controlling for poverty, unemployment, population, and year, and the variance decomposition establishes that the task group differences behind that association are durable features of a place rather than transient ones. Its log respecification resolves the residual violations that make the raw target version untrustworthy for that purpose.
 
-The predictive models answer a different question, which is how much of purchasing power can be explained at all, and by what. The random forest and the log target linear model perform comparably on held out data, and the curvature in the relationship therefore adds little once poverty, unemployment, time, and geography are already in the model. The neural network improves on neither, and its added complexity is not justified by this feature set.
+The predictive models answer a different question, which is how much of purchasing power can be explained at all, and by what. The random forest and the log target linear model perform comparably on held out data, and the curvature in the relationship adds little once poverty, unemployment, time, and geography are already in the model. The neural network improves on neither, and its added complexity is not justified by this feature set.
 
 Across both approaches the task groups carry real, independent explanatory power, while poverty rate remains the dominant single factor. That ordering, rather than any one model's fit statistic, is the finding this analysis is built to support, and it is what @sec-results carries forward.
