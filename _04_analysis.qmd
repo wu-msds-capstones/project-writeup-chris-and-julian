@@ -264,7 +264,7 @@ Purchasing power is right skewed, with a skewness of 1.17. The center of the dis
 
 A linear model assumes a constant rate of association across the data range and errors that are symmetric and evenly spread around the fit. We test those assumptions with three diagnostics, the residuals plotted against fitted values, a QQ plot of the residuals, and the variance inflation factors already reported. The raw scale model shows clear systematic curvature in the residuals and a substantial upper tail departure in the QQ plot, indicating that the linear specification is poorly suited to the untransformed outcome (@fig-diagnostics, Panels A and B), alongside the same diagnostics after the log respecification below (Panels C and D). The model underestimates both the lowest and the highest purchasing power counties while fitting the middle well, and the upper tail departure reflects a residual skew of 1.01.
 
-The level model still supplies the interpretable dollar estimates we report, and its own diagnostics show that the data hold structure a straight line in dollars cannot represent. These diagnostics are what drive the rest of the section. Curvature in the residual smoother and widening spread with fitted values are evidence that the fixed slope specification is wrong in a specific way rather than merely imperfect, and each subsequent model is an attempt to relax the assumption the diagnostics identify. Taken together, the diagnostics support one conclusion: a fixed dollar relationship does not adequately describe the data.
+The level model still supplies the interpretable dollar estimates we report, and its own diagnostics show that the data hold structure a straight line in dollars cannot represent. These diagnostics are what drive the rest of the section. Curvature in the residual smoother and widening spread with fitted values are evidence that the fixed slope specification is wrong in a specific way rather than merely imperfect, and each subsequent model is an attempt to relax the assumption the diagnostics identify.
 
 ## Log respecification
 
@@ -603,7 +603,7 @@ feature_cols=[
 model_df=df_ml.dropna(subset=feature_cols).reset_index(drop=True).copy()
 ```
 
-We define each task group as its proportion of employment across the four categories, so the four values already sum to one. That constraint creates perfect collinearity among the four measures, so one category must be dropped as the reference group. As with the panel regression, we retain `non_routine_cognitive_share` as the omitted reference, so coefficients on the remaining task groups are interpreted as shifts toward each group and away from non-routine cognitive work.
+We define each task group as its proportion of employment across the four categories, so the four values sum to one. As with the panel regression, that constraint makes `non_routine_cognitive_share` the omitted reference, so coefficients on the remaining task groups read as shifts toward each group and away from non-routine cognitive work.
 
 ### Grouped train and test split
 
@@ -708,16 +708,16 @@ high_mid <- (state_median + x_hi) / 2
 
 ggplot(state_df, aes(x=mean_pp, y=state_label)) +
   annotate("rect", xmin=-Inf, xmax=state_median, ymin=-Inf, ymax=Inf,
-           fill="#C0392B", alpha=0.10) +
+           fill=PP_BAD_RED, alpha=0.10) +
   annotate("rect", xmin=state_median, xmax=Inf, ymin=-Inf, ymax=Inf,
-           fill=GREEN, alpha=0.10) +
+           fill=PP_GOOD_GREEN, alpha=0.10) +
   # wrapped onto two lines so neither label crosses the median line or runs off
   # the panel edge, which the single line versions did at size 6
   annotate("text", x=low_mid, y=n_states / 2, label="Lower\nPurchasing\nPower",
-           color="#C0392B", fontface="bold", size=5.5, hjust=0.5, vjust=0.5,
+           color=PP_BAD_RED, fontface="bold", size=5.5, hjust=0.5, vjust=0.5,
            alpha=0.6, lineheight=0.95) +
   annotate("text", x=high_mid, y=n_states / 2, label="Higher\nPurchasing\nPower",
-           color=GREEN, fontface="bold", size=5.5, hjust=0.5, vjust=0.5,
+           color=PP_GOOD_GREEN, fontface="bold", size=5.5, hjust=0.5, vjust=0.5,
            alpha=0.6, lineheight=0.95) +
   geom_vline(xintercept=state_median, linetype="dotted", linewidth=0.6, color="black") +
   annotate("text", x=state_median, y=n_states + 1.9, label=median_label,
@@ -734,7 +734,7 @@ ggplot(state_df, aes(x=mean_pp, y=state_label)) +
 
 ### Collinearity
 
-The reference group logic of @fig-vif applies here unchanged, so `non_routine_cognitive_share` is again omitted and the remaining three coefficients read as shifts toward each group and away from it. What is new in this feature set is the indicator blocks. @fig-vif-ml checks that the year and state indicators introduce no collinearity of their own.
+The reference group logic of @fig-vif applies here unchanged. What is new in this feature set is the indicator blocks. @fig-vif-ml checks that the year and state indicators introduce no collinearity of their own.
 
 ```{python}
 #| include: false
@@ -939,7 +939,7 @@ style_table(GT(spec_summary, rowname_col="Metric")
   .tab_source_note("R² is in sample, fit on the training split only."))
 ```
 
-@tbl-specmatrix shows in sample R² climbing through each stage. Adding year and state controls raises it from 0.766 to 0.871, confirming that time and geography explain real variance the baseline left unmodeled. Logging the target raises it further, to 0.913, and resolves the residual violations along the way. This is the linear model used for inference from here, since the raw target model's coefficient significance cannot be trusted given its failed diagnostics.
+@tbl-specmatrix compares the three specifications. Beyond the fit it reports, logging the target also resolves the residual violations the raw target model leaves behind. This is the linear model used for inference from here, since the raw target model's coefficient significance cannot be trusted given its failed diagnostics.
 
 ### Random forest
 
@@ -1053,7 +1053,7 @@ rf_no_exposure.fit(X_train_ne, y_train_log)
 rf_no_exposure_r2=r2_score(y_test, np.exp(rf_no_exposure.predict(X_test_ne)))
 ```
 
-Removing the task groups reduces held out R² from 0.877 to 0.834, a decline of 0.043.
+Removing the task groups reduces held out R² from 0.876 to 0.834, a decline of 0.042.
 
 ```{python}
 #| include: false
@@ -1098,7 +1098,7 @@ year_drop=grouped_permutation_drop(year_cols_model)
 state_drop=grouped_permutation_drop(state_cols_model)
 ```
 
-Jointly permuting the task group proportions drops R² by 0.153, well beyond the 0.043 decline from removing them and refitting. The gap points to a real difference between the two methods. When the task groups are dropped before training, the forest can recover part of their signal from correlated predictors such as poverty and time. Permutation instead disrupts that information after the model has already learned to rely on it, so no such recovery is possible. The task groups therefore overlap with poverty, unemployment, and time while still adding something those three do not capture on their own.
+Jointly permuting the task group proportions drops R² by 0.153, well beyond the 0.042 decline from removing them and refitting. The gap points to a real difference between the two methods. When the task groups are dropped before training, the forest can recover part of their signal from correlated predictors such as poverty and time. Permutation instead disrupts that information after the model has already learned to rely on it, so no such recovery is possible. The task groups therefore overlap with poverty, unemployment, and time while still adding something those three do not capture on their own.
 
 Year produces a substantially larger permutation decline than state. The drop is 0.128 for year against 0.008 for state, conditional on the economic controls and task groups already in the model, so time carries far more of the model's remaining predictive signal than geography does.
 

@@ -405,9 +405,11 @@ suppressMessages(library(sf))
 
 afford_sf <- st_read("output/afford_map.geojson", quiet=TRUE)
 
+DIVERGING_COLORS <- c("#d53e4f", "#fc8d59", "#fee08b", "#e6f598", "#99d594", "#3288bd")
+
 ggplot(afford_sf) +
   geom_sf(aes(fill=purchasing_power), color="#FAFAF8", linewidth=0.05) +
-  scale_fill_viridis_c(limits=c(afford_vmin, afford_vmax),
+  scale_fill_gradientn(colors=DIVERGING_COLORS, limits=c(afford_vmin, afford_vmax),
                         oob=scales::squish, na.value="#D9D9D6",
                         labels=label_dollar(scale=1e-3, suffix="k"),
                         name="Mean Purchasing Power") +
@@ -485,10 +487,10 @@ style_table(GT(metrics_df)
   .fmt_number(columns="R²", decimals=3)
   .fmt_currency(columns="Mean Absolute Error ($)", decimals=0)
   .tab_source_note("Ordinary Least Squares and Random Forest are fit on the log target and scored on the dollar scale after back transformation.")
-  .tab_source_note("Neural network results are from this single split only; Table 4 reports cross validated results for the other two models."))
+  .tab_source_note("Neural network results are from this single split only; the five fold grouped cross validation table in the analysis section reports cross validated results for the other two models."))
 ```
 
-This is the ladder's stopping rule working as designed: a random forest can represent any interaction or curvature the data contain, yet it finds nothing beyond what the log transformation already captured. The binned comparison in @fig-binned confirms the same conclusion, this time in the units of the outcome itself. Specifically, the relationship is not monotonic across these bins: purchasing power rises with routine cognitive share through the lower part of its observed range, peaks near 20 percent, and then declines as the share continues to rise. The forest's predictions track this same shape closely rather than discovering a different pattern of their own, which is further evidence that the flexible model adds little beyond what the log linear specification already captures.
+This is the ladder's stopping rule working as designed: a random forest can represent any interaction or curvature the data contain, yet it finds nothing beyond what the log transformation already captured. The binned comparison in @fig-binned confirms the same conclusion, this time in the units of the outcome itself. Specifically, the relationship is not monotonic across these bins: purchasing power rises with the routine cognitive value through the lower part of its observed range, peaks near 20 percent, and then declines as the value continues to rise. The forest's predictions track this same shape closely rather than discovering a different pattern of their own, which is further evidence that the flexible model adds little beyond what the log linear specification already captures.
 
 ```{python}
 #| include: false
@@ -507,7 +509,7 @@ binned_long=binned_means.melt(id_vars="rc", value_vars=["Actual","Random Forest"
 #| label: fig-binned
 #| echo: false
 #| warning: false
-#| fig-cap: "**Actual vs. Predicted Purchasing Power.** Mean actual and predicted purchasing power across ten equal count bins of routine cognitive work, on the held out test counties, with predictions from the log target forest back transformed into dollars; each point marks a bin's mean routine cognitive share. The relationship rises then declines rather than moving monotonically; the forest reproduces this same shape rather than finding a different one."
+#| fig-cap: "**Actual vs. Predicted Purchasing Power.** Mean actual and predicted purchasing power across ten equal count bins of routine cognitive work, on the held out test counties, with predictions from the log target forest back transformed into dollars; each point marks a bin's mean routine cognitive value. The relationship rises then declines rather than moving monotonically; the forest reproduces this same shape rather than finding a different one."
 %%R -i binned_long -i rf_log_test_r2 -i rf_log_test_mae -w 9 -h 4.5 -u in -r 150
 OBSERVED <- "#252525"
 binned_long$rc_pct <- binned_long$rc*100
@@ -529,7 +531,7 @@ ggplot(binned_long, aes(x=rc_pct, y=pp, color=series)) +
                       expand=expansion(mult=c(0.02, 0.28))) +
   scale_y_continuous(labels=function(v) sprintf("$%s", formatC(round(v), format="d", big.mark=","))) +
   labs(title="Actual vs. Predicted Purchasing Power",
-       x="Routine Cognitive Share (Percent)", y="Purchasing Power") +
+       x="Routine Cognitive Value (Percent)", y="Purchasing Power") +
   theme(panel.grid.major=element_blank())
 ```
 
@@ -735,7 +737,7 @@ arrow_data=gdf_arrows[["fips","cx","cy"]].merge(arrow_shift_df, on="fips", how="
 #| label: fig-taskchange-arrows
 #| echo: false
 #| warning: false
-#| fig-cap: "**Change in County Task Groups, 2010 to 2023.** Each arrow starts at a county's centroid; direction combines movement on the manual-cognitive axis (horizontal) and the routine-non-routine axis (vertical) from @fig-taskframework. Color marks whether a county moved toward or away from non-routine cognitive work, the regression's reference group and the only one of the four task groups positively associated with purchasing power. Arrow length is capped at the 95th percentile of shift magnitude so a handful of outlier counties do not dominate the figure. Counties are those with data at both endpoints, the same window used in @tbl-rankcorr and @fig-taskchange-map; grey counties carry no arrow."
+#| fig-cap: "**Direction of County Task Group Shift, 2010 to 2023.** Each arrow starts at a county's centroid; direction combines movement on the manual-cognitive axis (horizontal) and the routine-non-routine axis (vertical) from @fig-taskframework. Color marks whether a county moved toward or away from non-routine cognitive work, the regression's reference group and the only one of the four task groups positively associated with purchasing power. Arrow length is capped at the 95th percentile of shift magnitude so a handful of outlier counties do not dominate the figure. Counties are those with data at both endpoints, the same window used in @tbl-rankcorr and @fig-taskchange-map; grey counties carry no arrow."
 %%R -i arrow_data -w 9.5 -h 6.5 -u in -r 150
 suppressMessages(library(sf))
 
@@ -754,10 +756,10 @@ ggplot() +
                aes(x=cx, y=cy, xend=xend, yend=yend, color=risk_direction, linewidth=shift_magnitude),
                arrow=arrow(length=unit(1.3,"mm"), type="closed"), lineend="round", alpha=0.75) +
   scale_linewidth_continuous(range=c(0.2, 1.0), guide="none") +
-  scale_color_manual(values=c("More At Risk"="#C0392B", "Less At Risk"=GREEN), name=NULL) +
+  scale_color_manual(values=c("More At Risk"=PP_BAD_RED, "Less At Risk"=PP_GOOD_GREEN), name=NULL) +
   coord_sf(crs=st_crs(5070), datum=NA) +
   theme_void(base_size=11) +
-  labs(title="Change in County Task Groups, 2010 to 2023") +
+  labs(title="Direction of County Task Group Shift, 2010 to 2023") +
   theme(legend.position="bottom",
         plot.title=element_text(face="bold", size=13, hjust=0.5),
         plot.background=element_rect(fill="#FCFCFB", color=NA))
@@ -798,8 +800,8 @@ range_df=stability_df.assign(
 #| label: fig-stability
 #| echo: false
 #| warning: false
-#| fig-cap: "**Task Group Coefficients Across Time Windows.** Log panel regression coefficients, as percent change in purchasing power per one percentage point shift out of non-routine cognitive work, refit on the pre pandemic and post pandemic windows alongside the full panel (diamond). Standard errors clustered by county in every fit."
-%%R -i stab_long -i range_df -w 8 -h 3.6 -u in -r 150
+#| fig-cap: "**Coefficient Stability Across Time Windows.** Log panel regression coefficients, as percent change in purchasing power per one percentage point shift out of non-routine cognitive work, refit on the pre pandemic and post pandemic windows alongside the full panel (diamond). The grey band spans each task group's range across the three windows. Standard errors clustered by county in every fit."
+%%R -i stab_long -i range_df -w 9 -h 4 -u in -r 150
 BLACK <- "#252525"
 
 group_order <- c("Routine Manual", "Routine Cognitive", "Non-Routine Manual")
@@ -811,17 +813,40 @@ window_colors <- c("2010 to 2019"=BLUE, "Full panel"=BLACK, "2021 to 2023"=ORANG
 window_shapes <- c("2010 to 2019"=16, "Full panel"=18, "2021 to 2023"=16)
 window_sizes  <- c("2010 to 2019"=3.2, "Full panel"=4.6, "2021 to 2023"=3.2)
 
+# the three windows sit within 0.04 of each other for some groups, so stacking all
+# three value labels at one height would overlap. Place them by rank instead:
+# leftmost reads left, rightmost reads right, and the middle one sits above.
+stab_long$rank <- ave(stab_long$value, stab_long$`Task group`, FUN=rank)
+lab_pad <- diff(range(stab_long$value)) * 0.03
+
 ggplot() +
-  geom_segment(data=range_df, aes(x=lo, xend=hi, y=`Task group`, yend=`Task group`),
-               color="#C8C8C5", linewidth=1.1) +
+  geom_vline(xintercept=0, linetype="dashed", linewidth=0.5, color=BLACK) +
+  geom_segment(data=range_df, aes(x=lo, xend=hi, y=`Task group`, yend=`Task group`,
+                                  linewidth="Range across windows"),
+               color="#D6D6D2", lineend="round") +
   geom_point(data=stab_long, aes(x=value, y=`Task group`, color=window, shape=window, size=window)) +
-  scale_color_manual(values=window_colors, name=NULL) +
-  scale_shape_manual(values=window_shapes, name=NULL) +
+  geom_text(data=subset(stab_long, rank==1),
+            aes(x=value - lab_pad, y=`Task group`, label=sprintf("%.2f", value), color=window),
+            hjust=1, size=3.1, fontface="bold", show.legend=FALSE) +
+  geom_text(data=subset(stab_long, rank==3),
+            aes(x=value + lab_pad, y=`Task group`, label=sprintf("%.2f", value), color=window),
+            hjust=0, size=3.1, fontface="bold", show.legend=FALSE) +
+  geom_text(data=subset(stab_long, rank==2),
+            aes(x=value, y=`Task group`, label=sprintf("%.2f", value), color=window),
+            vjust=-1.5, size=3.1, fontface="bold", show.legend=FALSE) +
+  scale_color_manual(values=window_colors, name=NULL,
+                     labels=c("2010 to 2019","Full panel (2008 to 2023)","2021 to 2023")) +
+  scale_shape_manual(values=window_shapes, name=NULL,
+                     labels=c("2010 to 2019","Full panel (2008 to 2023)","2021 to 2023")) +
   scale_size_manual(values=window_sizes, guide="none") +
-  scale_x_continuous(labels=function(v) sprintf("%.1f%%", v)) +
-  labs(title="Task Group Coefficients Across Time Windows",
-       x="Percent Change in Purchasing Power", y=NULL) +
-  theme(legend.position="bottom")
+  scale_linewidth_manual(values=c("Range across windows"=3.2), name=NULL) +
+  scale_x_continuous(expand=expansion(mult=c(0.10, 0.06))) +
+  labs(title="Coefficient Stability Across Time Windows",
+       x="Percent Change per One Percentage Point Shift From Non-Routine Cognitive Work",
+       y=NULL) +
+  theme(legend.position="bottom",
+        axis.text.y=element_text(face="bold", size=9.5),
+        panel.grid.major.y=element_blank())
 ```
 
 Taken together, the results show that this pattern is not limited to a single year or model. Counties with more routine and manual work tended to have lower purchasing power at the beginning of the study period, and that pattern remained largely unchanged fifteen years later. @sec-conclusions discusses what these findings mean, their limits, and what questions remain.

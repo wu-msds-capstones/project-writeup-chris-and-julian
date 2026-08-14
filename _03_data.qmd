@@ -56,7 +56,7 @@ $$
 G_{g,c,t} = \frac{T_{g,c,t}}{\sum_{g'} T_{g',c,t}}
 $$ {#eq-group}
 
-These proportions place counties of different sizes on a common scale, allowing the analysis to compare task groups rather than the size of the workforce. Because the four proportions sum to one, one group must be omitted from the regression to avoid perfect collinearity. Non-routine cognitive work is the reference group, so the remaining coefficients are interpreted relative to it. @sec-analysis explains how this composition is incorporated into the models.
+These proportions place counties of different sizes on a common scale, allowing the analysis to compare task groups rather than the size of the workforce. Because the four proportions sum to one, one group must be omitted from the regression to avoid perfect collinearity. Non-routine cognitive work is the reference group, so the remaining coefficients are interpreted relative to it. @sec-analysis explains how these task groups are incorporated into the models.
 
 We retain all four task groups in the data rather than combining them into a single routine intensity index because the type of work matters. Under a single index, a county shifting away from clerical work and a county shifting away from assembly work could appear identical even though the underlying changes in task groups are different.
 
