@@ -1,14 +1,14 @@
 # Background {#sec-background}
 
-Automation does not affect every place in the same way because every place does not depend on the same kinds of work. @Autor2003 provided the framework for explaining why. Rather than treating occupations as either automated or not automated, they argued that technology replaces specific tasks within occupations. Routine tasks are easier to translate into explicit rules, while work that depends on judgment, adaptation, or direct interaction is harder to automate. This distinction produces the four task groups used in this study: routine cognitive, routine manual, non-routine cognitive, and non-routine manual.
+The consequences of automation differ across places because every place does not depend on the same kinds of work. @Autor2003 provided the framework for explaining why. Rather than treating occupations as either automated or not automated, they argued that technology replaces specific tasks within occupations. Routine tasks are easier to translate into explicit rules, while work that depends on judgment, adaptation, or direct interaction is harder to automate. This distinction produces the four task groups used in this study: routine cognitive, routine manual, non-routine cognitive, and non-routine manual.
 
-Once work is understood through tasks, differences between local economies become measurable. Counties vary in the occupations their residents hold and therefore in the tasks their economies rely on. @AutorDorn2013 showed that these differences persist across local labor markets and are associated with long term employment polarization. Areas with more routine work experienced declines in middle wage employment alongside growth at the lower and upper ends of the wage distribution. Their occupation taxonomy provides the basis for assigning occupations to the task groups used here.
+Once work is understood through tasks, differences between local economies become measurable. @AutorDorn2013 showed that these differences persist across local labor markets and are associated with long term employment polarization. Areas with more routine work saw middle wage employment decline while employment grew at the lower and upper ends of the wage distribution. Their occupation taxonomy provides the basis for assigning occupations to task groups here. @AcemogluAutor2011 explained why those differences matter economically, modeling tasks as the unit of production over which workers with different skills compete. Technological change shifts which workers hold an advantage, which makes the consequences of technology depend partly on the kinds of work a local economy contains.
 
-While @AutorDorn2013 showed how these task differences appear across local labor markets, @AcemogluAutor2011 explained why those differences matter economically. In their model, tasks are the unit of production and workers with different skills compete to perform them. Technological change shifts which workers hold an advantage in particular tasks. This means that the economic effects of technology depend partly on the kinds of work a local economy relies on. This framework provides the theoretical basis for examining task groups at the county level.
+Task groups are only one part of a county's economic conditions. Counties are also described by poverty, unemployment, and median household income. Poverty identifies households with limited resources, unemployment reflects access to work, and median household income describes what households receive. None of the three alone describes the conditions residents face.
 
-A county's task groups, however, are only one part of its economic conditions. Counties are also commonly described using measures such as poverty, unemployment, population, and household income. Each captures a different part of the local economy. Poverty identifies households with limited resources, unemployment reflects access to work, and household income describes the amount of money households receive. None of these measures alone provides a complete picture of the economic conditions residents face.
+Median household income is used because it better represents the income of a typical household than the mean, which is more sensitive to high incomes in a positively skewed distribution [@Chiripanhura2011]. It describes what households receive rather than what they can buy. Because local prices differ, the same income supports different living standards in different places. Purchasing power combines the two by adjusting income with Regional Price Parities, which can change how counties compare rather than shifting them all by the same amount.
 
-@fig-county-context provides an overview of this variation. Poverty (Panel A) and unemployment (Panel B) identify different concentrations of economic distress, while median household income (Panel C) highlights counties with especially high or low nominal resources. The patterns do not align perfectly across measures. A county that appears relatively strong under one indicator may appear less favorable under another. This variation is important because it shows that local economic conditions cannot be summarized by a single conventional measure.
+@fig-county-context maps all four measures across counties. Poverty (Panel A) and unemployment (Panel B) mark different concentrations of distress. Median household income (Panel C) shows where resources are highest and lowest before prices are taken into account. Regional Price Parity (Panel D) shows where those prices are high or low. The patterns do not align. A county that looks strong under one measure can look weaker under another, which is why no single conventional measure summarizes local economic conditions.
 
 ```{python}
 #| label: context-setup
@@ -76,7 +76,7 @@ merged_context[["fips", "poverty_rate", "unemployment_rate",
 #| label: fig-county-context
 #| echo: false
 #| warning: false
-#| fig-cap: "**Four Views of County Economic Conditions.** (A) Poverty rate and (B) unemployment rate describe economic distress. (C) Median household income describes nominal household resources. (D) Regional Price Parity shows how local prices vary relative to the national average, before the two are combined into purchasing power in later sections. All panels use the same year and geographic coverage. Continental United States, 2023. Each panel is clipped at the 2nd and 98th percentiles; counties without a value are shown in gray."
+#| fig-cap: "**Four Views of County Economic Conditions.** (A) Poverty rate and (B) unemployment rate, both in percent, describe economic distress. (C) Median household income, in dollars, describes household resources before local prices are taken into account. (D) Regional Price Parity, an index with the national average set to 100, shows how local prices vary. All panels cover the continental United States in 2023, are clipped at the 2nd and 98th percentiles, and show counties without a value in gray."
 %%R -i pov_ctx_vmin -i pov_ctx_vmax -i unemp_ctx_vmin -i unemp_ctx_vmax -i inc_ctx_vmin -i inc_ctx_vmax -i rpp_ctx_vmin -i rpp_ctx_vmax -w 10 -h 9 -u in -r 150 -b transparent
 suppressMessages(library(sf))
 
@@ -91,7 +91,7 @@ bottom_guide <- guide_colorbar(direction="horizontal", title.position="bottom", 
 
 p_pov <- ggplot(context_sf) +
   geom_sf(aes(fill=poverty_rate), color="white", linewidth=0.05) +
-  scale_fill_gradient(low="#FCFCFB", high="#ff7f00", limits=c(pov_ctx_vmin, pov_ctx_vmax),
+  scale_fill_gradient(low="#FCFCFB", high=ORANGE, limits=c(pov_ctx_vmin, pov_ctx_vmax),
                       oob=scales::squish, na.value="#EEEEEE", name="Poverty Rate (%)",
                       guide=bottom_guide) +
   coord_sf(crs=st_crs(5070), datum=NA) +
@@ -100,7 +100,7 @@ p_pov <- ggplot(context_sf) +
 
 p_unemp <- ggplot(context_sf) +
   geom_sf(aes(fill=unemployment_rate), color="white", linewidth=0.05) +
-  scale_fill_gradient(low="#FCFCFB", high="#fb9a99", limits=c(unemp_ctx_vmin, unemp_ctx_vmax),
+  scale_fill_gradient(low="#FCFCFB", high=PINK, limits=c(unemp_ctx_vmin, unemp_ctx_vmax),
                       oob=scales::squish, na.value="#EEEEEE", name="Unemployment Rate (%)",
                       guide=bottom_guide) +
   coord_sf(crs=st_crs(5070), datum=NA) +
@@ -109,7 +109,7 @@ p_unemp <- ggplot(context_sf) +
 
 p_inc <- ggplot(context_sf) +
   geom_sf(aes(fill=median_household_income), color="white", linewidth=0.05) +
-  scale_fill_gradient(low="#FCFCFB", high="#33a02c", limits=c(inc_ctx_vmin, inc_ctx_vmax),
+  scale_fill_gradient(low="#FCFCFB", high=GREEN, limits=c(inc_ctx_vmin, inc_ctx_vmax),
                       oob=scales::squish, na.value="#EEEEEE",
                       labels=function(v) sprintf("$%.0fk", v/1000),
                       name="Median Household Income",
@@ -120,7 +120,7 @@ p_inc <- ggplot(context_sf) +
 
 p_rpp <- ggplot(context_sf) +
   geom_sf(aes(fill=rpp), color="white", linewidth=0.05) +
-  scale_fill_gradient(low="#FCFCFB", high="#1f78b4", limits=c(rpp_ctx_vmin, rpp_ctx_vmax),
+  scale_fill_gradient(low="#FCFCFB", high=BLUE, limits=c(rpp_ctx_vmin, rpp_ctx_vmax),
                       oob=scales::squish, na.value="#EEEEEE",
                       name="Regional Price Parity",
                       guide=bottom_guide) +
@@ -135,10 +135,8 @@ p_rpp <- ggplot(context_sf) +
                               plot.tag=element_text(face="bold", size=11, color="#0B0B0B")))
 ```
 
-The comparison becomes especially important when moving from income to purchasing power. Median household income measures how much money a household receives, but it does not account for what that money can buy locally. Counties with high nominal incomes may also face high housing and other costs. Lower income counties may have lower prices that allow the same amount of money to go further. Purchasing power brings these two pieces together by adjusting household income for differences in local prices. This adjustment does not simply raise or lower every county by the same amount. It can change how counties compare with one another. A county that appears especially prosperous based on income alone may move closer to the middle once its higher prices are considered, while another county may appear stronger after adjustment. For this study, purchasing power therefore provides a more informative measure of the economic resources available to residents than nominal income alone.
+The geography used to measure these conditions also matters. Much of the previous literature examines broader labor market areas that group several counties together. That scale suits the study of employment adjustment, but it can combine counties with different local prices into a single market. Housing and other costs vary substantially between a metropolitan core and its surrounding counties. A county level design preserves that variation.
 
-The geography used to measure these conditions also matters. Much of the previous literature examines commuting zones because they approximate local labor markets. That scale is well suited to studying employment adjustment, but it can combine counties with different local prices into a single labor market. Housing costs and other expenses can vary substantially between a metropolitan core and surrounding counties. A county level design preserves this variation and allows task groups to be compared with the prices residents face where they live.
+A final consideration is how the relationship between task groups and purchasing power is represented. A fixed dollar specification assumes the same shift in task groups corresponds to the same dollar difference everywhere. A proportional one instead implies a larger dollar difference where purchasing power is already high and a smaller one where it is low. The analysis evaluates which form fits rather than assuming either from the outset.
 
-A final consideration is how the relationship between task groups and purchasing power is represented. A relationship expressed only in fixed dollar changes assumes that the same shift in task groups corresponds to the same dollar difference everywhere. That may not match the way purchasing power varies across counties. If the relationship is proportional, the same change in task groups would correspond to a larger dollar difference where purchasing power is already high and a smaller difference where it is low. The analysis therefore evaluates the form of the relationship rather than assuming that a fixed dollar specification is appropriate from the outset.
-
-Together, these considerations define the gap addressed in this study. Previous research establishes why task groups matter for local labor markets, while conventional measures such as poverty, unemployment, and household income describe different dimensions of county economic conditions. Adjusting income for local prices adds another dimension by showing what those resources can actually buy. The data and modeling strategy in @sec-data bring these pieces together to examine whether differences in a county's task groups are associated with differences in county purchasing power.
+Together these considerations define the gap this study addresses. Prior research shows why task groups matter for local labor markets, and conventional measures describe other dimensions of county conditions. Neither connects the two at the county level in what income can actually buy.
