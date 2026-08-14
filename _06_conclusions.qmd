@@ -22,7 +22,7 @@ Five limitations bound what the results can support. The findings are associatio
 
 The panel covers only counties above 65,000 residents. Rural counties are therefore underrepresented, and the estimates describe the more populous three quarters of the population rather than counties in general.
 
-The panel regression carries no state effects, and its estimates therefore absorb whatever varies systematically by state. The predictive models, which do include state indicators, suggest that variation is modest once poverty, unemployment, and time are present, but the two specifications are not identical on this point.
+The panel regression carries no state effects, and its estimates therefore absorb whatever varies systematically by state. The predictive models, which do include state indicators, suggest that variation adds little once poverty, unemployment, and time are present, but the two specifications are not identical on this point.
 
 Purchasing power is also not deflated to a constant base year, and the year indicators therefore absorb national price drift alongside every other change common to a year, rather than the panel correcting for inflation directly. @sec-analysis treats them as nuisance parameters for this reason. That choice means the year effects cannot be read as a measure of purchasing power's growth over time.
 
