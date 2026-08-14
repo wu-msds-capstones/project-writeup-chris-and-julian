@@ -219,7 +219,7 @@ digraph architecture {{
   edge [fontname="Helvetica", color="black", arrowsize=0.6]
 
   subgraph cluster_source {{
-    label="Data sources"
+    label="Data Sources"
     labeljust="c"
     fontsize=16
     fontname="Helvetica-Bold"
@@ -234,7 +234,7 @@ digraph architecture {{
   }}
 
   subgraph cluster_lake {{
-    label="Data lake"
+    label="Data Lake"
     labeljust="c"
     fontsize=16
     fontname="Helvetica-Bold"
@@ -247,7 +247,7 @@ digraph architecture {{
   }}
 
   subgraph cluster_warehouse {{
-    label="Data warehouse (3NF)"
+    label="Data Warehouse (3NF)"
     labeljust="c"
     fontsize=16
     fontname="Helvetica-Bold"
@@ -278,7 +278,7 @@ digraph architecture {{
   }}
 
   subgraph cluster_output {{
-    label="Modeling tables"
+    label="Modeling Tables"
     labeljust="c"
     fontsize=16
     fontname="Helvetica-Bold"

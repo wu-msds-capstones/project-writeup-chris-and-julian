@@ -95,7 +95,8 @@ ggplot(uni_pts, aes(x=share, y=affordability_salary)) +
   geom_point(data=uni_bins, aes(color=group), size=1.8, show.legend=FALSE) +
   geom_text(data=tag_df, aes(x=-Inf, y=Inf, label=tag), inherit.aes=FALSE,
             hjust=1.2, vjust=-0.45, fontface="bold", size=4.2, color="#0B0B0B") +
-  facet_wrap(~group, ncol=2, scales="free_x") +
+  # axes="all_y" repeats the y axis on the right column too; the scale stays shared
+  facet_wrap(~group, ncol=2, scales="free_x", axes="all_y") +
   coord_cartesian(clip="off") +
   scale_color_manual(values=TASK_COLORS) +
   scale_x_continuous(breaks=scales::pretty_breaks(n=8)) +
@@ -151,23 +152,26 @@ bw_df$component <- factor(bw_df$component,
     levels=c("Within Counties Over Time","Between Counties"))
 bw_text_df$group <- factor(bw_text_df$group, levels=levels(bw_df$group))
 
-# Two solid fills rather than one color at two opacities. Both in-bar labels are ink:
-# against the current Paired palette that clears the 4.5:1 floor on each fill
-# (green 5.8, light red 9.6). White text fails on the light red at 2.1.
-bw_text_df$text_color <- "#0B0B0B"
+# Orange and purple rather than green and red: these are two components of one
+# variance, neither good nor bad, so a valenced pair would say the wrong thing.
+# Both in-bar labels clear the 4.5:1 floor (orange with ink 6.2, purple with white 13.6).
+bw_text_df$text_color <- ifelse(bw_text_df$component=="Within Counties Over Time",
+                                 "white", "#0B0B0B")
 
 ggplot(bw_df, aes(x=value, y=group, fill=component)) +
   geom_col(width=0.7) +
   geom_text(data=bw_text_df, aes(x=x, y=group, label=label, color=text_color),
             inherit.aes=FALSE, size=3.4) +
   scale_color_identity() +
-  scale_fill_manual(values=c("Between Counties"=GREEN,
-                             "Within Counties Over Time"=PINK), name=NULL) +
-  scale_x_continuous(expand=expansion(mult=c(0, 0.02))) +
+  scale_fill_manual(values=c("Between Counties"=ORANGE,
+                             "Within Counties Over Time"=PURPLE), name=NULL) +
+  scale_x_continuous(breaks=seq(0, 100, 10), expand=c(0, 0)) +
   scale_y_discrete(expand=expansion(add=c(0.3, 0.3))) +
   labs(title="Between County vs. Within County Variation by Task Group",
        x="Share of Variance", y=NULL) +
-  theme(legend.position="bottom")
+  # expand=c(0,0) runs the bars flush to 100 with no trailing gap; the right plot
+  # margin holds the 100 tick label, which would otherwise clip at the panel edge
+  theme(legend.position="bottom", plot.margin=margin(10, 16, 8, 10))
 ```
 
 The Census occupation coding change between 2009 and 2010, described in @sec-data, inflates apparent within county variation for the routine cognitive group. That inflation comes from how the source data were coded rather than from any property of the counties, and the figure is computed on the panel restricted to 2010 onward with each year's cross county mean removed.
@@ -284,16 +288,16 @@ vif_dot_df$spec <- factor(vif_dot_df$spec,
     labels=c("Group proportions","Employment counts"))
 
 ggplot(vif_dot_df, aes(x=vif, y=group)) +
-  # Dark brown for the thresholds: 7.9 contrast against the surface, and clear of
-  # both point colors (0.29 from the green, 0.31 from the orange) in OKLab
-  geom_vline(xintercept=5, linetype="dotted", linewidth=0.8, color=BROWN) +
-  geom_vline(xintercept=10, linetype="dashed", linewidth=0.9, color=BROWN) +
-  annotate("text", x=5, y=Inf, label="VIF = 5", hjust=-0.15, vjust=1.4, color=BROWN, size=3.1) +
-  annotate("text", x=10, y=Inf, label="VIF = 10", hjust=-0.15, vjust=1.4, color=BROWN, size=3.3, fontface="bold") +
+  # bold black thresholds, heavier than the connector segments so they read as
+  # reference lines rather than as part of the data
+  geom_vline(xintercept=5, linetype="dotted", linewidth=1.1, color="#0B0B0B") +
+  geom_vline(xintercept=10, linetype="dashed", linewidth=1.2, color="#0B0B0B") +
+  annotate("text", x=5, y=Inf, label="VIF = 5", hjust=-0.15, vjust=1.4, color="#0B0B0B", size=3.1, fontface="bold") +
+  annotate("text", x=10, y=Inf, label="VIF = 10", hjust=-0.15, vjust=1.4, color="#0B0B0B", size=3.3, fontface="bold") +
   geom_line(aes(group=group), color="#0B0B0B", linewidth=0.6) +
   geom_point(aes(color=spec), size=3.2) +
   geom_text(aes(label=sprintf("%.1f", vif), color=spec), vjust=-1.1, size=3.2, show.legend=FALSE) +
-  scale_x_continuous(limits=c(0, 30), breaks=seq(0, 30, by=5)) +
+  scale_x_continuous(limits=c(0, 30), breaks=seq(0, 30, by=2.5)) +
   scale_y_discrete(labels=function(x) ifelse(x=="Non-Routine Cognitive", "Non-Routine Cognitive *", x)) +
   scale_color_manual(values=c("Group proportions"=GREEN,
                               "Employment counts"=ORANGE)) +
@@ -301,6 +305,7 @@ ggplot(vif_dot_df, aes(x=vif, y=group)) +
        x="Variance Inflation Factor", y=NULL, color=NULL) +
   theme(legend.position="bottom",
         plot.title=element_text(face="bold", hjust=0.5),
+        panel.grid.major=element_blank(), panel.grid.minor=element_blank(),
         axis.ticks.x=element_line(color="#0B0B0B", linewidth=0.6),
         axis.ticks.length.x=unit(6, "pt"))
 ```
@@ -558,7 +563,7 @@ p2 <- ggplot(resid_df, aes(sample=std_resid)) +
   stat_qq(color=BLUE, alpha=0.35, size=0.8) +
   stat_qq_line(color="#0B0B0B", linewidth=0.8) +
   scale_y_continuous(breaks=scales::pretty_breaks(n=7)) +
-  labs(x=NULL, y="Standardized Residual", title="Normal Q-Q") +
+  labs(x="Theoretical Quantiles", y="Standardized Residual", title="Normal Q-Q") +
   theme(plot.title=element_text(size=11))
 
 p3 <- ggplot(resid_log_df, aes(x=fitted_log, y=resid_log)) +

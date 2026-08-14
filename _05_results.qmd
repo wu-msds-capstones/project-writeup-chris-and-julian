@@ -335,29 +335,33 @@ pdp_df=pd.concat(pdp_frames, ignore_index=True)
 #| echo: false
 #| warning: false
 #| fig-cap: "**Partial Dependence on Each Task Group.** Random forest partial dependence of predicted purchasing power, in dollars, on each non-reference task group, computed on the held out test counties. A) routine cognitive, B) routine manual, C) non-routine manual. Each curve moves one group across its observed range with all other features held at their values, and a panel's line covers only the segment of the shared x axis that group occupies. Panels share both axes, which makes the declines comparable across groups. The smooth, near monotonic declines match a proportional association."
-%%R -i pdp_df -w 9 -h 3.5 -u in -r 150 -b transparent
+%%R -i pdp_df -w 9.5 -h 3.8 -u in -r 150 -b transparent
 pdp_levels <- c("Routine Cognitive","Routine Manual","Non-Routine Manual")
 pdp_df$group <- factor(pdp_df$group, levels=pdp_levels)
 PDP_COLORS <- TASK_COLORS[pdp_levels]
 
-# one panel per group, letter tagged; the facet strip carries the group name so
-# the color legend would only repeat it
-panel_labs <- setNames(paste0(LETTERS[seq_along(pdp_levels)], ") ", pdp_levels), pdp_levels)
-pdp_df$panel <- factor(panel_labs[as.character(pdp_df$group)], levels=panel_labs)
+# the strip carries the group name alone, centred; the letter tag is drawn separately
+# above the top of each panel's own y axis, so the two never share one string
+tag_df <- data.frame(group=factor(pdp_levels, levels=pdp_levels),
+                     tag=paste0(LETTERS[seq_along(pdp_levels)], ")"))
 
 ggplot(pdp_df, aes(x=x, y=y, color=group)) +
   geom_line(linewidth=1.0) +
-  facet_wrap(~panel, ncol=3) +
+  geom_text(data=tag_df, aes(x=-Inf, y=Inf, label=tag), inherit.aes=FALSE,
+            hjust=1.2, vjust=-0.45, fontface="bold", size=4.2, color="#0B0B0B") +
+  # axes="all_y" repeats the y axis on every panel; the scale itself stays shared,
+  # so the three declines remain comparable in magnitude
+  facet_wrap(~group, ncol=3, axes="all_y") +
+  coord_cartesian(clip="off") +
   scale_color_manual(values=PDP_COLORS, guide="none") +
-  # tight y padding so the curves fill the panel; the shared scale is kept so the
-  # three declines stay comparable in magnitude
   scale_y_continuous(labels=function(v) sprintf("$%s", formatC(round(v), format="d", big.mark=",")),
+                     breaks=scales::pretty_breaks(n=7),
                      expand=expansion(mult=c(0.02, 0.02))) +
-  scale_x_continuous(labels=function(v) v * 100) +
+  scale_x_continuous(labels=function(v) v * 100, breaks=scales::pretty_breaks(n=6)) +
   labs(title="Partial Dependence on Each Task Group",
        x="Shift from Non-Routine Cognitive (Percentage Points)",
-       y="Predicted Purchasing Power ($)") +
-  theme(panel.spacing=unit(1.2, "lines"))
+       y="Predicted Purchasing Power") +
+  theme(panel.spacing=unit(1.2, "lines"), plot.margin=margin(16, 10, 8, 10))
 ```
 
 ## Where purchasing power is strained
@@ -631,7 +635,10 @@ ggplot(area_df, aes(x=year, y=share, fill=group)) +
   theme(axis.text.x=element_text(angle=0, hjust=0.5),
         axis.text.y=element_text(vjust=0.15),
         panel.grid.major=element_blank(), panel.grid.minor=element_blank(),
-        plot.margin=margin(26, 5.5, 5.5, 5.5))
+        # right margin widened only enough for the 2023 tick label, which sat half
+        # outside the plot. The panel itself is untouched, so the bands stay flush
+        # to the axis with no whitespace added inside the plot area
+        plot.margin=margin(26, 16, 5.5, 5.5))
 ```
 
 Individual counties hold their positions too, beyond the national aggregate. @tbl-rankcorr reports the rank correlation of each group's county ordering between 2010 and 2023, computed from 2010 onward to step over the coding change. Routine manual and non-routine cognitive hold their orderings most strongly, and the counties with the most of each in 2010 are largely the same counties in 2023. Non-routine manual is more mobile, and routine cognitive reorders the most, which is consistent with it being the one group carrying substantial within county movement in the variance decomposition of @sec-analysis.
