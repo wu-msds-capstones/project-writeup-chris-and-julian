@@ -1,1 +1,5 @@
 # References
+
+## Software
+
+Data processing, modeling, and machine learning were carried out in Python using pandas [@pandas2010], NumPy [@numpy2020], SciPy [@scipy2020], statsmodels [@statsmodels2010], scikit-learn [@sklearn2011], TensorFlow [@tensorflow2016], and GeoPandas [@geopandas2020]. Figures were produced in R [@rcoreteam2024] using ggplot2 [@ggplot2_2016], patchwork [@patchwork2024], scales [@scales2023], and sf [@sf2018].

@@ -84,30 +84,91 @@ uni_order=list(uni_labels.values())
 uni_pts$group <- factor(uni_pts$group, levels=unlist(uni_order))
 uni_bins$group <- factor(uni_bins$group, levels=unlist(uni_order))
 
-# panel labels carry the letter tag; group is kept separately so the palette still keys on it
-panel_labs <- setNames(paste0(LETTERS[seq_along(unlist(uni_order))], ") ", unlist(uni_order)),
-                       unlist(uni_order))
-uni_pts$panel <- factor(panel_labs[as.character(uni_pts$group)], levels=panel_labs)
-uni_bins$panel <- factor(panel_labs[as.character(uni_bins$group)], levels=panel_labs)
-
-# one color per task group, matching the palette used everywhere else in the report
-GROUP_COLORS <- TASK_COLORS
+# the strip carries the group name alone, centered; the letter tag is drawn
+# separately at the top right of each panel so the two do not share one string
+tag_df <- data.frame(group=factor(unlist(uni_order), levels=unlist(uni_order)),
+                     tag=paste0(LETTERS[seq_along(unlist(uni_order))], ")"))
 
 ggplot(uni_pts, aes(x=share, y=affordability_salary)) +
   geom_point(alpha=0.08, size=0.25, color="grey40") +
   geom_line(data=uni_bins, aes(color=group), linewidth=0.8, show.legend=FALSE) +
   geom_point(data=uni_bins, aes(color=group), size=1.8, show.legend=FALSE) +
-  facet_wrap(~panel, ncol=2, scales="free_x") +
-  scale_color_manual(values=GROUP_COLORS) +
+  geom_text(data=tag_df, aes(x=Inf, y=Inf, label=tag), inherit.aes=FALSE,
+            hjust=1.4, vjust=1.5, fontface="bold", size=4.2, color="#0B0B0B") +
+  facet_wrap(~group, ncol=2, scales="free_x") +
+  scale_color_manual(values=TASK_COLORS) +
   scale_x_continuous(breaks=scales::pretty_breaks(n=8)) +
-  scale_y_continuous(labels=function(v) sprintf("$%s", formatC(v, format="d", big.mark=","))) +
+  scale_y_continuous(labels=dollar_axis) +
   labs(title="Purchasing Power Against Each Task Group",
        x="Percent of County Employment", y="Purchasing Power") +
   theme(plot.title=element_text(hjust=0.5),
-        strip.text=element_text(size=12),
+        strip.text=element_text(size=12, hjust=0.5),
         axis.ticks.x=element_line(color="#C3C2B7", linewidth=0.3),
         panel.spacing=unit(1.4, "lines"))
 ```
+
+## Variance decomposition
+
+Purchasing power and the task groups vary both across counties and within a county over time, and the two carry different implications. @fig-between-within splits each group's variation into the two components. The manual groups vary almost entirely between counties, which is what makes the purchasing power differences they carry durable rather than temporary. Routine cognitive is the only group with substantial within county movement.
+
+```{python}
+#| include: false
+df10=df[df["year"]>=2010].copy()
+input_cols=["routine_cognitive_share","routine_manual_share","non_routine_manual_share"]
+
+within_vals=[]
+for col in input_cols:
+    yd=df10[col]-df10.groupby("year")[col].transform("mean")
+    within=(yd-yd.groupby(df10["county_fips"]).transform("mean")).var()
+    within_vals.append(within/yd.var()*100)
+
+bw_labels=["Routine Cognitive","Routine Manual","Non-Routine Manual"]
+bw_df=pd.concat([
+    pd.DataFrame({"group":bw_labels, "value":[100-v for v in within_vals],
+                  "component":"Between Counties"}),
+    pd.DataFrame({"group":bw_labels, "value":within_vals,
+                  "component":"Within Counties Over Time"}),
+], ignore_index=True)
+bw_text_df=pd.concat([
+    pd.DataFrame({"group":bw_labels, "x":[(100-v)/2 for v in within_vals],
+                  "label":[f"{100-v:.0f}%" for v in within_vals], "component":"Between Counties"}),
+    pd.DataFrame({"group":bw_labels, "x":[100-v/2 for v in within_vals],
+                  "label":[f"{v:.0f}%" for v in within_vals], "component":"Within Counties Over Time"}),
+], ignore_index=True)
+```
+
+```{python}
+#| label: fig-between-within
+#| echo: false
+#| warning: false
+#| fig-cap: "**Between County vs. Within County Variation by Task Group.** On the panel restricted to 2010 onward with each year's cross county mean removed. The manual groups vary almost entirely between counties; routine cognitive is the one group with substantial within county movement."
+%%R -i bw_df -i bw_text_df -w 9 -h 3.5 -u in -r 150 -b transparent
+bw_df$group <- factor(bw_df$group,
+    levels=rev(c("Routine Cognitive","Routine Manual","Non-Routine Manual")))
+bw_df$component <- factor(bw_df$component,
+    levels=c("Within Counties Over Time","Between Counties"))
+bw_text_df$group <- factor(bw_text_df$group, levels=levels(bw_df$group))
+
+# Two solid fills rather than one color at two opacities. Both in-bar labels are ink:
+# against the current Paired palette that clears the 4.5:1 floor on each fill
+# (green 5.8, light red 9.6). White text fails on the light red at 2.1.
+bw_text_df$text_color <- "#0B0B0B"
+
+ggplot(bw_df, aes(x=value, y=group, fill=component)) +
+  geom_col(width=0.7) +
+  geom_text(data=bw_text_df, aes(x=x, y=group, label=label, color=text_color),
+            inherit.aes=FALSE, size=3.4) +
+  scale_color_identity() +
+  scale_fill_manual(values=c("Between Counties"=GREEN,
+                             "Within Counties Over Time"=PINK), name=NULL) +
+  scale_x_continuous(expand=expansion(mult=c(0, 0.02))) +
+  scale_y_discrete(expand=expansion(add=c(0.3, 0.3))) +
+  labs(title="Between County vs. Within County Variation by Task Group",
+       x="Share of Variance (%)", y=NULL) +
+  theme(legend.position="bottom")
+```
+
+The Census occupation coding change between 2009 and 2010, described in @sec-data, inflates apparent within county variation for the routine cognitive group. That inflation comes from how the source data were coded rather than from any property of the counties, and the figure is computed on the panel restricted to 2010 onward with each year's cross county mean removed.
 
 ## Model specification
 
@@ -163,7 +224,7 @@ p_log <- year_panel(year_eff_log, "Percent Difference", function(v) sprintf("%g%
 
 Standard errors are clustered by county, because repeated observations of the same county across fifteen years are not independent draws. A Durbin Watson statistic of 0.496 is consistent with that dependence. @sec-results reports the estimated coefficients.
 
-## Collinearity and the reference group
+### Collinearity and the reference group
 
 The unnormalized employment totals of @eq-totals cannot support a regression. A variance inflation factor measures how much a coefficient is destabilized by its correlation with the other inputs, and a value above 10 is the conventional threshold for concern. The four totals carry factors between 13 and 27, because all four are employment counts that scale with county size, and they move together and carry little independent information. The specification estimated fixes this twice over, as @fig-vif shows. Normalizing by the four group total, as @sec-data describes, removes the shared scale, and dropping non-routine cognitive as the reference group removes the constraint that the four proportions sum to one. Every factor on the estimated specification sits between 1.2 and 1.6.
 
@@ -241,7 +302,9 @@ ggplot(vif_dot_df, aes(x=vif, y=group)) +
 
 This also explains a problem visible earlier in the project. Before normalization the coefficients were unstable and their standard errors were large relative to their magnitudes, both standard symptoms of multicollinearity.
 
-## Distribution of the analytical variables
+## Specification diagnostics
+
+### Distribution of the analytical variables
 
 With the specification set, we turn to the shape of the variables that enter it. @fig-dists shows the distributions of purchasing power and the four task groups across the task group panel, looking for the skewness and outliers that would shape the diagnostics below. The variance inflation factors above already establish that no two groups carry the same information once the proportions are used.
 
@@ -305,11 +368,99 @@ p_tasks <- ggplot(task_box_df, aes(x=variable, y=value, fill=variable, color=var
 
 Purchasing power is right skewed, with a skewness of 1.17. The center of the distribution sits near \$57,000, and a long tail of high purchasing power counties extends above it. That skew is why the diagnostics below concentrate on the extremes.
 
-## Specification diagnostics
+### Residual and quantile diagnostics
 
 A linear model assumes a constant rate of association across the data range and errors that are symmetric and evenly spread around the fit. We test those assumptions with three diagnostics, the residuals plotted against fitted values, a quantile quantile (QQ) plot of the residuals, and the variance inflation factors already reported. The raw scale model shows clear systematic curvature in the residuals and a substantial upper tail departure in the QQ plot, indicating that the linear specification is poorly suited to the untransformed outcome (@fig-diagnostics, Panels A and B), alongside the same diagnostics after the log respecification below (Panels C and D). The model underestimates both the lowest and the highest purchasing power counties while fitting the middle well, and the upper tail departure reflects a residual skew of 1.01.
 
 The level model still supplies the interpretable dollar estimates we report, and its own diagnostics show that the data hold structure a straight line in dollars cannot represent. These diagnostics are what drive the rest of the section. Curvature in the residual smoother and widening spread with fitted values are evidence that the fixed slope specification is wrong in a specific way rather than merely imperfect, and each subsequent model is an attempt to relax the assumption the diagnostics identify.
+
+### Influential points
+
+A fourth diagnostic, Cook's distance, checks whether any single county year is disproportionately steering the level specification's coefficients. No observation crosses the conventional threshold of 1.0 for a point that should always be investigated; the largest value is 0.009. @fig-cooks-distance ranks the 10 counties with the largest Cook's distance in any single year, taking each county's own maximum across its years in the panel. Rather than collapsing each county to that one number, the figure also shows every year's value, which reveals that the ranking is not driven the same way for every county: Loudoun County, Virginia, the largest by far, gets there through real year to year volatility, while several counties lower in the ranking, such as McKinley County, New Mexico, sit consistently high across nearly every year instead. Loudoun and Stafford County, Virginia are both high purchasing power counties in the Washington D.C. exurbs; Williamson County, Tennessee is a high purchasing power Nashville exurb; and Apache County, Arizona is a low purchasing power county on the Navajo Nation. These are the same high end outliers @fig-dists already shows in the purchasing power distribution, rather than a new problem the earlier figure missed.
+
+```{python}
+#| include: false
+cooks_infl=model.get_influence()
+reg["cooks_d"]=cooks_infl.cooks_distance[0]
+
+county_state_names=pd.read_sql(
+    "select c.county_fips, c.county_name, s.state_name "
+    "from county c join state s on c.state_code=s.state_code", engine)
+
+# each county's own largest Cook's distance across its years in the panel,
+# so a persistently influential county appears once rather than once per year
+county_max_cooks=reg.groupby("county_fips")["cooks_d"].max().reset_index()
+top10_fips=county_max_cooks.nlargest(10, "cooks_d")["county_fips"]
+
+# every year's value for those 10 counties, not just each county's max,
+# so the figure can show the full range rather than a single collapsed number
+top_influential=(reg[reg["county_fips"].isin(top10_fips)][["county_fips","cooks_d"]]
+                  .merge(county_state_names, on="county_fips", how="left"))
+top_influential["label"]=top_influential["county_name"]+", "+top_influential["state_name"]
+influence_plot_df=top_influential[["label","cooks_d"]]
+influence_range_df=(influence_plot_df.groupby("label")["cooks_d"]
+                     .agg(min_d="min", max_d="max").reset_index()
+                     .sort_values("max_d"))
+influence_plot_df["label"]=pd.Categorical(influence_plot_df["label"],
+                                          categories=influence_range_df["label"], ordered=True)
+
+# sensitivity check: refit excluding the top 1 percent most influential rows
+influence_cutoff=reg["cooks_d"].quantile(0.99)
+influence_keep=reg["cooks_d"]<=influence_cutoff
+n_excluded=int((~influence_keep).sum())
+
+model_robust=sm.OLS(reg.loc[influence_keep, "affordability_salary"], X_panel.loc[influence_keep]).fit(
+    cov_type="cluster", cov_kwds={"groups": reg.loc[influence_keep, "county_fips"]})
+
+sens_labels={
+    "routine_cognitive_share":"Routine Cognitive",
+    "routine_manual_share":"Routine Manual",
+    "non_routine_manual_share":"Non-Routine Manual",
+    "poverty_rate":"Poverty Rate",
+    "unemployment_rate":"Unemployment Rate",
+    "log_population":"Log Population",
+}
+sensitivity_df=pd.DataFrame({
+    "Variable": [sens_labels[c] for c in reg_cols],
+    "Full Sample": [model.params[c] for c in reg_cols],
+    "Excluding Top 1%": [model_robust.params[c] for c in reg_cols],
+})
+sensitivity_df["Change (%)"]=(sensitivity_df["Excluding Top 1%"]/sensitivity_df["Full Sample"]-1)*100
+```
+
+```{python}
+#| label: fig-cooks-distance
+#| echo: false
+#| warning: false
+#| fig-cap: "**Ten Highest Cook's Distance Values by County, Level Specification.** Each translucent point is one year; the line spans that county's full range across the panel, with the maximum marked and labeled. Every value falls far below the conventional threshold of 1.0 for a point requiring investigation."
+%%R -i influence_plot_df -i influence_range_df -w 9 -h 5.5 -u in -r 150 -b transparent
+influence_plot_df$label <- factor(influence_plot_df$label, levels=influence_range_df$label)
+influence_range_df$label <- factor(influence_range_df$label, levels=influence_range_df$label)
+
+ggplot() +
+  geom_segment(data=influence_range_df, aes(x=min_d, xend=max_d, y=label, yend=label),
+               linewidth=1.2, color="#C8C8C5", lineend="round") +
+  geom_point(data=influence_plot_df, aes(x=cooks_d, y=label), size=2.0, color=BLUE, alpha=0.45) +
+  geom_point(data=influence_range_df, aes(x=max_d, y=label), size=3.2, color=BLUE) +
+  geom_text(data=influence_range_df, aes(x=max_d, y=label, label=sprintf("%.4f", max_d)),
+            hjust=-0.35, size=3.2, color="#252525") +
+  scale_x_continuous(limits=c(0, 0.011), expand=c(0,0)) +
+  labs(title="Ten Highest Cook's Distance Values by County, Level Specification",
+       x="Cook's Distance", y=NULL)
+```
+
+Because none of these points individually threatens the fit, the more informative check is what happens to the coefficients when the most influential 1 percent of the panel, `{python} f"{n_excluded}"` county year observations, is removed and the model refit. @tbl-influence-sensitivity reports the result. The task group coefficients move by single digit to low double digit percentages, and the poverty coefficient barely moves at all. The associations this study leans on hardest are not artifacts of a handful of extreme counties. Unemployment rate is the exception: already the smallest and least precisely estimated of the controls, as @sec-results reports, its coefficient shifts by roughly a third. That sensitivity is consistent with unemployment rate carrying the weakest evidence of the three controls throughout this study, rather than with a problem specific to this check. We also refit the main estimates on pre pandemic (2010 to 2019) and post pandemic (2021 to 2023) windows, and @sec-results reports coefficient stability across them.
+
+```{python}
+#| label: tbl-influence-sensitivity
+#| echo: false
+#| tbl-cap: "**Coefficient Sensitivity to Influential Points.** Level specification coefficients, full sample versus excluding the most influential 1 percent of county year observations by Cook's distance."
+
+style_table(GT(sensitivity_df)
+  .fmt_currency(columns=["Full Sample","Excluding Top 1%"], decimals=0)
+  .fmt_number(columns="Change (%)", decimals=1)
+  .tab_source_note(f"{n_excluded} of {len(reg)} county year observations excluded, the top 1% by Cook's distance."))
+```
 
 ## Log respecification
 
@@ -462,157 +613,6 @@ ggplot(pts_df, aes(x=fitted, y=actual)) +
 
 The smoothed residual line does not lie perfectly flat even after the transformation. What remains could be nonlinearity, interactions among the inputs, or a variable the model does not contain, and the residuals alone cannot separate the three. That is exactly the situation a flexible model is built for. A random forest searches all three at once without being told in advance which to look for, and it tests the possibilities the diagnostics raise but cannot settle. It also fixes the standard the forest must meet, which is finding signal in held out counties that the log linear fit does not already capture.
 
-## Influential points
-
-A fourth diagnostic, Cook's distance, checks whether any single county year is disproportionately steering the level specification's coefficients. No observation crosses the conventional threshold of 1.0 for a point that should always be investigated; the largest value is 0.009. @fig-cooks-distance ranks the 10 counties with the largest Cook's distance in any single year, taking each county's own maximum across its years in the panel. Rather than collapsing each county to that one number, the figure also shows every year's value, which reveals that the ranking is not driven the same way for every county: Loudoun County, Virginia, the largest by far, gets there through real year to year volatility, while several counties lower in the ranking, such as McKinley County, New Mexico, sit consistently high across nearly every year instead. Loudoun and Stafford County, Virginia are both high purchasing power counties in the Washington D.C. exurbs; Williamson County, Tennessee is a high purchasing power Nashville exurb; and Apache County, Arizona is a low purchasing power county on the Navajo Nation. These are the same high end outliers @fig-dists already shows in the purchasing power distribution, rather than a new problem the earlier figure missed.
-
-```{python}
-#| include: false
-cooks_infl=model.get_influence()
-reg["cooks_d"]=cooks_infl.cooks_distance[0]
-
-county_state_names=pd.read_sql(
-    "select c.county_fips, c.county_name, s.state_name "
-    "from county c join state s on c.state_code=s.state_code", engine)
-
-# each county's own largest Cook's distance across its years in the panel,
-# so a persistently influential county appears once rather than once per year
-county_max_cooks=reg.groupby("county_fips")["cooks_d"].max().reset_index()
-top10_fips=county_max_cooks.nlargest(10, "cooks_d")["county_fips"]
-
-# every year's value for those 10 counties, not just each county's max,
-# so the figure can show the full range rather than a single collapsed number
-top_influential=(reg[reg["county_fips"].isin(top10_fips)][["county_fips","cooks_d"]]
-                  .merge(county_state_names, on="county_fips", how="left"))
-top_influential["label"]=top_influential["county_name"]+", "+top_influential["state_name"]
-influence_plot_df=top_influential[["label","cooks_d"]]
-influence_range_df=(influence_plot_df.groupby("label")["cooks_d"]
-                     .agg(min_d="min", max_d="max").reset_index()
-                     .sort_values("max_d"))
-influence_plot_df["label"]=pd.Categorical(influence_plot_df["label"],
-                                          categories=influence_range_df["label"], ordered=True)
-
-# sensitivity check: refit excluding the top 1 percent most influential rows
-influence_cutoff=reg["cooks_d"].quantile(0.99)
-influence_keep=reg["cooks_d"]<=influence_cutoff
-n_excluded=int((~influence_keep).sum())
-
-model_robust=sm.OLS(reg.loc[influence_keep, "affordability_salary"], X_panel.loc[influence_keep]).fit(
-    cov_type="cluster", cov_kwds={"groups": reg.loc[influence_keep, "county_fips"]})
-
-sens_labels={
-    "routine_cognitive_share":"Routine Cognitive",
-    "routine_manual_share":"Routine Manual",
-    "non_routine_manual_share":"Non-Routine Manual",
-    "poverty_rate":"Poverty Rate",
-    "unemployment_rate":"Unemployment Rate",
-    "log_population":"Log Population",
-}
-sensitivity_df=pd.DataFrame({
-    "Variable": [sens_labels[c] for c in reg_cols],
-    "Full Sample": [model.params[c] for c in reg_cols],
-    "Excluding Top 1%": [model_robust.params[c] for c in reg_cols],
-})
-sensitivity_df["Change (%)"]=(sensitivity_df["Excluding Top 1%"]/sensitivity_df["Full Sample"]-1)*100
-```
-
-```{python}
-#| label: fig-cooks-distance
-#| echo: false
-#| warning: false
-#| fig-cap: "**Ten Highest Cook's Distance Values by County, Level Specification.** Each translucent point is one year; the line spans that county's full range across the panel, with the maximum marked and labeled. Every value falls far below the conventional threshold of 1.0 for a point requiring investigation."
-%%R -i influence_plot_df -i influence_range_df -w 9 -h 5.5 -u in -r 150 -b transparent
-influence_plot_df$label <- factor(influence_plot_df$label, levels=influence_range_df$label)
-influence_range_df$label <- factor(influence_range_df$label, levels=influence_range_df$label)
-
-ggplot() +
-  geom_segment(data=influence_range_df, aes(x=min_d, xend=max_d, y=label, yend=label),
-               linewidth=1.2, color="#C8C8C5", lineend="round") +
-  geom_point(data=influence_plot_df, aes(x=cooks_d, y=label), size=2.0, color=BLUE, alpha=0.45) +
-  geom_point(data=influence_range_df, aes(x=max_d, y=label), size=3.2, color=BLUE) +
-  geom_text(data=influence_range_df, aes(x=max_d, y=label, label=sprintf("%.4f", max_d)),
-            hjust=-0.35, size=3.2, color="#252525") +
-  scale_x_continuous(limits=c(0, 0.011), expand=c(0,0)) +
-  labs(title="Ten Highest Cook's Distance Values by County, Level Specification",
-       x="Cook's Distance", y=NULL)
-```
-
-Because none of these points individually threatens the fit, the more informative check is what happens to the coefficients when the most influential 1 percent of the panel, `{python} f"{n_excluded}"` county year observations, is removed and the model refit. @tbl-influence-sensitivity reports the result. The task group coefficients move by single digit to low double digit percentages, and the poverty coefficient barely moves at all. The associations this study leans on hardest are not artifacts of a handful of extreme counties. Unemployment rate is the exception: already the smallest and least precisely estimated of the controls, as @sec-results reports, its coefficient shifts by roughly a third. That sensitivity is consistent with unemployment rate carrying the weakest evidence of the three controls throughout this study, rather than with a problem specific to this check.
-
-```{python}
-#| label: tbl-influence-sensitivity
-#| echo: false
-#| tbl-cap: "**Coefficient Sensitivity to Influential Points.** Level specification coefficients, full sample versus excluding the most influential 1 percent of county year observations by Cook's distance."
-
-style_table(GT(sensitivity_df)
-  .fmt_currency(columns=["Full Sample","Excluding Top 1%"], decimals=0)
-  .fmt_number(columns="Change (%)", decimals=1)
-  .tab_source_note(f"{n_excluded} of {len(reg)} county year observations excluded, the top 1% by Cook's distance."))
-```
-
-## Variance decomposition
-
-Purchasing power and the task groups vary both across counties and within a county over time, and the two carry different implications. @fig-between-within splits each group's variation into the two components. The manual groups vary almost entirely between counties, which is what makes the purchasing power differences they carry durable rather than temporary. Routine cognitive is the only group with substantial within county movement.
-
-```{python}
-#| include: false
-df10=df[df["year"]>=2010].copy()
-input_cols=["routine_cognitive_share","routine_manual_share","non_routine_manual_share"]
-
-within_vals=[]
-for col in input_cols:
-    yd=df10[col]-df10.groupby("year")[col].transform("mean")
-    within=(yd-yd.groupby(df10["county_fips"]).transform("mean")).var()
-    within_vals.append(within/yd.var()*100)
-
-bw_labels=["Routine Cognitive","Routine Manual","Non-Routine Manual"]
-bw_df=pd.concat([
-    pd.DataFrame({"group":bw_labels, "value":[100-v for v in within_vals],
-                  "component":"Between Counties"}),
-    pd.DataFrame({"group":bw_labels, "value":within_vals,
-                  "component":"Within Counties Over Time"}),
-], ignore_index=True)
-bw_text_df=pd.concat([
-    pd.DataFrame({"group":bw_labels, "x":[(100-v)/2 for v in within_vals],
-                  "label":[f"{100-v:.0f}%" for v in within_vals], "component":"Between Counties"}),
-    pd.DataFrame({"group":bw_labels, "x":[100-v/2 for v in within_vals],
-                  "label":[f"{v:.0f}%" for v in within_vals], "component":"Within Counties Over Time"}),
-], ignore_index=True)
-```
-
-```{python}
-#| label: fig-between-within
-#| echo: false
-#| warning: false
-#| fig-cap: "**Between County vs. Within County Variation by Task Group.** On the panel restricted to 2010 onward with each year's cross county mean removed. The manual groups vary almost entirely between counties; routine cognitive is the one group with substantial within county movement."
-%%R -i bw_df -i bw_text_df -w 9 -h 3.5 -u in -r 150 -b transparent
-bw_df$group <- factor(bw_df$group,
-    levels=rev(c("Routine Cognitive","Routine Manual","Non-Routine Manual")))
-bw_df$component <- factor(bw_df$component,
-    levels=c("Within Counties Over Time","Between Counties"))
-bw_text_df$group <- factor(bw_text_df$group, levels=levels(bw_df$group))
-
-# Two solid fills rather than one color at two opacities. Both in-bar labels are ink:
-# against the current Paired palette that clears the 4.5:1 floor on each fill
-# (green 5.8, light red 9.6). White text fails on the light red at 2.1.
-bw_text_df$text_color <- "#0B0B0B"
-
-ggplot(bw_df, aes(x=value, y=group, fill=component)) +
-  geom_col(width=0.7) +
-  geom_text(data=bw_text_df, aes(x=x, y=group, label=label, color=text_color),
-            inherit.aes=FALSE, size=3.4) +
-  scale_color_identity() +
-  scale_fill_manual(values=c("Between Counties"=GREEN,
-                             "Within Counties Over Time"=PINK), name=NULL) +
-  scale_x_continuous(expand=expansion(mult=c(0, 0.02))) +
-  scale_y_discrete(expand=expansion(add=c(0.3, 0.3))) +
-  labs(title="Between County vs. Within County Variation by Task Group",
-       x="Share of Variance (%)", y=NULL) +
-  theme(legend.position="bottom")
-```
-
-The Census occupation coding change between 2009 and 2010, described in @sec-data, inflates apparent within county variation for the routine cognitive group. That inflation comes from how the source data were coded rather than from any property of the counties, and the figure is computed on the panel restricted to 2010 onward with each year's cross county mean removed. We also refit the main estimates on pre pandemic (2010 to 2019) and post pandemic (2021 to 2023) windows, and @sec-results reports coefficient stability across them.
-
 ## Predictive modeling
 
 Model complexity follows a ladder, from linear models through tree ensembles to neural networks. The rule is to start with the simplest model that could plausibly work, move up a rung only while held out error improves, and stop when training and validation performance agree. The level model's failed diagnostics justified the first step, the log respecification. The structured residuals that remain justify testing the next rung, a random forest, which represents interactions and curvature without requiring either to be specified in advance. A small neural network sits one rung above the forest and bounds the search, since if the forest finds no additional signal, the network confirms whether that ceiling is real. Every rung is scored on the same held out counties from the grouped split, which makes a gain at any rung attributable to the model rather than to the rows it saw. Under this rule, finding no improvement is itself a result, because it establishes that the association is close to proportional and that the log linear model is the right stopping point.
@@ -630,7 +630,9 @@ state_name_map=state_lookup.drop_duplicates("state_code").set_index("state_code"
 df_ml=df.merge(state_lookup, on="county_fips", how="left")
 ```
 
-### Feature set and reference groups
+### Evaluation design
+
+#### Feature set and reference groups
 
 ```{python}
 #| include: false
@@ -650,7 +652,7 @@ model_df=df_ml.dropna(subset=feature_cols).reset_index(drop=True).copy()
 
 We define each task group as its proportion of employment across the four categories, and the four values sum to one. As with the panel regression, that constraint makes `non_routine_cognitive_share` the omitted reference, and coefficients on the remaining task groups read as shifts toward each group and away from non-routine cognitive work.
 
-### Grouped train and test split
+#### Grouped train and test split
 
 This is not a forecasting exercise, and a time ordered split is not required for its usual reason. A grouped split is still necessary, because a county's economic profile barely moves year to year, which makes its 2018 and 2019 rows near duplicates. If two adjacent rows land on opposite sides of the split, the model can recall a county rather than learn a relationship. We group by `county_fips` and split on row membership before any further feature engineering. Every test set prediction comes from a county the model has seen no rows of, which tests whether the pattern generalizes rather than whether it was memorized. The columns that make up the feature matrix are decided next and applied to this same split.
 
@@ -671,7 +673,7 @@ groups_train=groups.iloc[train_idx]
 assert len(set(groups.iloc[train_idx]) & set(groups.iloc[test_idx]))==0
 ```
 
-### Year and state indicators
+#### Year and state indicators
 
 Treating year as a factor rather than as a numeric variable gives each year its own coefficient, with no assumption about ordering or spacing between them. One state serves as a reference in the same way. Every state with fewer than five distinct counties in the panel is relabeled as OTHER, since those states cannot support a stable coefficient of their own.
 
@@ -785,7 +787,7 @@ ggplot(state_df, aes(x=mean_pp, y=state_label)) +
   theme(axis.text.y=element_text(size=7), plot.margin=margin(10,10,10,10))
 ```
 
-### Collinearity
+#### Collinearity of the indicator blocks
 
 The reference group logic of @fig-vif applies here unchanged. What is new in this feature set is the indicator blocks. @fig-vif-ml checks that the year and state indicators introduce no collinearity of their own.
 
@@ -857,7 +859,7 @@ X_base=model_df[feature_cols_base].astype(float)
 X_train_base, X_test_base=X_base.iloc[train_idx], X_base.iloc[test_idx]
 ```
 
-### Linear regression
+### Linear benchmark
 
 This specification is a predictive benchmark rather than a second inferential model. It reuses the diagnostic lessons the panel regression above already established, now fit on the training split alone so it is directly comparable to the random forest and neural network that follow. We report two versions of each linear model, estimated by ordinary least squares (OLS). The baseline uses the task groups with poverty and unemployment only, and the full model adds year and state controls. The baseline shows what the relationship looks like before time and geography are accounted for, the full model is the one carried forward, and reporting both makes visible exactly what changes when time and geography enter.
 
@@ -1078,7 +1080,7 @@ perm_imp=permutation_importance(
 )
 ```
 
-#### Random forest specification and ablation
+#### Ablation and permutation importance
 
 ```{python}
 #| include: false
