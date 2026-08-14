@@ -137,37 +137,37 @@ p_pov <- ggplot(subset(baseline_long, variable=="Poverty Rate (%)"), aes(x=varia
   geom_violin(fill=ORANGE, color=ORANGE, alpha=0.35, linewidth=0.6, trim=TRUE) +
   geom_boxplot(width=0.12, fill="white", color="grey30", alpha=0.7,
                outlier.size=0.8, outlier.alpha=0.5) +
-  scale_y_continuous(labels=function(v) sprintf("%g%%", v)) +
+  scale_y_continuous(labels=function(v) sprintf("%g%%", v), breaks=scales::pretty_breaks(n=4)) +
   labs(title="Poverty Rate", x=NULL, y="Rate") +
-  theme(axis.text.x=element_blank()) +
-  theme(plot.title=element_text(size=11))
+  theme(axis.text.x=element_blank(), plot.title=element_text(size=11),
+        panel.grid.major=element_blank(), panel.grid.minor=element_blank())
 
 p_unemp <- ggplot(subset(baseline_long, variable=="Unemployment Rate (%)"), aes(x=variable, y=value)) +
   geom_violin(fill=PINK, color=PINK, alpha=0.35, linewidth=0.6, trim=TRUE) +
   geom_boxplot(width=0.12, fill="white", color="grey30", alpha=0.7,
                outlier.size=0.8, outlier.alpha=0.5) +
-  scale_y_continuous(labels=function(v) sprintf("%g%%", v)) +
+  scale_y_continuous(labels=function(v) sprintf("%g%%", v), breaks=scales::pretty_breaks(n=4)) +
   labs(title="Unemployment Rate", x=NULL, y="Rate") +
-  theme(axis.text.x=element_blank()) +
-  theme(plot.title=element_text(size=11))
+  theme(axis.text.x=element_blank(), plot.title=element_text(size=11),
+        panel.grid.major=element_blank(), panel.grid.minor=element_blank())
 
 p_pop <- ggplot(subset(baseline_long, variable=="Population"), aes(x=variable, y=value)) +
   geom_violin(fill=GREY, color=GREY, alpha=0.35, linewidth=0.6, trim=TRUE) +
   geom_boxplot(width=0.12, fill="white", color="grey30", alpha=0.7,
                outlier.size=0.8, outlier.alpha=0.5) +
-  scale_y_log10(labels=label_comma()) +
+  scale_y_log10(labels=label_comma(), breaks=scales::log_breaks(n=4)) +
   labs(title="Population", x=NULL, y="Population") +
-  theme(axis.text.x=element_blank()) +
-  theme(plot.title=element_text(size=11))
+  theme(axis.text.x=element_blank(), plot.title=element_text(size=11),
+        panel.grid.major=element_blank(), panel.grid.minor=element_blank())
 
 p_inc <- ggplot(subset(baseline_long, variable=="Median Household Income ($)"), aes(x=variable, y=value)) +
   geom_violin(fill=GREEN, color=GREEN, alpha=0.35, linewidth=0.6, trim=TRUE) +
   geom_boxplot(width=0.12, fill="white", color="grey30", alpha=0.7,
                outlier.size=0.8, outlier.alpha=0.5) +
-  scale_y_continuous(labels=dollar_axis) +
+  scale_y_continuous(labels=dollar_axis, breaks=scales::pretty_breaks(n=4)) +
   labs(title="Median Household Income", x=NULL, y="Income") +
-  theme(axis.text.x=element_blank()) +
-  theme(plot.title=element_text(size=11))
+  theme(axis.text.x=element_blank(), plot.title=element_text(size=11),
+        panel.grid.major=element_blank(), panel.grid.minor=element_blank())
 
 (p_pov | p_unemp) / (p_pop | p_inc) +
   plot_annotation(title="Distribution of the Control Variables",
@@ -219,13 +219,13 @@ digraph architecture {{
   edge [fontname="Helvetica", color="black", arrowsize=0.6]
 
   subgraph cluster_source {{
-    label="DATA SOURCES"
+    label="Data sources"
     labeljust="c"
     fontsize=16
     fontname="Helvetica-Bold"
     style="rounded"
     color="#C3C2B7"
-    bgcolor="#F9F9F7"
+    bgcolor="#F2F8FC"
     margin=18
     node [style="filled,rounded", margin="0.1,0.05", fontsize=14]
     src_census [label="Census Bureau\\nSAIPE · ACS 1yr · CBSA delineation", fillcolor="{CENSUS_FILL}", color="{CENSUS_BORDER}"]
@@ -234,26 +234,26 @@ digraph architecture {{
   }}
 
   subgraph cluster_lake {{
-    label="DATA LAKE"
+    label="Data lake"
     labeljust="c"
     fontsize=16
     fontname="Helvetica-Bold"
     style="rounded"
     color="#C3C2B7"
-    bgcolor="#F9F9F7"
+    bgcolor="#F4F4F1"
     margin=18
     node [style="filled,rounded", fillcolor="{LAKE_FILL}", color="{LAKE_BORDER}", margin="0.1,0.05", fontsize=14]
     lake [label="Raw retrievals and intermediate results\\n41 tables, unnormalized"]
   }}
 
   subgraph cluster_warehouse {{
-    label="DATA WAREHOUSE (3NF)"
+    label="Data warehouse (3NF)"
     labeljust="c"
     fontsize=16
     fontname="Helvetica-Bold"
     style="rounded"
     color="#C3C2B7"
-    bgcolor="#F9F9F7"
+    bgcolor="#F2FAF6"
     margin=18
     node [shape=plain]
 
@@ -278,13 +278,13 @@ digraph architecture {{
   }}
 
   subgraph cluster_output {{
-    label="MODELING TABLES"
+    label="Modeling tables"
     labeljust="c"
     fontsize=16
     fontname="Helvetica-Bold"
     style="rounded"
     color="#C3C2B7"
-    bgcolor="#F9F9F7"
+    bgcolor="#FDF5EF"
     margin=18
     node [style="filled,rounded", fillcolor="{OUT_FILL}", color="{OUT_BORDER}", margin="0.1,0.05", fontsize=14]
     analysis_table [label="Analysis ready county year table\\n(joined on county_fips and year)"]

@@ -11,23 +11,23 @@
 <text xml:space="preserve" text-anchor="start" x="544.12" y="-1216.65" font-family="Helvetica,sans-Serif" font-weight="bold" font-size="24.00">Data Pipeline Architecture</text>
 <g id="clust1" class="cluster">
 <title>cluster_source</title>
-<path fill="#f9f9f7" stroke="#c3c2b7" d="M20,-1098.95C20,-1098.95 527,-1098.95 527,-1098.95 533,-1098.95 539,-1104.95 539,-1110.95 539,-1110.95 539,-1184.65 539,-1184.65 539,-1190.65 533,-1196.65 527,-1196.65 527,-1196.65 20,-1196.65 20,-1196.65 14,-1196.65 8,-1190.65 8,-1184.65 8,-1184.65 8,-1110.95 8,-1110.95 8,-1104.95 14,-1098.95 20,-1098.95"/>
-<text xml:space="preserve" text-anchor="middle" x="273.5" y="-1177.45" font-family="Helvetica,sans-Serif" font-weight="bold" font-size="16.00">DATA SOURCES</text>
+<path fill="#f2f8fc" stroke="#c3c2b7" d="M20,-1098.95C20,-1098.95 527,-1098.95 527,-1098.95 533,-1098.95 539,-1104.95 539,-1110.95 539,-1110.95 539,-1184.65 539,-1184.65 539,-1190.65 533,-1196.65 527,-1196.65 527,-1196.65 20,-1196.65 20,-1196.65 14,-1196.65 8,-1190.65 8,-1184.65 8,-1184.65 8,-1110.95 8,-1110.95 8,-1104.95 14,-1098.95 20,-1098.95"/>
+<text xml:space="preserve" text-anchor="middle" x="273.5" y="-1177.45" font-family="Helvetica,sans-Serif" font-weight="bold" font-size="16.00">Data sources</text>
 </g>
 <g id="clust2" class="cluster">
 <title>cluster_lake</title>
-<path fill="#f9f9f7" stroke="#c3c2b7" d="M233,-930.75C233,-930.75 493,-930.75 493,-930.75 499,-930.75 505,-936.75 505,-942.75 505,-942.75 505,-1016.45 505,-1016.45 505,-1022.45 499,-1028.45 493,-1028.45 493,-1028.45 233,-1028.45 233,-1028.45 227,-1028.45 221,-1022.45 221,-1016.45 221,-1016.45 221,-942.75 221,-942.75 221,-936.75 227,-930.75 233,-930.75"/>
-<text xml:space="preserve" text-anchor="middle" x="363" y="-1009.25" font-family="Helvetica,sans-Serif" font-weight="bold" font-size="16.00">DATA LAKE</text>
+<path fill="#f4f4f1" stroke="#c3c2b7" d="M233,-930.75C233,-930.75 493,-930.75 493,-930.75 499,-930.75 505,-936.75 505,-942.75 505,-942.75 505,-1016.45 505,-1016.45 505,-1022.45 499,-1028.45 493,-1028.45 493,-1028.45 233,-1028.45 233,-1028.45 227,-1028.45 221,-1022.45 221,-1016.45 221,-1016.45 221,-942.75 221,-942.75 221,-936.75 227,-930.75 233,-930.75"/>
+<text xml:space="preserve" text-anchor="middle" x="363" y="-1009.25" font-family="Helvetica,sans-Serif" font-weight="bold" font-size="16.00">Data lake</text>
 </g>
 <g id="clust3" class="cluster">
 <title>cluster_warehouse</title>
-<path fill="#f9f9f7" stroke="#c3c2b7" d="M37,-109C37,-109 1000,-109 1000,-109 1006,-109 1012,-115 1012,-121 1012,-121 1012,-848.25 1012,-848.25 1012,-854.25 1006,-860.25 1000,-860.25 1000,-860.25 37,-860.25 37,-860.25 31,-860.25 25,-854.25 25,-848.25 25,-848.25 25,-121 25,-121 25,-115 31,-109 37,-109"/>
-<text xml:space="preserve" text-anchor="middle" x="518.5" y="-841.05" font-family="Helvetica,sans-Serif" font-weight="bold" font-size="16.00">DATA WAREHOUSE (3NF)</text>
+<path fill="#f2faf6" stroke="#c3c2b7" d="M37,-109C37,-109 1000,-109 1000,-109 1006,-109 1012,-115 1012,-121 1012,-121 1012,-848.25 1012,-848.25 1012,-854.25 1006,-860.25 1000,-860.25 1000,-860.25 37,-860.25 37,-860.25 31,-860.25 25,-854.25 25,-848.25 25,-848.25 25,-121 25,-121 25,-115 31,-109 37,-109"/>
+<text xml:space="preserve" text-anchor="middle" x="518.5" y="-841.05" font-family="Helvetica,sans-Serif" font-weight="bold" font-size="16.00">Data warehouse (3NF)</text>
 </g>
 <g id="clust5" class="cluster">
 <title>cluster_output</title>
-<path fill="#f9f9f7" stroke="#c3c2b7" d="M1032,-8C1032,-8 1369,-8 1369,-8 1375,-8 1381,-14 1381,-20 1381,-20 1381,-217.22 1381,-217.22 1381,-223.22 1375,-229.22 1369,-229.22 1369,-229.22 1032,-229.22 1032,-229.22 1026,-229.22 1020,-223.22 1020,-217.22 1020,-217.22 1020,-20 1020,-20 1020,-14 1026,-8 1032,-8"/>
-<text xml:space="preserve" text-anchor="middle" x="1200.5" y="-210.03" font-family="Helvetica,sans-Serif" font-weight="bold" font-size="16.00">MODELING TABLES</text>
+<path fill="#fdf5ef" stroke="#c3c2b7" d="M1032,-8C1032,-8 1369,-8 1369,-8 1375,-8 1381,-14 1381,-20 1381,-20 1381,-217.22 1381,-217.22 1381,-223.22 1375,-229.22 1369,-229.22 1369,-229.22 1032,-229.22 1032,-229.22 1026,-229.22 1020,-223.22 1020,-217.22 1020,-217.22 1020,-20 1020,-20 1020,-14 1026,-8 1032,-8"/>
+<text xml:space="preserve" text-anchor="middle" x="1200.5" y="-210.03" font-family="Helvetica,sans-Serif" font-weight="bold" font-size="16.00">Modeling tables</text>
 </g>
 <!-- src_census -->
 <g id="node1" class="node">

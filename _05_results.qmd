@@ -56,10 +56,14 @@ ggplot(coef_df, aes(x=est, y=group, color=group)) +
   geom_errorbar(aes(xmin=lo, xmax=hi), orientation="y", width=0.15) +
   geom_point(size=2.6) +
   geom_text(aes(label=dollar_axis(est)), vjust=-1.4, size=3.3, fontface="bold", show.legend=FALSE) +
-  scale_color_manual(values=c("Non-Routine Cognitive"="#fc8d62", "Non-Routine Manual"="#e78ac3", "Routine Cognitive"="#66c2a5", "Routine Manual"="#8da0cb"), guide="none") +
-  scale_x_continuous(labels=dollar_axis, expand=expansion(mult=c(0.1, 0.15))) +
+  scale_color_manual(values=TASK_COLORS, guide="none") +
+  # denser ticks on the same dollar scale; horizontal gridlines dropped because each
+  # row is read across to the x scale, not compared vertically
+  scale_x_continuous(labels=dollar_axis, breaks=scales::pretty_breaks(n=10),
+                     expand=expansion(mult=c(0.1, 0.15))) +
   labs(title="Task Group Coefficients, Log Specification",
-       x="Purchasing Power Change ($ per 1 pp)", y=NULL)
+       x="Purchasing Power Change ($ per 1 pp)", y=NULL) +
+  theme(panel.grid.major.y=element_blank())
 ```
 
 @tbl-panel-coefs reports the level specification directly: dollar coefficients for the task groups and controls, their standard errors, t-statistics, and p-values, alongside the model's overall F-test. Poverty rate carries the largest and most precisely estimated coefficient. Unemployment rate and log population are smaller but still distinguishable from zero at the 0.05 level.
@@ -205,34 +209,32 @@ compare_wide.columns=["group","est_baseline","est_controls"]
 #| label: fig-coefcompare
 #| echo: false
 #| warning: false
-#| fig-cap: "**Task Group Coefficients Before and After Controls.** From the log panel regression, before and after adding poverty, unemployment, and population controls, as percent change in purchasing power per one percentage point shift, with 95 percent intervals. Non-routine manual and routine manual shrink with controls; routine cognitive does not."
-%%R -i compare_df -i compare_wide -w 9 -h 4.5 -u in -r 150 -b transparent
+#| fig-cap: "**Task Group Coefficients Before and After Controls.** From the log panel regression, before and after adding poverty, unemployment, and population controls, as percent change in purchasing power per one percentage point shift, with 95 percent intervals. The two specifications are offset vertically within each task group so their intervals do not overlap. Non-routine manual and routine manual shrink with controls; routine cognitive does not."
+%%R -i compare_df -w 9 -h 4.5 -u in -r 150 -b transparent
 compare_df$group <- factor(compare_df$group,
     levels=rev(c("Non-Routine Manual","Routine Cognitive","Routine Manual")))
 compare_df$spec <- factor(compare_df$spec,
     levels=c("Baseline","With controls"))
-compare_wide$group <- factor(compare_wide$group,
-    levels=rev(c("Non-Routine Manual","Routine Cognitive","Routine Manual")))
-# labels carry the spec color and shift apart on both axes, so the two routine cognitive
-# values stay readable where the estimates barely move
-compare_df$label_nudge <- ifelse(compare_df$spec=="With controls", 0.40, -0.40)
-compare_df$label_x <- compare_df$est + ifelse(compare_df$spec=="With controls", 0.17, -0.17)
 
-ggplot(compare_df, aes(x=est, y=group)) +
-  geom_segment(data=compare_wide, aes(x=est_baseline, xend=est_controls, y=group, yend=group),
-               inherit.aes=FALSE, color="grey85", linewidth=2.0, lineend="round") +
-  geom_errorbar(aes(xmin=lo, xmax=hi, color=spec), orientation="y", width=0.1, linewidth=0.6) +
-  geom_point(aes(color=spec, shape=spec), fill="white", size=3.2, stroke=1.0) +
-  geom_text(aes(x=label_x, label=sprintf("%.1f%%", est), y=as.numeric(group)+label_nudge,
-                color=spec),
-            size=3.3, show.legend=FALSE, fontface="bold") +
+# the two specifications sit on their own y offsets within each task group, so the
+# estimates and their intervals never overlap even where the two barely differ
+dodge <- position_dodge(width=0.55)
+lab_pad <- diff(range(c(compare_df$lo, compare_df$hi))) * 0.02
+
+ggplot(compare_df, aes(x=est, xmin=lo, xmax=hi, y=group, color=spec, shape=spec)) +
   geom_vline(xintercept=0, linetype="dashed", linewidth=0.9, color="#0B0B0B") +
-  scale_color_manual(values=c("Baseline"="#ff7f00", "With controls"="#33a02c")) +
+  geom_errorbar(orientation="y", position=dodge, width=0.18, linewidth=0.6) +
+  geom_point(position=dodge, fill="white", size=3.2, stroke=1.0) +
+  geom_text(aes(x=hi + lab_pad, label=sprintf("%.1f%%", est)), position=dodge,
+            hjust=0, size=3.2, fontface="bold", show.legend=FALSE) +
+  scale_color_manual(values=c("Baseline"=ORANGE, "With controls"=GREEN)) +
   scale_shape_manual(values=c("Baseline"=21, "With controls"=19)) +
-  scale_y_discrete(expand=expansion(add=0.7)) +
+  scale_x_continuous(breaks=scales::pretty_breaks(n=10),
+                     expand=expansion(mult=c(0.04, 0.10))) +
+  scale_y_discrete(expand=expansion(add=0.6)) +
   labs(title="Task Group Coefficients Before and After Controls",
        x="Purchasing Power Change (%)", y=NULL, color=NULL, shape=NULL) +
-  theme(legend.position="bottom")
+  theme(legend.position="bottom", panel.grid.major.y=element_blank())
 ```
 
 ## What carries the signal
@@ -260,8 +262,9 @@ ablation_df$model <- factor(ablation_df$model, levels=c("Task Groups","Economic 
 ggplot(ablation_df, aes(x=drop, y=model, fill=model)) +
   geom_col(width=0.55) +
   geom_text(aes(label=sprintf("%.3f", drop)), hjust=-0.25, size=4.0, fontface="bold", color="#252525") +
-  scale_fill_manual(values=c("Task Groups"="#33a02c", "Economic Controls"="#ff7f00"), guide="none") +
-  scale_x_continuous(limits=c(0, 0.20), breaks=seq(0, 0.20, 0.05), expand=c(0,0)) +
+  scale_fill_manual(values=c("Task Groups"=GREEN, "Economic Controls"=ORANGE), guide="none") +
+  scale_x_continuous(limits=c(0, 0.20), breaks=seq(0, 0.20, 0.05),
+                     labels=function(v) sprintf("%.2f", v), expand=c(0,0)) +
   labs(title="Held Out R² Loss From Feature Block Removal",
        x="R² Loss", y=NULL) +
   theme(panel.grid.major.y=element_blank())
@@ -299,9 +302,12 @@ importance_df$block <- factor(importance_df$block,
 ggplot(importance_df, aes(x=drop, y=feature, fill=block)) +
   geom_col(width=0.6) +
   geom_text(aes(label=sprintf("%.3f", drop)), hjust=-0.25, size=3.4, fontface="bold", color="#252525") +
-  scale_fill_manual(values=c("Task Groups"="#33a02c", "Economic Controls"="#ff7f00",
-                             "Structural Indicators"="#8F8D87")) +
-  scale_x_continuous(expand=expansion(mult=c(0, 0.15))) +
+  scale_fill_manual(values=c("Task Groups"=GREEN, "Economic Controls"=ORANGE,
+                             "Structural Indicators"=GREY)) +
+  # ticks every 0.05; ggplot keeps only those inside the existing range, so the
+  # scale itself is unchanged
+  scale_x_continuous(breaks=seq(0, 1, 0.05), labels=function(v) sprintf("%.2f", v),
+                     expand=expansion(mult=c(0, 0.15))) +
   labs(title="Feature Importance by Grouped Permutation",
        x="Drop in Held Out R² When Permuted", y=NULL, fill=NULL) +
   theme(legend.position="bottom", panel.grid.major.y=element_blank())
@@ -332,7 +338,7 @@ pdp_df=pd.concat(pdp_frames, ignore_index=True)
 %%R -i pdp_df -w 9 -h 3.5 -u in -r 150 -b transparent
 pdp_levels <- c("Routine Cognitive","Routine Manual","Non-Routine Manual")
 pdp_df$group <- factor(pdp_df$group, levels=pdp_levels)
-PDP_COLORS <- c("Non-Routine Cognitive"="#fc8d62", "Non-Routine Manual"="#e78ac3", "Routine Cognitive"="#66c2a5", "Routine Manual"="#8da0cb")[pdp_levels]
+PDP_COLORS <- TASK_COLORS[pdp_levels]
 
 # one panel per group, letter tagged; the facet strip carries the group name so
 # the color legend would only repeat it
@@ -467,16 +473,17 @@ ggplot(cv_folds, aes(x=x_spread, y=r2, color=model)) +
                 width=0.35, linewidth=0.5, color="grey30", inherit.aes=FALSE) +
   geom_text(data=cv_means, aes(x=label_x, y=mean_r2, label=mean_label, color=model),
             size=3.4, fontface="bold", vjust=0.5, show.legend=FALSE) +
-  scale_color_manual(values=c("Ordinary Least Squares"="#1f78b4",
-                              "Random Forest"="#fb9a99")) +
+  scale_color_manual(values=c("Ordinary Least Squares"=BLUE,
+                              "Random Forest"=PINK)) +
   scale_x_continuous(breaks=c(1,2), labels=c("Ordinary Least Squares","Random Forest"),
                       expand=expansion(add=0.6)) +
-  # R² is bounded at 1, so the axis carries a readable slice of that scale rather than
-  # closing tightly on the folds, which magnified a 0.006 mean gap into a visual chasm
-  scale_y_continuous(breaks=seq(0.85, 1.00, 0.025)) +
-  coord_cartesian(ylim=c(0.85, 1.00)) +
+  # zoomed to the band the folds occupy. coord_cartesian rather than limits= so no
+  # fold is dropped; note this magnifies a mean gap of roughly 0.006, which the
+  # caption and surrounding prose both state in numbers rather than leaving to the eye
+  scale_y_continuous(breaks=seq(0.875, 0.975, 0.025)) +
+  coord_cartesian(ylim=c(0.875, 0.975)) +
   labs(title="Held Out R² by Fold, Linear Model vs. Random Forest",
-       x=NULL, y="Held Out R² (Dollar Scale)") +
+       x=NULL, y="Held Out R²") +
   guides(color="none")
 ```
 
@@ -532,7 +539,7 @@ ggplot(binned_long, aes(x=rc_pct, y=pp, color=series)) +
   geom_line(aes(linewidth=series)) +
   geom_point(aes(size=series)) +
   geom_text(data=label_pts, aes(label=series), hjust=-0.15, size=3.4, fontface="bold", show.legend=FALSE) +
-  scale_color_manual(values=c("Observed"=OBSERVED, "Predicted"="#1f78b4"), guide="none") +
+  scale_color_manual(values=c("Observed"=OBSERVED, "Predicted"=BLUE), guide="none") +
   scale_linewidth_manual(values=c("Observed"=1.0, "Predicted"=0.8), guide="none") +
   scale_size_manual(values=c("Observed"=1.8, "Predicted"=1.5), guide="none") +
   scale_x_continuous(labels=function(v) sprintf("%d%%", round(v)),
@@ -541,7 +548,7 @@ ggplot(binned_long, aes(x=rc_pct, y=pp, color=series)) +
   scale_y_continuous(labels=function(v) sprintf("$%s", formatC(round(v), format="d", big.mark=",")),
                      expand=expansion(mult=c(0.02, 0.02))) +
   labs(title="Observed and Predicted Purchasing Power by Routine Cognitive Value",
-       x="Routine Cognitive Value (%)", y="Purchasing Power ($)") +
+       x="Routine Cognitive Value", y="Purchasing Power") +
   theme(panel.grid.major=element_blank())
 ```
 
@@ -579,7 +586,7 @@ area_df=pd.concat([area_df, pd.DataFrame(gap_rows)], ignore_index=True).sort_val
 #| warning: false
 #| fig-cap: "**Average County Task Group Value by Year.** Taken as an unweighted mean across panel counties. The four task groups stay nearly constant over the study period. The bold dashed line marks the Census occupation coding change between 2009 and 2010. The shaded band at 2020 marks the year ACS 1 year estimates were not published; the narrow break in the bands at that point reflects the missing year rather than a data error."
 %%R -i area_df -w 9.5 -h 4.7 -u in -r 150 -b transparent
-TASKAREA_COLORS <- c("Non-Routine Cognitive"="#fc8d62", "Non-Routine Manual"="#e78ac3", "Routine Cognitive"="#66c2a5", "Routine Manual"="#8da0cb")
+TASKAREA_COLORS <- TASK_COLORS
 group_levels <- c("Non-Routine Cognitive","Non-Routine Manual","Routine Cognitive","Routine Manual")
 area_df$group <- factor(area_df$group, levels=group_levels)
 
@@ -699,7 +706,7 @@ ggplot(change_long, aes(x=change, y=group, color=group)) +
   geom_jitter(height=0.32, width=0, size=1.1, alpha=0.35) +
   geom_point(data=change_med, aes(x=change, y=group), inherit.aes=FALSE,
              shape="|", size=10, color="#0B0B0B", stroke=1.5) +
-  scale_color_manual(values=c("Non-Routine Cognitive"="#fc8d62", "Non-Routine Manual"="#e78ac3", "Routine Cognitive"="#66c2a5", "Routine Manual"="#8da0cb"), guide="none") +
+  scale_color_manual(values=TASK_COLORS, guide="none") +
   scale_x_continuous(limits=c(-change_bound_strip, change_bound_strip),
                       labels=function(v) sprintf("%+.0fpp", v)) +
   labs(title="County Task Group Change, 2010 to 2023",
@@ -823,7 +830,7 @@ stab_long$window <- factor(stab_long$window, levels=c("2010 to 2019", "Full pane
 stab_long$`Task group` <- factor(stab_long$`Task group`, levels=group_order)
 range_df$`Task group` <- factor(range_df$`Task group`, levels=group_order)
 
-window_colors <- c("2010 to 2019"="#1f78b4", "Full panel"=BLACK, "2021 to 2023"="#ff7f00")
+window_colors <- c("2010 to 2019"=BLUE, "Full panel"=BLACK, "2021 to 2023"=ORANGE)
 window_shapes <- c("2010 to 2019"=16, "Full panel"=18, "2021 to 2023"=16)
 window_sizes  <- c("2010 to 2019"=3.2, "Full panel"=4.6, "2021 to 2023"=3.2)
 
