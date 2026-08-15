@@ -383,33 +383,51 @@ The level model still provides the interpretable dollar estimates we report. How
 
 ### Influential points
 
-A fourth diagnostic, Cook’s distance, evaluates whether any single county year disproportionately influences the level specification’s coefficients. None of the observations exceed the conventional threshold of 1.0, indicating that only one point warrants further investigation. The highest value recorded is 0.009. @fig-cooks-distance ranks the 10 counties with the largest Cook’s distance in any single year, considering each county’s maximum value across its years in the panel. Additionally, the figure plots each year’s value against that maximum. Counties achieve the ranking through two distinct mechanisms. Loudoun County, Virginia, the largest by far, achieves this through real year-to-year volatility. In contrast, several counties lower down, such as McKinley County, New Mexico, consistently maintain high values across nearly every year. Loudoun and Stafford County, Virginia, are both high purchasing power counties located in the Washington D.C. exurbs. Williamson County, Tennessee, is a high purchasing power Nashville exurb. Apache County, Arizona, is a low purchasing power county situated on the Navajo Nation. These counties are the same high-end outliers that @fig-dists already depicts in the purchasing power distribution.
-
 ```{python}
 #| include: false
 cooks_infl=model.get_influence()
 reg["cooks_d"]=cooks_infl.cooks_distance[0]
+reg["leverage"]=cooks_infl.hat_matrix_diag
+reg["std_resid"]=cooks_infl.resid_studentized_internal
 
 county_state_names=pd.read_sql(
     "select c.county_fips, c.county_name, s.state_name "
     "from county c join state s on c.state_code=s.state_code", engine)
 
-# each county's own largest Cook's distance across its years in the panel,
-# so a persistently influential county appears once rather than once per year
-county_max_cooks=reg.groupby("county_fips")["cooks_d"].max().reset_index()
-top10_fips=county_max_cooks.nlargest(10, "cooks_d")["county_fips"]
+influence_pts=(reg[["county_fips","year","leverage","std_resid","cooks_d"]]
+                .merge(county_state_names, on="county_fips", how="left"))
+influence_pts["label"]=influence_pts["county_name"]+", "+influence_pts["state_name"]
 
-# every year's value for those 10 counties, not just each county's max,
-# so the figure can show the full range rather than a single collapsed number
-top_influential=(reg[reg["county_fips"].isin(top10_fips)][["county_fips","cooks_d"]]
-                  .merge(county_state_names, on="county_fips", how="left"))
-top_influential["label"]=top_influential["county_name"]+", "+top_influential["state_name"]
-influence_plot_df=top_influential[["label","cooks_d"]]
-influence_range_df=(influence_plot_df.groupby("label")["cooks_d"]
-                     .agg(min_d="min", max_d="max").reset_index()
-                     .sort_values("max_d"))
-influence_plot_df["label"]=pd.Categorical(influence_plot_df["label"],
-                                          categories=influence_range_df["label"], ordered=True)
+# Cook's distance contours. D = (r^2 / p) * (h / (1 - h)), so a given D traces
+# r = +/- sqrt(D * p * (1 - h) / h) across the leverage range. The conventional
+# 0.5 and 1.0 contours sit far outside the data here, so the two drawn levels are
+# the ones this analysis actually uses: the 99th percentile cutoff behind the
+# sensitivity refit below, and the observed maximum.
+n_params=model.df_model+1
+d99_level=float(reg["cooks_d"].quantile(0.99))
+dmax_level=float(reg["cooks_d"].max())
+r_lo, r_hi=float(reg["std_resid"].min()), float(reg["std_resid"].max())
+h_grid=np.linspace(reg["leverage"].min(), reg["leverage"].max(), 400)
+
+contour_frames=[]
+for level, level_name in [(d99_level, f"Cook's D = {d99_level:.4f} (99th percentile)"),
+                          (dmax_level, f"Cook's D = {dmax_level:.4f} (observed maximum)")]:
+    r_curve=np.sqrt(level*n_params*(1-h_grid)/h_grid)
+    for sign in (1, -1):
+        contour_frames.append(pd.DataFrame({"h": h_grid, "r": sign*r_curve,
+                                            "level": level_name,
+                                            "branch": f"{level_name}{sign}"}))
+influence_contours=pd.concat(contour_frames)
+influence_contours=influence_contours[(influence_contours["r"]>=r_lo-0.3)
+                                      &(influence_contours["r"]<=r_hi+0.3)]
+
+# label each county once, at its own most influential year
+influence_labels=(influence_pts.loc[influence_pts.groupby("label")["cooks_d"].idxmax()]
+                   .nlargest(4, "cooks_d").copy())
+influence_labels["label"]=(influence_labels["label"].str.replace(" County", "", regex=False)
+                           +" "+influence_labels["year"].astype(str))
+influence_labels["ny"]=[0.0, 0.0, 0.42, -0.42]
+r_at_threshold=float(np.sqrt(1.0*n_params*(1-reg["leverage"].max())/reg["leverage"].max()))
 
 # sensitivity check: refit excluding the top 1 percent most influential rows
 influence_cutoff=reg["cooks_d"].quantile(0.99)
@@ -435,25 +453,34 @@ sensitivity_df=pd.DataFrame({
 sensitivity_df["Change (%)"]=(sensitivity_df["Excluding Top 1%"]/sensitivity_df["Full Sample"]-1)*100
 ```
 
+A fourth diagnostic, Cook’s distance, evaluates whether any single county year disproportionately influences the level specification’s coefficients. None of the observations exceed the conventional threshold of 1.0, so no point warrants further investigation. The highest value recorded is 0.009. @fig-cooks-distance plots every county year by its leverage and standardized residual, with dashed curves tracing constant Cook’s distance. The conventional 0.5 and 1.0 contours fall well outside the plotted range, since reaching 1.0 at the highest observed leverage would require a standardized residual near `{python} f"{r_at_threshold:.0f}"`. The labeled points are the four counties with the largest values, each shown at its own most influential year. Loudoun and Stafford County, Virginia, are both high purchasing power counties located in the Washington D.C. exurbs. Williamson County, Tennessee, is a high purchasing power Nashville exurb. Apache County, Arizona, is a low purchasing power county situated on the Navajo Nation. These counties are the same high-end outliers that @fig-dists already depicts in the purchasing power distribution.
+
 ```{python}
 #| label: fig-cooks-distance
 #| echo: false
 #| warning: false
-#| fig-cap: "**Ten Highest Cook's Distance Values by County, Level Specification.** Each translucent point is one year; the line spans that county's full range across the panel, with the maximum marked and labeled. Every value falls far below the conventional threshold of 1.0 for a point requiring investigation."
-%%R -i influence_plot_df -i influence_range_df -w 9 -h 5.5 -u in -r 150 -b transparent
-influence_plot_df$label <- factor(influence_plot_df$label, levels=influence_range_df$label)
-influence_range_df$label <- factor(influence_range_df$label, levels=influence_range_df$label)
-
+#| fig-cap: "**Residuals Against Leverage With Cook's Distance Contours, Level Specification.** Every county year in the panel, plotted by leverage (its hat value, unitless) and standardized residual (in standard deviations). Dashed curves trace constant Cook's distance. Because the conventional 0.5 and 1.0 contours fall far outside the observed data, the two drawn levels are the 99th percentile cutoff used for the sensitivity refit and the observed maximum. The four most influential counties are labeled at their own most influential year."
+%%R -i influence_pts -i influence_contours -i influence_labels -i r_at_threshold -w 9 -h 5.5 -u in -r 150 -b transparent
 ggplot() +
-  geom_segment(data=influence_range_df, aes(x=min_d, xend=max_d, y=label, yend=label),
-               linewidth=1.2, color="#C8C8C5", lineend="round") +
-  geom_point(data=influence_plot_df, aes(x=cooks_d, y=label), size=2.0, color=BLUE, alpha=0.45) +
-  geom_point(data=influence_range_df, aes(x=max_d, y=label), size=3.2, color=BLUE) +
-  geom_text(data=influence_range_df, aes(x=max_d, y=label, label=sprintf("%.4f", max_d)),
-            hjust=-0.35, size=3.2, color="#252525") +
-  scale_x_continuous(limits=c(0, 0.011), expand=c(0,0)) +
-  labs(title="Ten Highest Cook's Distance Values by County, Level Specification",
-       x="Cook's Distance", y=NULL)
+  geom_hline(yintercept=0, color=GREY, linewidth=0.4) +
+  geom_point(data=influence_pts, aes(x=leverage, y=std_resid),
+             size=0.5, color=BLUE, alpha=0.18) +
+  geom_line(data=influence_contours, aes(x=h, y=r, group=branch, color=level),
+            linetype="dashed", linewidth=0.55) +
+  scale_color_manual(values=c(GREY, RED)) +
+  geom_point(data=influence_labels, aes(x=leverage, y=std_resid), size=1.9, color=RED) +
+  geom_text(data=influence_labels, aes(x=leverage, y=std_resid+ny, label=label),
+            size=3.0, color="#252525", hjust=-0.11) +
+  annotate("text", x=Inf, y=-Inf, hjust=1.03, vjust=-0.55, size=3.0,
+           color="#52514E", lineheight=1.05,
+           label=sprintf("n = 11,983    max Cook's D = %.4f\nReaching the conventional 1.0 threshold would take a standardized residual near %.0f",
+                         max(influence_pts$cooks_d), r_at_threshold)) +
+  scale_x_continuous(labels=scales::label_number(accuracy=0.001),
+                     expand=expansion(mult=c(0.02, 0.24))) +
+  scale_y_continuous(expand=expansion(mult=c(0.20, 0.07))) +
+  guides(color=guide_legend(nrow=1)) +
+  labs(title="Residuals Against Leverage With Cook's Distance Contours",
+       x="Leverage (Hat Value)", y="Standardized Residual")
 ```
 
 No single point threatened the overall fit, so the more informative check was to refit the model after removing the most influential 1 percent of the panel, `{python} f"{n_excluded:,}"` county year observations. @tbl-influence-sensitivity reported the results. The task group coefficients changed by single digit to low double digit percentages, while the poverty coefficient remained relatively stable. This indicated that the main associations were not driven by a small number of extreme counties.
