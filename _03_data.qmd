@@ -2,7 +2,7 @@
 
 ## Data sources and study period
 
-This study integrated five federal datasets published by three agencies, summarized in @tbl-sources, along with the number of records and variables provided by each source. Most sources reported data at the county level, and they were joined using the county Federal Information Processing Standards (FIPS) code and the year. Regional Price Parities (RPP) were published at the metropolitan area level and required an additional matching step. Counties were first linked to their metropolitan areas using the Census Core Based Statistical Area (CBSA) delineation file and then matched to the corresponding Bureau of Economic Analysis (BEA) price measure [@bea_rpp; @census_cbsa].
+This study integrated five federal datasets published by three agencies, summarized in @tbl-sources, along with the number of records and variables provided by each source. Most sources reported data at the county level, and they were joined using the county Federal Information Processing Standards (FIPS) code and the year. Regional Price Parities were published at the metropolitan area level and required an additional matching step. Counties were first linked to their metropolitan areas using the Census Core Based Statistical Area (CBSA) delineation file and then matched to the corresponding BEA price measure [@bea_rpp; @census_cbsa].
 
 ```{python}
 #| label: tbl-sources
@@ -36,7 +36,7 @@ style_table(GT(sources_df)
   .tab_source_note("All sources retrieved June 2026 through agency APIs or bulk file download."))
 ```
 
-The study spans 2008 through 2023 but excludes 2020, because the American Community Survey (ACS) did not publish data due to disruptions of data collection during the COVID-19 pandemic [@census_acs]. Those estimates serve as the occupational employment counts utilized to construct the task groups. Over the subsequent fifteen years, the Small Area Income and Poverty Estimates (SAIPE) program will provide an initial sample of 47,140 county-year observations [@census_saipe].[^universe]
+The study spans 2008 through 2023 but excludes 2020, because the American Community Survey (ACS) did not publish data due to disruptions of data collection during the COVID-19 pandemic [@census_acs]. Those estimates serve as the occupational employment counts used to construct the task groups. Over the subsequent fifteen years, the Small Area Income and Poverty Estimates (SAIPE) program will provide an initial sample of 47,140 county-year observations [@census_saipe].[^universe]
 
 [^universe]: The District of Columbia and Kalawao County, Hawaii, are excluded because they are absent from the county reference file. Connecticut counties leave the panel after 2021 because the state replaced its legacy counties with planning regions beginning in 2022.
 
@@ -46,9 +46,9 @@ The initial sample restriction stemmed from the coverage of the American Communi
 
 [^ct-missing]: All 104 missing observations came from Connecticut's eight legacy counties, where unemployment rates were unavailable at the required geography [@bls_laus]. Because the missingness reflected geography rather than unemployment itself, it was treated as missing at random.
 
-The final analytical sample comprised 11,983 county-year observations from 840 counties. All models presented in @sec-analysis and @sec-results utilized these same observations. To ensure unbiased machine learning evaluation, counties were exclusively included in either the training or test set, preventing observations from the same county from appearing in both partitions. @sec-analysis provides a detailed description of the evaluation procedure.
+The final analytical sample comprised 11,983 county-year observations from 840 counties. All models presented in @sec-analysis and @sec-results used these same observations. To ensure unbiased machine learning evaluation, counties were exclusively included in either the training or test set, preventing observations from the same county from appearing in both partitions. @sec-analysis provides a detailed description of the evaluation procedure.
 
-The population threshold imposed a limitation on the scope of the results. While the 840 retained counties accounted for approximately 84% of the United States population, they represented a minority of all counties. Consequently, rural counties were underrepresented because the retained counties were generally more populous and metropolitan. It’s important to note that the results were applicable to counties above the American Community Survey publication threshold rather than the entire nation, a limitation discussed in @sec-conclusions.
+The population threshold imposed a limitation on the scope of the results. While the 840 retained counties accounted for approximately 84% of the United States population, they represented a minority of all counties. Consequently, rural counties were underrepresented because the retained counties were generally more populous and metropolitan. The results were applicable to counties above the American Community Survey publication threshold rather than the entire nation, a limitation discussed in @sec-conclusions.
 
 ## Construction of task group measures
 
@@ -70,7 +70,7 @@ Additionally, the Census Bureau revised its occupational classification between 
 
 ## Construction of the purchasing power measure
 
-The outcome was measured as purchasing power to account for variations in what household income could purchase across different counties. We calculated it by adjusting the county median household income from the Census Small Area Income and Poverty Estimates [@census_saipe] using Bureau of Economic Analysis Regional Price Parities (RPPs). These RPPs provided local price levels relative to the national average [@bea_rpp]. Since the index was expressed as a percentage, dividing it by 100 converted it into a price multiplier. Subsequently, we divided the median household income by this multiplier to determine purchasing power, as illustrated in @eq-afford.
+The outcome was measured as purchasing power to account for variations in what household income could purchase across different counties. We calculated it by adjusting the county median household income from the Census Small Area Income and Poverty Estimates [@census_saipe] using Regional Price Parities. These provided local price levels relative to the national average [@bea_rpp]. Since the index was expressed as a percentage, dividing it by 100 converted it into a price multiplier. Subsequently, we divided the median household income by this multiplier to determine purchasing power, as illustrated in @eq-afford.
 
 $$
 A_{c,t} = \frac{\text{Median household income}_{c,t}}{\text{RPP}_{c,t} / 100}
@@ -78,7 +78,7 @@ $$ {#eq-afford}
 
 Here, $A_{c,t}$ represented purchasing power for county $c$ in year $t$, and $\text{RPP}_{c,t}$ represented its Regional Price Parity.
 
-For instance, consider a county with a median household income of \$60,000 and a Regional Price Parity of 120. This means that its income could buy approximately what \$50,000 would buy at the national average prices. This adjustment made household income more comparable across counties by accounting for variations in local prices. However, since the Bureau of Economic Analysis didn’t publish separate Regional Price Parities for counties outside metropolitan areas, those counties were assigned the corresponding state-level parity. Within the analytical panel, 45.5% of county-year observations used a metropolitan parity, while 54.5% used the state measure. Consequently, more than half of the panel relied on a state average that didn’t account for price differences within the state.
+For instance, consider a county with a median household income of \$60,000 and a Regional Price Parity of 120. This means that its income could buy approximately what \$50,000 would buy at the national average prices. This adjustment made household income more comparable across counties by accounting for variations in local prices. However, since the Bureau of Economic Analysis did not publish separate Regional Price Parities for counties outside metropolitan areas, those counties were assigned the corresponding state-level parity. Within the analytical panel, 45.5% of county-year observations used a metropolitan parity, while 54.5% used the state measure. Consequently, more than half of the panel relied on a state average that did not account for price differences within the state.
 
 ### Inflation and year indicators
 
@@ -128,7 +128,7 @@ p_pov <- ggplot(subset(baseline_long, variable=="Poverty Rate (%)"), aes(x=varia
   geom_boxplot(width=0.12, fill="white", color="grey30", alpha=0.7,
                outlier.size=0.8, outlier.alpha=0.5) +
   scale_y_continuous(labels=function(v) sprintf("%g%%", v), breaks=scales::pretty_breaks(n=4)) +
-  labs(title="Poverty Rate", x=NULL, y="Rate") +
+  labs(title="Poverty Rate", x=NULL, y="Percent") +
   theme(axis.text.x=element_blank(), plot.title=element_text(size=11),
         panel.grid.major=element_blank(), panel.grid.minor=element_blank())
 
@@ -137,7 +137,7 @@ p_unemp <- ggplot(subset(baseline_long, variable=="Unemployment Rate (%)"), aes(
   geom_boxplot(width=0.12, fill="white", color="grey30", alpha=0.7,
                outlier.size=0.8, outlier.alpha=0.5) +
   scale_y_continuous(labels=function(v) sprintf("%g%%", v), breaks=scales::pretty_breaks(n=4)) +
-  labs(title="Unemployment Rate", x=NULL, y="Rate") +
+  labs(title="Unemployment Rate", x=NULL, y="Percent") +
   theme(axis.text.x=element_blank(), plot.title=element_text(size=11),
         panel.grid.major=element_blank(), panel.grid.minor=element_blank())
 
@@ -146,7 +146,7 @@ p_pop <- ggplot(subset(baseline_long, variable=="Population"), aes(x=variable, y
   geom_boxplot(width=0.12, fill="white", color="grey30", alpha=0.7,
                outlier.size=0.8, outlier.alpha=0.5) +
   scale_y_log10(labels=label_comma(), breaks=scales::log_breaks(n=4)) +
-  labs(title="Population", x=NULL, y="Population") +
+  labs(title="Population", x=NULL, y="Residents (Log Scale)") +
   theme(axis.text.x=element_blank(), plot.title=element_text(size=11),
         panel.grid.major=element_blank(), panel.grid.minor=element_blank())
 
@@ -155,7 +155,7 @@ p_inc <- ggplot(subset(baseline_long, variable=="Median Household Income ($)"), 
   geom_boxplot(width=0.12, fill="white", color="grey30", alpha=0.7,
                outlier.size=0.8, outlier.alpha=0.5) +
   scale_y_continuous(labels=dollar_axis, breaks=scales::pretty_breaks(n=4)) +
-  labs(title="Median Household Income", x=NULL, y="Income") +
+  labs(title="Median Household Income", x=NULL, y="Dollars") +
   theme(axis.text.x=element_blank(), plot.title=element_text(size=11),
         panel.grid.major=element_blank(), panel.grid.minor=element_blank())
 
@@ -286,10 +286,6 @@ digraph architecture {{
   src_bls -> lake [ltail="cluster_source", lhead="cluster_lake", minlen=2]
   lake -> state [ltail="cluster_lake", lhead="cluster_warehouse", minlen=2]
   county_affordability -> analysis_table [ltail="cluster_warehouse", lhead="cluster_output", minlen=2]
-  # cbsa_rpp is the deepest warehouse node, so ranking the output cluster below it
-  # puts Modeling Tables under the warehouse instead of alongside it, which also
-  # keeps the diagram inside the rendered content width
-  cbsa_rpp -> analysis_table [style=invis]
   county_baseline -> analysis_table [style=invis]
   county_task_exposure -> analysis_table [style=invis]
 }}

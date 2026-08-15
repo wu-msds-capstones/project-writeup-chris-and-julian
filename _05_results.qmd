@@ -19,7 +19,7 @@ group_terms=["non_routine_manual_share","routine_cognitive_share","routine_manua
 group_names=["Non-Routine Manual","Routine Cognitive","Routine Manual"]
 ```
 
-The results unveiled four main findings. Task groups maintained their association with purchasing power even after accounting for factors like poverty, unemployment, population, and year. A one percentage point shift from non-routine cognitive to non-routine manual work was linked to a reduction in purchasing power of approximately \$846, with a 95% confidence interval of ±\$38 at the panel mean. The log specification provided the most comprehensive representation of this relationship, achieving a held out R² of 0.896, compared to 0.877 for the random forest, while the neural network offered no further improvement. Poverty rate demonstrated the strongest association with purchasing power, but task groups provided additional insights beyond conventional economic indicators. Moreover, differences in task groups persisted across counties and over time. The subsequent sections delve into the magnitude, geographical distribution, and stability of these relationships.
+The results unveiled four main findings. Task groups maintained their association with purchasing power even after accounting for factors such as poverty, unemployment, population, and year. A one percentage point shift from non-routine cognitive to non-routine manual work was linked to a reduction in purchasing power of approximately \$846, with a 95% confidence interval of ±\$38 at the panel mean. The log specification provided the closest representation of this relationship, achieving a held out R² of 0.896, compared to 0.877 for the random forest, while the neural network offered no further improvement. Poverty rate demonstrated the strongest association with purchasing power, but task groups provided additional insights beyond conventional economic indicators. Moreover, differences in task groups persisted across counties and over time. The subsequent sections examine the magnitude, geographical distribution, and stability of these relationships.
 
 ## The association
 
@@ -38,7 +38,7 @@ for term, name in zip(group_terms, group_names):
 coef_df=pd.DataFrame(coef_rows)
 ```
 
-The log specification of the panel regression was employed for inference based on the diagnostic results outlined in @sec-analysis. A one percentage point shift from non-routine cognitive to non-routine manual work was associated with approximately \$846 lower purchasing power, with a 95% confidence interval of ±\$38 at the panel mean (@fig-coefplot). Routine cognitive and routine manual work also exhibited negative associations with purchasing power, although their estimated differences were smaller. This ordering aligns with the level specification reported in @sec-analysis. For comparison, each additional percentage point of poverty was linked to approximately 2.9% lower purchasing power, a larger proportional association than any individual task group.
+The log specification of the panel regression was used for inference based on the diagnostic results outlined in @sec-analysis. A one percentage point shift from non-routine cognitive to non-routine manual work was associated with approximately \$846 lower purchasing power, with a 95% confidence interval of ±\$38 at the panel mean (@fig-coefplot). Routine cognitive and routine manual work also exhibited negative associations with purchasing power, although their estimated differences were smaller. This ordering aligns with the level specification reported in @sec-analysis. For comparison, each additional percentage point of poverty was linked to approximately 2.9% lower purchasing power, a larger proportional association than any individual task group.
 
 ```{python}
 #| label: fig-coefplot
@@ -232,7 +232,7 @@ ggplot(compare_df, aes(x=est, xmin=lo, xmax=hi, y=group, color=spec, shape=spec)
   scale_color_manual(values=c("Baseline"=ORANGE, "With controls"=GREEN)) +
   scale_shape_manual(values=c("Baseline"=21, "With controls"=19)) +
   # the percent sign moves onto the tick values, so the axis title stays clean
-  scale_x_continuous(breaks=scales::pretty_breaks(n=16),
+  scale_x_continuous(breaks=scales::pretty_breaks(n=10),
                      labels=function(v) sprintf("%g%%", v),
                      expand=expansion(mult=c(0.04, 0.10))) +
   scale_y_discrete(expand=expansion(add=0.6)) +
@@ -303,36 +303,15 @@ importance_df$feature <- factor(importance_df$feature, levels=importance_df$feat
 importance_df$block <- factor(importance_df$block,
     levels=c("Task Groups","Economic Controls","Structural Indicators"))
 
-# value labels sit just past each bar, but a proportional hjust drops them
-# wherever the bar happens to end, which put 0.625 across the 0.65 gridline and
-# 0.008 across the 0.05 one. Place them explicitly instead: if a gridline would
-# cut through a label, slide it left to finish before that line, or clear the
-# line on the right when the bar leaves no room to its left.
-grid_step <- 0.05
-lab_w <- 0.035
-importance_df$label_x <- importance_df$drop + 0.010
-next_grid <- ceiling(importance_df$label_x / grid_step) * grid_step
-collides <- next_grid < importance_df$label_x + lab_w
-left_x <- next_grid - lab_w - 0.002
-use_left <- collides & (left_x > importance_df$drop + 0.004)
-importance_df$label_x[use_left] <- left_x[use_left]
-push_right <- collides & !use_left
-importance_df$label_x[push_right] <- next_grid[push_right] + 0.012
-# a label starting flush against a gridline reads as badly as one crossing it
-flush <- abs(importance_df$label_x / grid_step
-             - round(importance_df$label_x / grid_step)) * grid_step < 0.004
-importance_df$label_x[flush] <- importance_df$label_x[flush] + 0.006
-
 ggplot(importance_df, aes(x=drop, y=feature, fill=block)) +
   geom_col(width=0.6) +
-  geom_text(aes(x=label_x, label=sprintf("%.3f", drop)), hjust=0, size=3.4,
-            fontface="bold", color="#252525") +
+  geom_text(aes(label=sprintf("%.3f", drop)), hjust=-0.25, size=3.4, fontface="bold", color="#252525") +
   scale_fill_manual(values=c("Task Groups"=GREEN, "Economic Controls"=ORANGE,
                              "Structural Indicators"=GREY)) +
   # ticks every 0.05; ggplot keeps only those inside the existing range, so the
   # scale itself is unchanged
   scale_x_continuous(breaks=seq(0, 1, 0.05), labels=function(v) sprintf("%.2f", v),
-                     expand=expansion(mult=c(0, 0.18))) +
+                     expand=expansion(mult=c(0, 0.15))) +
   labs(title="Feature Importance by Grouped Permutation",
        x="Drop in Held Out R² When Permuted", y=NULL, fill=NULL) +
   theme(legend.position="bottom", panel.grid.major.y=element_blank())
@@ -471,7 +450,7 @@ ggplot(afford_sf) +
 
 ## The relationship is proportional
 
-Across the five grouped cross-validation folds, the log linear model and random forest performed similarly in terms of the variation across folds (@fig-modelcomp). The single held-out split also demonstrated the same pattern. The log linear model achieved an R² of 0.896, while the random forest achieved an R² of 0.877. @fig-nn-curves extended this comparison to the neural network, which achieved a held-out R² of 0.869 and a mean absolute error of \$4,145. The neural network did not provide any improvement over the simpler models. Overall, these results indicated that additional model flexibility did not capture enough new structure to improve performance beyond the log linear specification.
+Across the five grouped cross-validation folds, the log linear model and random forest showed similar variation across folds (@fig-modelcomp). The single held-out split also demonstrated the same pattern. The log linear model achieved an R² of 0.896, while the random forest achieved an R² of 0.877. @fig-nn-curves extended this comparison to the neural network, which achieved a held-out R² of 0.869 and a mean absolute error of \$4,145. The neural network did not provide any improvement over the simpler models. Overall, these results indicated that additional model flexibility did not capture enough new structure to improve performance beyond the log linear specification.
 
 ```{python}
 #| include: false
@@ -555,7 +534,7 @@ binned_long=binned_means.melt(id_vars="rc", value_vars=["Observed","Predicted"],
 #| label: fig-binned
 #| echo: false
 #| warning: false
-#| fig-cap: "**Observed and Predicted Purchasing Power by Routine Cognitive Value.** Mean observed and predicted purchasing power across ten equal count bins of routine cognitive work, on the held out test counties, with predictions from the log target forest back transformed into dollars; each point marks a bin's mean routine cognitive value. The relationship rises then declines rather than moving monotonically; the forest reproduces this same shape rather than finding a different one. The panel reports the forest's held out R² and mean absolute error (MAE), in dollars."
+#| fig-cap: "**Observed and Predicted Purchasing Power by Routine Cognitive Value.** Mean observed and predicted purchasing power across ten equal count bins of routine cognitive work, on the held out test counties, with predictions from the log target random forest back transformed into dollars; each point marks a bin's mean routine cognitive value. The relationship rises then declines rather than moving monotonically; the random forest reproduces this same shape rather than finding a different one. The panel reports the random forest's held out R² and mean absolute error (MAE), in dollars."
 %%R -i binned_long -i rf_log_test_r2 -i rf_log_test_mae -w 9 -h 4.5 -u in -r 150 -b transparent
 OBSERVED <- "#252525"
 binned_long$rc_pct <- binned_long$rc*100
@@ -693,7 +672,7 @@ style_table(GT(rankcorr_df)
   .tab_source_note("Computed from 2010 onward to avoid the Census occupation coding change."))
 ```
 
-The stability is visible county by county, not only in the ordering, over the same two years used in @tbl-rankcorr (@fig-taskchange-map). Routine manual and non-routine manual, the two groups with almost no net movement in @fig-taskarea, are centered near zero and run in both directions across counties. That mixed direction is consistent with variation sitting between counties rather than within them. Routine cognitive and non-routine cognitive, the pair whose national levels moved most, show a change that is both larger and far more uniform in direction, which matches the within county movement identified in the variance decomposition of @sec-analysis.
+The stability is visible county by county, and in the magnitude of change as well as the ordering, over the same two years used in @tbl-rankcorr (@fig-taskchange-map). Routine manual and non-routine manual, the two groups with almost no net movement in @fig-taskarea, are centered near zero and run in both directions across counties. That mixed direction is consistent with variation sitting between counties rather than within them. Routine cognitive and non-routine cognitive, the pair whose national levels moved most, show a change that is both larger and far more uniform in direction, which matches the within county movement identified in the variance decomposition of @sec-analysis.
 
 ```{python}
 #| label: taskchange-map-data
@@ -747,7 +726,7 @@ ggplot(change_long, aes(x=change, y=group, color=group)) +
   theme(panel.grid.major.y=element_blank())
 ```
 
-@fig-taskchange-map illustrated the magnitude and direction of these changes county by county. Routine manual and non-routine manual changes remained centered near zero and occurred in both directions, while routine cognitive and non-routine cognitive showed larger and more consistently directed changes. @fig-taskchange-arrows summarized these movements using the same cognitive to manual and routine to non-routine dimensions introduced in @fig-taskframework. Most counties shifted towards non-routine cognitive work between 2010 and 2023, while a smaller group moved away from it towards the three task groups associated with lower purchasing power. The arrow figure is particularly valuable as it establishes a direct connection between the observed county changes and the conceptual framework introduced earlier in the study.
+@fig-taskchange-arrows summarized these movements using the same cognitive to manual and routine to non-routine dimensions introduced in @fig-taskframework. Most counties shifted towards non-routine cognitive work between 2010 and 2023, while a smaller group moved away from it towards the three task groups associated with lower purchasing power. The arrow figure draws a direct connection between the observed county changes and the conceptual framework introduced earlier in the study.
 
 ```{python}
 #| label: taskchange-arrows-data
@@ -811,11 +790,11 @@ ggplot() +
                aes(x=cx, y=cy, xend=xend, yend=yend, color=risk_direction, linewidth=shift_magnitude),
                arrow=arrow(length=unit(1.3,"mm"), type="closed"), lineend="round", alpha=0.75) +
   scale_linewidth_continuous(range=c(0.2, 1.0), guide="none") +
-  # Solid red and green, per Julian 14 Aug 2026, replacing an earlier orange and
-  # purple pair. Green marks movement toward non-routine cognitive work, the
-  # reference group associated with higher purchasing power.
-  scale_color_manual(values=c("Away From Non-Routine Cognitive"=RED,
-                              "Toward Non-Routine Cognitive"=GREEN), name=NULL) +
+  # Orange and purple rather than red and green: these are two directions of one
+  # shift, neither good nor bad, so a valenced pair would say the wrong thing.
+  # Same reasoning as fig-between-within.
+  scale_color_manual(values=c("Away From Non-Routine Cognitive"=ORANGE,
+                              "Toward Non-Routine Cognitive"=PURPLE), name=NULL) +
   coord_sf(crs=st_crs(5070), datum=NA) +
   theme_void(base_size=11) +
   labs(title="Direction of County Task Group Shift, 2010 to 2023") +
@@ -908,6 +887,6 @@ ggplot() +
         panel.grid.major.y=element_blank())
 ```
 
-The results revealed that county task groups continued to be linked to purchasing power even after accounting for factors like poverty, unemployment, population, and the year. The largest difference was observed between non-routine manual work and other tasks. A one percentage point shift from non-routine cognitive work to non-routine manual work was associated with a reduction in purchasing power of approximately \$846 at the panel mean, with a 95% confidence interval of ±\$38. Routine cognitive and routine manual work were also negatively associated with purchasing power compared to non-routine cognitive work. Among the variables examined, poverty showed the strongest association with purchasing power, with each additional percentage point associated with a reduction of approximately 2.9%. The random forest analysis indicated that task groups provided additional information beyond the economic controls. Removing the task groups and refitting the model resulted in a decrease in the held out R² value of 0.042, while removing poverty and unemployment reduced it by 0.178. Jointly permuting the task groups further reduced the R² value by 0.153, compared to 0.128 for year indicators and 0.008 for state indicators. The geographic analysis showed that counties dominated by non-routine cognitive work had higher purchasing power, while counties dominated by the two manual groups had lower purchasing power. The stability analysis demonstrated that these county differences persisted over time. Routine manual and non-routine cognitive work maintained the most consistent county ordering between 2010 and 2023, while routine cognitive work exhibited the greatest movement. Interestingly, the ordering of the task group coefficients remained unchanged in the full panel, the 2010 to 2019 period, and the 2021 to 2023 period.
+The results revealed that county task groups continued to be linked to purchasing power even after accounting for factors such as poverty, unemployment, population, and the year. The largest difference was observed between non-routine manual work and other tasks. A one percentage point shift from non-routine cognitive work to non-routine manual work was associated with a reduction in purchasing power of approximately \$846 at the panel mean, with a 95% confidence interval of ±\$38. Routine cognitive and routine manual work were also negatively associated with purchasing power compared to non-routine cognitive work. Among the variables examined, poverty showed the strongest association with purchasing power, with each additional percentage point associated with a reduction of approximately 2.9%. The random forest analysis indicated that task groups provided additional information beyond the economic controls. Removing the task groups and refitting the model reduced the held out R² by 0.042, while removing poverty and unemployment reduced it by 0.178. Jointly permuting the task groups further reduced the R² value by 0.153, compared to 0.128 for year indicators and 0.008 for state indicators. The geographic analysis showed that counties dominated by non-routine cognitive work had higher purchasing power, while counties dominated by the two manual groups had lower purchasing power. The stability analysis demonstrated that these county differences persisted over time. Routine manual and non-routine cognitive work maintained the most consistent county ordering between 2010 and 2023, while routine cognitive work exhibited the greatest movement. The ordering of the task group coefficients remained unchanged in the full panel, 2010 to 2019, and 2021 to 2023.
 
-The level model, log linear model, random forest, and neural network were employed to determine the most suitable representation of the relationship. The level specification established negative task group associations but revealed systematic curvature in the residuals, suggesting that a constant dollar difference across the purchasing power distribution was inadequate. Logging purchasing power mitigated residual skew from 1.01 to 0.09, resulting in an in-sample R² of 0.913 and a held-out R² of 0.896. The random forest captured the nonlinear structure evident in the level model but failed to enhance held-out performance. Its log target specification achieved a held-out R² of 0.877, 0.019 below the log linear model, while the raw target random forest achieved a training R² of 0.989 but only 0.876 on held-out counties. The neural network introduced greater flexibility, but regularization did not yield an improvement over either retained model. Five-fold grouped cross-validation yielded similar general comparisons, with the difference between the log linear and random forest models remaining smaller than the variation across folds. Across these four specifications, the log linear model maintained task group associations, rectified most of the diagnostic issues in the level model, and achieved the highest held-out performance. The implications and limitations of these results are discussed in the section titled “@sec-conclusions.”
+The level model, log linear model, random forest, and neural network were compared to find the most suitable representation of the relationship. The level specification produced negative task group associations but showed systematic curvature in the residuals, suggesting that a constant dollar difference across the purchasing power distribution was inadequate. Logging purchasing power reduced residual skew from 1.01 to 0.09, resulting in an in-sample R² of 0.913 and a held-out R² of 0.896. The random forest captured the nonlinear structure visible in the level model but did not improve held-out performance. Its log target specification achieved a held-out R² of 0.877, 0.019 below the log linear model, while the raw target random forest achieved a training R² of 0.989 but only 0.876 on held-out counties. The neural network added further flexibility, but regularization did not improve on either of the other models. Five-fold grouped cross-validation yielded similar general comparisons, with the difference between the log linear and random forest models remaining smaller than the variation across folds. Across these four specifications, the log linear model preserved the task group associations, resolved most of the diagnostic problems in the level model, and scored highest on held-out counties. The implications and limitations of these results are discussed in @sec-conclusions.

@@ -204,7 +204,7 @@ year_eff_log=_year_frame(model_log, pct=True)
 #| label: fig-year-effects
 #| echo: false
 #| warning: false
-#| fig-cap: "**Year Effects Relative to 2008.** Estimated year coefficients with 95% intervals, each the difference from the 2008 baseline shared by every county in that year. A) The level specification, in dollars of purchasing power. B) The log specification, as a percent difference. The series carries national price drift together with every other movement common to a year, which is why it cannot be read as a measure of inflation."
+#| fig-cap: "**Year Effects Relative to 2008.** Estimated year coefficients with 95 percent intervals, each the difference from the 2008 baseline shared by every county in that year. A) The level specification, in dollars of purchasing power. B) The log specification, as a percent difference. The series carries national price drift together with every other movement common to a year, which is why it cannot be read as a measure of inflation."
 %%R -i year_eff_level -i year_eff_log -w 8 -h 6.5 -u in -r 150 -b transparent
 year_panel <- function(d, ylab, lab_fn) {
   ggplot(d, aes(x=year, y=estimate)) +
@@ -213,8 +213,8 @@ year_panel <- function(d, ylab, lab_fn) {
     geom_line(color=BLUE, linewidth=0.7) +
     geom_point(color=BLUE, size=1.8) +
     scale_y_continuous(labels=lab_fn) +
-    # a tick on every year that carries a point, so the 2020 gap stays visible
-    scale_x_continuous(breaks=sort(unique(d$year))) +
+    # a tick per study year rather than every fourth, scale unchanged
+    scale_x_continuous(breaks=scales::pretty_breaks(n=8)) +
     labs(x=NULL, y=ylab)
 }
 
@@ -314,7 +314,7 @@ ggplot(vif_dot_df, aes(x=vif, y=group)) +
 
 ### Distribution of the analytical variables
 
-The analysis next delved into the distributions of the variables employed in the specification. @fig-dists presented purchasing power and the four task groups across the panel, emphasizing the skewness and outliers that guided the diagnostic checks that followed. Purchasing power exhibited right skewness, with a skewness coefficient of 1.17 and a central tendency near \$57,000. A long upper tail extended beyond the center of the distribution, making the extremes particularly crucial for assessing model fit.
+The analysis next delved into the distributions of the variables used in the specification. @fig-dists presented purchasing power and the four task groups across the panel. The skewness and outliers it shows guided the diagnostic checks that followed. Purchasing power exhibited right skewness, with a skewness coefficient of 1.17 and a central tendency near \$57,000. A long upper tail extended beyond the center of the distribution, so the extremes carry most of the information about model fit.
 
 ```{python}
 #| include: false
@@ -334,7 +334,7 @@ dists_df["variable"]=dists_df["variable"].map(dist_label_map)
 #| label: fig-dists
 #| echo: false
 #| warning: false
-#| fig-cap: "**Distribution of Purchasing Power and Task Groups.** Across the 12,087 county year task group panel, before the 104 rows missing an unemployment rate are dropped, all shown as violin plots with an embedded box marking the median, interquartile range, and outliers. A) Purchasing power, in dollars at national average prices, right skewed with a long upper tail and a heavy cluster of high end outliers. B) The four task groups on a shared percentage scale, with the axis restricted to 5 to 65% so the bodies of the distributions stay legible. Non-routine cognitive holds the highest concentration of county employment."
+#| fig-cap: "**Distribution of Purchasing Power and Task Groups.** Across the 12,087 county year task group panel, before the 104 rows missing an unemployment rate are dropped, all shown as violin plots with an embedded box marking the median, interquartile range, and outliers. A) Purchasing power, in dollars at national average prices, right skewed with a long upper tail and a heavy cluster of high end outliers. B) The four task groups on a shared percentage scale, with the axis restricted to 5% to 65% so the bodies of the distributions stay legible. Non-routine cognitive holds the highest concentration of county employment."
 %%R -i dists_df -w 10 -h 5.5 -u in -r 150 -b transparent
 pp_vals <- subset(dists_df, variable=="Purchasing Power ($)")$value
 pp_ylim <- c(0, max(pp_vals) * 1.02)
@@ -383,51 +383,33 @@ The level model still provides the interpretable dollar estimates we report. How
 
 ### Influential points
 
+A fourth diagnostic, Cook’s distance, evaluates whether any single county year disproportionately influences the level specification’s coefficients. None of the observations exceed the conventional threshold of 1.0, so no point warrants further investigation. The highest value recorded is 0.009. @fig-cooks-distance ranks the 10 counties with the largest Cook’s distance in any single year, and plots each year’s value against that maximum. Loudoun and Stafford County, Virginia, are both high purchasing power counties located in the Washington D.C. exurbs. Williamson County, Tennessee, is a high purchasing power Nashville exurb. Apache County, Arizona, is a low purchasing power county situated on the Navajo Nation. These counties are the same high-end outliers that @fig-dists already depicts in the purchasing power distribution.
+
 ```{python}
 #| include: false
 cooks_infl=model.get_influence()
 reg["cooks_d"]=cooks_infl.cooks_distance[0]
-reg["leverage"]=cooks_infl.hat_matrix_diag
-reg["std_resid"]=cooks_infl.resid_studentized_internal
 
 county_state_names=pd.read_sql(
     "select c.county_fips, c.county_name, s.state_name "
     "from county c join state s on c.state_code=s.state_code", engine)
 
-influence_pts=(reg[["county_fips","year","leverage","std_resid","cooks_d"]]
-                .merge(county_state_names, on="county_fips", how="left"))
-influence_pts["label"]=influence_pts["county_name"]+", "+influence_pts["state_name"]
+# each county's own largest Cook's distance across its years in the panel,
+# so a persistently influential county appears once rather than once per year
+county_max_cooks=reg.groupby("county_fips")["cooks_d"].max().reset_index()
+top10_fips=county_max_cooks.nlargest(10, "cooks_d")["county_fips"]
 
-# Cook's distance contours. D = (r^2 / p) * (h / (1 - h)), so a given D traces
-# r = +/- sqrt(D * p * (1 - h) / h) across the leverage range. The conventional
-# 0.5 and 1.0 contours sit far outside the data here, so the two drawn levels are
-# the ones this analysis actually uses: the 99th percentile cutoff behind the
-# sensitivity refit below, and the observed maximum.
-n_params=model.df_model+1
-d99_level=float(reg["cooks_d"].quantile(0.99))
-dmax_level=float(reg["cooks_d"].max())
-r_lo, r_hi=float(reg["std_resid"].min()), float(reg["std_resid"].max())
-h_grid=np.linspace(reg["leverage"].min(), reg["leverage"].max(), 400)
-
-contour_frames=[]
-for level, level_name in [(d99_level, f"Cook's D = {d99_level:.4f} (99th percentile)"),
-                          (dmax_level, f"Cook's D = {dmax_level:.4f} (observed maximum)")]:
-    r_curve=np.sqrt(level*n_params*(1-h_grid)/h_grid)
-    for sign in (1, -1):
-        contour_frames.append(pd.DataFrame({"h": h_grid, "r": sign*r_curve,
-                                            "level": level_name,
-                                            "branch": f"{level_name}{sign}"}))
-influence_contours=pd.concat(contour_frames)
-influence_contours=influence_contours[(influence_contours["r"]>=r_lo-0.3)
-                                      &(influence_contours["r"]<=r_hi+0.3)]
-
-# label each county once, at its own most influential year
-influence_labels=(influence_pts.loc[influence_pts.groupby("label")["cooks_d"].idxmax()]
-                   .nlargest(4, "cooks_d").copy())
-influence_labels["label"]=(influence_labels["label"].str.replace(" County", "", regex=False)
-                           +" "+influence_labels["year"].astype(str))
-influence_labels["ny"]=[0.0, 0.0, 0.42, -0.42]
-r_at_threshold=float(np.sqrt(1.0*n_params*(1-reg["leverage"].max())/reg["leverage"].max()))
+# every year's value for those 10 counties, not just each county's max,
+# so the figure can show the full range rather than a single collapsed number
+top_influential=(reg[reg["county_fips"].isin(top10_fips)][["county_fips","cooks_d"]]
+                  .merge(county_state_names, on="county_fips", how="left"))
+top_influential["label"]=top_influential["county_name"]+", "+top_influential["state_name"]
+influence_plot_df=top_influential[["label","cooks_d"]]
+influence_range_df=(influence_plot_df.groupby("label")["cooks_d"]
+                     .agg(min_d="min", max_d="max").reset_index()
+                     .sort_values("max_d"))
+influence_plot_df["label"]=pd.Categorical(influence_plot_df["label"],
+                                          categories=influence_range_df["label"], ordered=True)
 
 # sensitivity check: refit excluding the top 1 percent most influential rows
 influence_cutoff=reg["cooks_d"].quantile(0.99)
@@ -453,41 +435,25 @@ sensitivity_df=pd.DataFrame({
 sensitivity_df["Change (%)"]=(sensitivity_df["Excluding Top 1%"]/sensitivity_df["Full Sample"]-1)*100
 ```
 
-A fourth diagnostic, Cook’s distance, evaluates whether any single county year disproportionately influences the level specification’s coefficients. None of the observations exceed the conventional threshold of 1.0, so no point warrants further investigation. The highest value recorded is 0.009. @fig-cooks-distance plots every county year by its leverage and standardized residual, with dashed curves tracing constant Cook’s distance. The conventional 0.5 and 1.0 contours fall well outside the plotted range, since reaching 1.0 at the highest observed leverage would require a standardized residual near `{python} f"{r_at_threshold:.0f}"`. The labeled points are the four counties with the largest values, each shown at its own most influential year. Loudoun and Stafford County, Virginia, are both high purchasing power counties located in the Washington D.C. exurbs. Williamson County, Tennessee, is a high purchasing power Nashville exurb. Apache County, Arizona, is a low purchasing power county situated on the Navajo Nation. These counties are the same high-end outliers that @fig-dists already depicts in the purchasing power distribution.
-
 ```{python}
 #| label: fig-cooks-distance
 #| echo: false
 #| warning: false
-#| fig-cap: "**Residuals Against Leverage With Cook's Distance Contours, Level Specification.** Every county year in the panel, plotted by leverage (its hat value, unitless) and standardized residual (in standard deviations). Dashed curves trace constant Cook's distance. Because the conventional 0.5 and 1.0 contours fall far outside the observed data, the two drawn levels are the 99th percentile cutoff used for the sensitivity refit and the observed maximum. The four most influential counties are labeled at their own most influential year."
-%%R -i influence_pts -i influence_contours -i influence_labels -i r_at_threshold -w 9 -h 5.5 -u in -r 150 -b transparent
+#| fig-cap: "**Ten Highest Cook's Distance Values by County, Level Specification.** Each translucent point is one year; the line spans that county's full range across the panel, with the maximum marked and labeled. Every value falls far below the conventional threshold of 1.0 for a point requiring investigation."
+%%R -i influence_plot_df -i influence_range_df -w 9 -h 5.5 -u in -r 150 -b transparent
+influence_plot_df$label <- factor(influence_plot_df$label, levels=influence_range_df$label)
+influence_range_df$label <- factor(influence_range_df$label, levels=influence_range_df$label)
+
 ggplot() +
-  geom_hline(yintercept=0, color=GREY, linewidth=0.4) +
-  geom_point(data=influence_pts, aes(x=leverage, y=std_resid),
-             size=0.5, color=BLUE, alpha=0.18) +
-  geom_line(data=influence_contours, aes(x=h, y=r, group=branch,
-                                         color=level, linetype=level), linewidth=0.7) +
-  # purple rather than grey: the shared theme draws gridlines in GREY, so a grey
-  # contour read as one. linetype carries the same split as color, so the two
-  # levels stay separable under color vision deficiency.
-  scale_color_manual(values=c(PURPLE, RED)) +
-  scale_linetype_manual(values=c("dotted", "dashed")) +
-  geom_point(data=influence_labels, aes(x=leverage, y=std_resid), size=1.9, color=RED) +
-  geom_text(data=influence_labels, aes(x=leverage, y=std_resid+ny, label=label),
-            size=3.0, color="#252525", hjust=-0.11) +
-  annotate("text", x=Inf, y=Inf, hjust=1.03, vjust=1.5, size=3.0,
-           color="#52514E", lineheight=1.1,
-           label=sprintf("n = 11,983    max Cook's D = %.4f\nReaching the conventional 1.0 threshold would\ntake a standardized residual near %.0f",
-                         max(influence_pts$cooks_d), r_at_threshold)) +
-  scale_x_continuous(labels=scales::label_number(accuracy=0.001),
-                     breaks=scales::breaks_pretty(n=8),
-                     expand=expansion(mult=c(0.02, 0.24))) +
-  scale_y_continuous(breaks=scales::breaks_pretty(n=8),
-                     expand=expansion(mult=c(0.06, 0.16))) +
-  guides(color=guide_legend(nrow=1)) +
-  theme(panel.grid.major=element_line(color="#E4E3DE", linewidth=0.25)) +
-  labs(title="Residuals Against Leverage With Cook's Distance Contours",
-       x="Leverage (Hat Value)", y="Standardized Residual")
+  geom_segment(data=influence_range_df, aes(x=min_d, xend=max_d, y=label, yend=label),
+               linewidth=1.2, color="#C8C8C5", lineend="round") +
+  geom_point(data=influence_plot_df, aes(x=cooks_d, y=label), size=2.0, color=BLUE, alpha=0.45) +
+  geom_point(data=influence_range_df, aes(x=max_d, y=label), size=3.2, color=BLUE) +
+  geom_text(data=influence_range_df, aes(x=max_d, y=label, label=sprintf("%.4f", max_d)),
+            hjust=-0.35, size=3.2, color="#252525") +
+  scale_x_continuous(limits=c(0, 0.011), expand=c(0,0)) +
+  labs(title="Ten Highest Cook's Distance Values by County, Level Specification",
+       x="Cook's Distance", y=NULL)
 ```
 
 No single point threatened the overall fit, so the more informative check was to refit the model after removing the most influential 1% of the panel, `{python} f"{n_excluded:,}"` county year observations. @tbl-influence-sensitivity reported the results. The task group coefficients changed by single digit to low double digit percentages, while the poverty coefficient remained relatively stable. This indicated that the main associations were not driven by a small number of extreme counties.
@@ -507,7 +473,7 @@ style_table(GT(sensitivity_df)
 
 ## Log respecification
 
-The level model indicated that a constant dollar association was insufficient to accurately describe the relationship. Logging purchasing power was employed to determine if the association was better represented proportionally, enabling a comparable shift in a task group to correspond to a larger dollar difference in counties with higher purchasing power. The @fig-log-transform visualization demonstrated how the transformation mitigated the right skew in purchasing power and laid the groundwork for reevaluating the residual pattern.
+The level model indicated that a constant dollar association was insufficient to accurately describe the relationship. Logging purchasing power was tested to see whether the association was better represented proportionally, enabling a comparable shift in a task group to correspond to a larger dollar difference in counties with higher purchasing power. The @fig-log-transform visualization demonstrated how the transformation reduced the right skew in purchasing power and laid the groundwork for reevaluating the residual pattern.
 
 ```{python}
 #| include: false
@@ -594,7 +560,7 @@ p1 <- ggplot(resid_df, aes(x=fitted, y=resid)) +
 p2 <- ggplot(resid_df, aes(sample=std_resid)) +
   stat_qq(color=BLUE, alpha=0.35, size=0.8) +
   stat_qq_line(color="#0B0B0B", linewidth=0.8) +
-  scale_y_continuous(breaks=scales::pretty_breaks(n=10)) +
+  scale_y_continuous(breaks=scales::pretty_breaks(n=7)) +
   labs(x="Theoretical Quantiles", y="Standardized Residual", title="Normal Q-Q") +
   theme(plot.title=element_text(size=11))
 
@@ -609,12 +575,12 @@ p3 <- ggplot(resid_log_df, aes(x=fitted_log, y=resid_log)) +
 p4 <- ggplot(resid_log_df, aes(sample=std_resid)) +
   stat_qq(color=GREEN, alpha=0.35, size=0.8) +
   stat_qq_line(color="#0B0B0B", linewidth=0.8) +
-  scale_y_continuous(breaks=scales::pretty_breaks(n=10)) +
+  scale_y_continuous(breaks=scales::pretty_breaks(n=7)) +
   labs(x="Theoretical Quantiles", y="Standardized Residual")
 
-# all gridlines off on every panel; the dashed zero line and the QQ reference
-# line are the references that matter here
-grid_off <- theme(panel.grid=element_blank())
+# horizontal gridlines off on every panel; the dashed zero line and the QQ
+# reference line are the references that matter here
+grid_off <- theme(panel.grid.major.y=element_blank(), panel.grid.minor.y=element_blank())
 p1 <- p1 + grid_off; p2 <- p2 + grid_off; p3 <- p3 + grid_off; p4 <- p4 + grid_off
 
 (p1 | p2) / (p3 | p4) +
@@ -689,7 +655,7 @@ The residual pattern did not disappear entirely after the transformation. The re
 
 ## Predictive modeling
 
-The predictive comparison utilized the county year panel assembled earlier, incorporating state identifiers for the subsequent models. Model complexity only increased when additional flexibility enhanced performance on the held-out counties. The log respecification addressed the issues identified in the level model, while the remaining residual structure prompted testing a random forest capable of capturing nonlinear relationships and interactions. A three hidden layer feedforward neural network served as an additional test to determine if greater model flexibility further improved performance.
+The predictive comparison used the county year panel assembled earlier, incorporating state identifiers for the subsequent models. Model complexity only increased when additional flexibility enhanced performance on the held-out counties. The log respecification addressed the issues identified in the level model, while the remaining residual structure prompted testing a random forest capable of capturing nonlinear relationships and interactions. A three hidden layer feedforward neural network served as an additional test to determine if greater model flexibility further improved performance.
 
 All models were evaluated on the same held-out counties from the grouped split, so any differences in performance reflected model structure rather than variations in the evaluation observations. If the more flexible models failed to improve held-out performance, the log linear specification was retained as the simpler representation of the relationship.
 
@@ -751,7 +717,7 @@ assert len(set(groups.iloc[train_idx]) & set(groups.iloc[test_idx]))==0
 
 #### Year and state indicators
 
-A grouped train and test split was employed because observations from the same county were closely related across years. A random split could inadvertently place observations from the same county in both sets, potentially allowing the model to leverage information about a county it had already encountered. By grouping observations by county, we effectively eliminated this overlap and provided a more robust test of whether the observed relationship could generalize to new locations.
+A grouped train and test split was used because observations from the same county were closely related across years. A random split could inadvertently place observations from the same county in both sets, potentially allowing the model to use information about a county it had already encountered. By grouping observations by county, we effectively eliminated this overlap and provided a more robust test of whether the observed relationship could generalize to new locations.
 
 The split allocated 9,565 county-year observations to the training set and 2,418 to the testing set, ensuring that each county appeared in only one of the two sets. All feature engineering was conducted after the split to maintain this separation. Consequently, every test observation originated from a county that was not represented in the training data.
 
@@ -822,19 +788,20 @@ state_df$pt_color <- ifelse(seq_len(nrow(state_df)) %in% ref_i, ACCENT, "#0B0B0B
 state_df$pt_size  <- ifelse(seq_len(nrow(state_df)) %in% ref_i, 3.8, 2.6)
 median_label <- sprintf("Median: $%.0fk", state_median/1000)
 n_states <- length(levels(state_df$state_label))
+pp_range <- range(state_df$mean_pp)
 
 # axis starts at $30k rather than zero. The Lie Factor concern that motivated a
 # zero anchor does not bind here: each segment runs from the median line to the
 # state's value, so its length encodes deviation from the median rather than
 # absolute magnitude, and moving the left edge rescales every segment equally.
 x_lo <- 30000
-x_hi <- 80000
+x_hi <- pp_range[2] * 1.05
 
-# $5,000 breaks from $30k to $80k. Offsets from the median were tried and
-# reverted: anchoring every tick to the median produced labels like $4.47k and
-# $9.47k that collided. The median keeps its own dotted line and its labeled
-# annotation instead.
-state_breaks <- seq(x_lo, x_hi, by=5000)
+# round $20k breaks. Offsets from the median were tried and reverted: anchoring
+# every tick to the median produced labels like $4.47k and $9.47k that collided.
+# The median keeps its own dotted line and its labeled annotation instead.
+state_breaks <- seq(0, 200000, by=10000)
+state_breaks <- state_breaks[state_breaks >= x_lo & state_breaks <= x_hi]
 
 # annotation centered within each visual half of the zero-anchored panel
 low_mid  <- (x_lo + state_median) / 2
@@ -935,7 +902,7 @@ X_train_base, X_test_base=X_base.iloc[train_idx], X_base.iloc[test_idx]
 
 ### Linear benchmark
 
-This specification serves as a predictive benchmark rather than a second inferential model. It reuses the diagnostic insights established by the panel regression above, now applied to the training split alone. This shared split enables direct comparability with the subsequent random forest and neural network models. We present two versions of each linear model, estimated using ordinary least squares (OLS). The baseline model utilizes only the task groups with poverty and unemployment, while the full model incorporates year and state controls. Reporting both versions highlights the changes introduced by time and geography. Among the two, the full model is the one that is carried forward.
+This specification is a predictive benchmark rather than a second inferential model. It reuses the diagnostic insights established by the panel regression above, now applied to the training split alone. This shared split enables direct comparability with the subsequent random forest and neural network models. We present two versions of each linear model, estimated using ordinary least squares (OLS). The baseline model uses only the task groups with poverty and unemployment, while the full model incorporates year and state controls. Reporting both versions highlights the changes introduced by time and geography. Among the two, the full model is the one that is carried forward.
 
 #### Baseline specification
 
@@ -961,7 +928,7 @@ Adding year and state indicators increased the coefficient from 0.766 to 0.871, 
 
 #### Full specification on the logged outcome
 
-@fig-binned-scale showed that the level specification did not fit purchasing power evenly across its range. The largest departures occurred at the lower and upper ends of the distribution, where observed purchasing power was roughly \$8,000 to \$9,000 above the fitted values. This systematic pattern suggested that the remaining problem was related to the scale of purchasing power rather than simply omitted controls, providing a clear reason to test the outcome in logarithmic form.
+@fig-binned-scale showed that the level specification did not fit purchasing power evenly across its range. The largest departures occurred at the lower and upper ends of the distribution, where observed purchasing power was roughly \$8,000 to \$9,000 above the fitted values. This systematic pattern suggested that the remaining problem was related to the scale of purchasing power rather than omitted controls, providing a clear reason to test the outcome in logarithmic form.
 
 ```{python}
 #| include: false
@@ -1044,7 +1011,7 @@ style_table(GT(comparison_ols, rowname_col="Variable", groupname_col="Group")
 
 @tbl-ols-comparison revealed that the task group coefficients maintained the same direction across all three specifications, although their magnitudes changed after incorporating controls. The non-routine manual coefficient shifted from approximately -\$130,549 in the baseline specification to -\$91,904 in the full level specification. Routine cognitive changed from about -\$81,085 to -\$87,421, while routine manual changed from -\$71,490 to -\$81,143. These results demonstrated that adjustments altered the magnitude of the associations without altering their overall order.
 
-The poverty rate coefficient increased in magnitude from approximately -\$1,376 to -\$1,729 for each additional percentage point of poverty. In contrast, the unemployment rate coefficient changed from approximately -\$1,207 in the baseline specification to +\$450 in the full level specification. This difference underscored that poverty remained strongly associated with purchasing power after adjustment, while the unemployment association was comparatively weak and sensitive to specification.
+The poverty rate coefficient increased in magnitude from approximately -\$1,376 to -\$1,729 for each additional percentage point of poverty. In contrast, the unemployment rate coefficient changed from approximately -\$1,207 in the baseline specification to +\$450 in the full level specification. This difference showed that poverty remained strongly associated with purchasing power after adjustment, while the unemployment association was comparatively weak and sensitive to specification.
 
 ```{python}
 #| include: false
@@ -1068,11 +1035,11 @@ style_table(GT(spec_summary, rowname_col="Metric")
   .tab_source_note("R² is in sample, fit on the 9,565 training rows only."))
 ```
 
-In the log specification, each additional percentage point of poverty was associated with approximately 2.9% lower purchasing power, assuming task groups, time, and geography remained constant. This proportional association was larger than that of any individual task group, making poverty the strongest single association among the variables reported in @tbl-ols-comparison.
+In the log specification, each additional percentage point of poverty was associated with approximately 2.9% lower purchasing power, assuming task groups, time, and geography remained constant. This proportional association was larger than that of any individual task group. Poverty was therefore the strongest single association among the variables reported in @tbl-ols-comparison.
 
 ### Random forest
 
-For the random forest model, hyperparameters were selected using a grid search with grouped five-fold cross-validation on the training counties. The search explored various configurations, including the number of trees ranging from 600 to 1,000, maximum depth from 10 to 20 or unlimited, minimum leaf size from 1 to 5, and the proportion of features considered at each split. Grouping by county ensured that the separation between places during tuning was preserved, reducing the risk of selecting parameters that performed well only due to observations from the same county appearing across folds. The final model employed 1,000 trees, unlimited depth, a minimum leaf size of 1, and half of the available features at each split.
+For the random forest model, hyperparameters were selected using a grid search with grouped five-fold cross-validation on the training counties. The search explored various configurations, including the number of trees ranging from 600 to 1,000, maximum depth from 10 to 20 or unlimited, minimum leaf size from 1 to 5, and the proportion of features considered at each split. Grouping by county ensured that the separation between places during tuning was preserved, reducing the risk of selecting parameters that performed well only due to observations from the same county appearing across folds. The final model used 1,000 trees, unlimited depth, a minimum leaf size of 1, and half of the available features at each split.
 
 ```{python}
 #| eval: false
@@ -1131,7 +1098,7 @@ rf_resid_df=pd.DataFrame({"pred":y_pred_rf, "resid":y_test-y_pred_rf})
 #| label: fig-rf-resid
 #| echo: false
 #| warning: false
-#| fig-cap: "**Random Forest Residuals vs. Predicted Values.** Residuals from the raw target forest on the held out test counties, both axes in dollars. No systematic curve or trend is visible across the range of predictions."
+#| fig-cap: "**Random Forest Residuals vs. Predicted Values.** Residuals from the raw target random forest on the held out test counties, both axes in dollars. No systematic curve or trend is visible across the range of predictions."
 %%R -i rf_resid_df -w 7 -h 5 -u in -r 150 -b transparent
 ggplot(rf_resid_df, aes(x=pred, y=resid)) +
   geom_point(alpha=0.3, size=0.6, color=PINK) +
@@ -1167,7 +1134,7 @@ rf_log_test_r2=r2_score(y_test, y_pred_rf_log_dollars)
 rf_log_test_mae=mean_absolute_error(y_test, y_pred_rf_log_dollars)
 ```
 
-The random forest is largely insensitive to whether purchasing power is modeled on its original or logarithmic scale. Fitting the model to the logged outcome and then back-transforming the predictions yields an R² of 0.877, which is slightly higher than the R² of 0.876 obtained when the outcome is modeled directly. Since the log specification is also employed for the primary linear model, the log target random forest is utilized for the subsequent ablations and model comparisons. The interpretability measures, including permutation and partial dependence, are computed on the raw target random forest, which reports directly in dollars.
+The random forest is largely insensitive to whether purchasing power is modeled on its original or logarithmic scale. Fitting the model to the logged outcome and then back-transforming the predictions yields an R² of 0.877, which is slightly higher than the R² of 0.876 obtained when the outcome is modeled directly. Since the log specification is also used for the primary linear model, the log target random forest is used for the subsequent ablations and model comparisons. The interpretability measures, including permutation and partial dependence, are computed on the raw target random forest, which reports directly in dollars.
 
 ```{python}
 #| include: false
@@ -1193,7 +1160,7 @@ rf_no_econ.fit(X_train_ne2, y_train_log)
 rf_no_econ_r2=r2_score(y_test, np.exp(rf_no_econ.predict(X_test_ne2)))
 ```
 
-In comparison, eliminating poverty and unemployment reduced the held out R² from 0.877 to 0.698, resulting in a decline of 0.179. This drop was substantially larger than the 0.042 decline observed when the task groups were removed, suggesting that the economic controls provided more of the model’s explanatory power. Even after incorporating the task groups into the economic controls, performance improved, indicating that they contributed information not fully captured by poverty and unemployment alone. All three models utilized the same random forest specification, logged outcome, and held-out counties, ensuring direct comparability of their performance differences.
+In comparison, eliminating poverty and unemployment reduced the held out R² from 0.877 to 0.698, resulting in a decline of 0.179. This drop was substantially larger than the 0.042 decline observed when the task groups were removed, suggesting that the economic controls provided more of the model’s explanatory power. Even after incorporating the task groups into the economic controls, performance improved, indicating that they contributed information not fully captured by poverty and unemployment alone. All three models used the same random forest specification, logged outcome, and held-out counties, ensuring direct comparability of their performance differences.
 
 #### Grouped permutation importance
 
@@ -1233,7 +1200,7 @@ Among the three modeled task groups, non-routine manual produced the largest ind
 
 ### Neural network
 
-The random forest model did not outperform the log linear specification, leaving us to wonder whether the lack of improvement was due to a limitation of the random forest or the amount of structure present in the data. To further investigate this, we evaluated a three-hidden-layer feedforward neural network as an additional test to determine if greater model flexibility would lead to improved held-out performance. The network consisted of three hidden layers and a single linear output unit for the continuous purchasing power outcome.
+The random forest model did not outperform the log linear specification. Whether that reflected a limitation of the random forest or the amount of structure present in the data remained an open question. To further investigate this, we evaluated a three-hidden-layer feedforward neural network as an additional test to determine if greater model flexibility would lead to improved held-out performance. The network consisted of three hidden layers and a single linear output unit for the continuous purchasing power outcome.
 
 ```{python}
 #| include: false
@@ -1367,9 +1334,9 @@ p1 <- ggplot(nn_init_df, aes(x=epoch, y=loss, color=series)) +
   geom_label(data=label_df1, aes(label=series, y=label_y), hjust=-0.1, size=3.4, fontface="bold",
              fill=NA, linewidth=0, label.padding=unit(0.08, "lines"), show.legend=FALSE) +
   # the minimum sits near the left edge here, so the label reads rightward off the
-  # marker instead of running off the panel and into the y axis title. Raised to
-  # the same offset panel B uses, so the two annotations sit level across the pair.
-  annotate("label", x=best_init_epoch + 0.6, y=best_init_loss + ymax*0.45,
+  # marker instead of running off the panel and into the y axis title. Nudged
+  # further right and up so the now transparent label clears the validation curve.
+  annotate("label", x=best_init_epoch + 0.6, y=best_init_loss + ymax*0.26,
            label=paste0("Minimum validation loss\nepoch ", best_init_epoch),
            hjust=0, size=2.9, color="grey35", fill=NA, linewidth=0,
            label.padding=unit(0.12, "lines")) +
@@ -1415,7 +1382,7 @@ p1 + p2 +
 
 ### Cross validation
 
-Five-fold grouped cross-validation was employed to assess the consistency of the observed performance in the single train and test split across various county sets. Counties remained grouped within each fold, ensuring that observations from the same county were not included in both training and validation data.
+Five-fold grouped cross-validation was used to assess the consistency of the observed performance in the single train and test split across various county sets. Counties remained grouped within each fold, ensuring that observations from the same county were not included in both training and validation data.
 
 ```{python}
 #| include: false
