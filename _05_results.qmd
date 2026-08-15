@@ -19,7 +19,7 @@ group_terms=["non_routine_manual_share","routine_cognitive_share","routine_manua
 group_names=["Non-Routine Manual","Routine Cognitive","Routine Manual"]
 ```
 
-The analysis supports four findings. A county's task groups are associated with its purchasing power, and the association survives controls for poverty, unemployment, population, and year. The log specification captures most of the structure in the relationship, and the flexible models do not improve on it, which is what supports reading the relationship as proportional rather than fixed in dollars. Poverty rate remains the single strongest correlate of purchasing power throughout, yet the task groups add signal beyond it. Finally, the task group differences behind the association are durable features of places, and so are the purchasing power gaps they carry. The subsections below work through these findings, and through the geography and the model behavior behind them.
+The results unveiled four main findings. Task groups maintained their association with purchasing power even after accounting for factors like poverty, unemployment, population, and year. A one percentage point shift from non-routine cognitive to non-routine manual work was linked to a reduction in purchasing power of approximately \$846, with a 95 percent confidence interval of ±\$38 at the panel mean. The log specification provided the most comprehensive representation of this relationship, achieving a held out R² of 0.896, compared to 0.877 for the random forest, while the neural network offered no further improvement. Poverty rate demonstrated the strongest association with purchasing power, but task groups provided additional insights beyond conventional economic indicators. Moreover, differences in task groups persisted across counties and over time. The subsequent sections delve into the magnitude, geographical distribution, and stability of these relationships.
 
 ## The association
 
@@ -38,7 +38,7 @@ for term, name in zip(group_terms, group_names):
 coef_df=pd.DataFrame(coef_rows)
 ```
 
-The log specification of the panel regression is the model we use for inference, for the diagnostic reasons set out in @sec-analysis. A one percentage point shift toward non-routine manual work is associated with roughly \$846 less in purchasing power than an equivalent share of non-routine cognitive work, the reference group, with a 95 percent interval of plus or minus \$38 at the panel mean (@fig-coefplot). Routine cognitive and routine manual shifts carry smaller but clearly negative associations, in the same ordering the level specification reported in @sec-analysis produces. For scale, each additional percentage point of poverty rate is associated with roughly 2.9 percent lower purchasing power, a larger proportional difference than any single task group carries.
+The log specification of the panel regression was employed for inference based on the diagnostic results outlined in @sec-analysis. A one percentage point shift from non-routine cognitive to non-routine manual work was associated with approximately \$846 lower purchasing power, with a 95 percent confidence interval of ±\$38 at the panel mean (@fig-coefplot). Routine cognitive and routine manual work also exhibited negative associations with purchasing power, although their estimated differences were smaller. This ordering aligns with the level specification reported in @sec-analysis. For comparison, each additional percentage point of poverty was linked to approximately 2.9 percent lower purchasing power, a larger proportional association than any individual task group.
 
 ```{python}
 #| label: fig-coefplot
@@ -66,7 +66,9 @@ ggplot(coef_df, aes(x=est, y=group, color=group)) +
   theme(panel.grid.major.y=element_blank())
 ```
 
-In the level specification, poverty rate carries the largest and most precisely estimated coefficient, while unemployment rate and log population are smaller but still distinguishable from zero at the 0.05 level (@tbl-panel-coefs). The table also reports the model's overall F-test.
+@fig-coefplot illustrated the estimated purchasing power difference associated with a one percentage point shift from non-routine cognitive work toward each of the other task groups. All three estimates remained below zero, with non-routine manual work showing the largest negative association. The narrow intervals around the estimates indicated that the direction and ordering of these task group relationships were precisely estimated after accounting for the other variables in the model.
+
+The level specification provided an additional perspective on the task group associations and economic controls in dollar terms. Among the controls, the poverty rate carried the largest and most precisely estimated coefficient, while the unemployment rate and log population were smaller but remained distinguishable from zero at the 0.05 level (@tbl-panel-coefs). The table also reported the model’s overall F test, sample size, and , offering a summary of the fit and precision of the complete level specification.
 
 ```{python}
 #| include: false
@@ -108,7 +110,7 @@ style_table(GT(level_coef_df)
 
 ## Not poverty in disguise
 
-A natural objection is that the task groups merely proxy for poverty, since poor counties hold more routine work. @fig-baseline-maps shows the two conventional distress measures side by side, mean poverty rate (Panel A) and mean unemployment rate (Panel B) by county across the study period. Both run highest across the rural South, the Mississippi Delta, and pockets of the Southwest border region. That is the same broad area where @fig-afford-map shows purchasing power running lowest, which is exactly why the objection is worth taking seriously. Unemployment (Panel B) carries a second concentration along the California coast and Central Valley that poverty (Panel A) does not share, evidence the two measures are not interchangeable.
+A natural concern is that the task group associations simply reflect poverty, as counties with higher poverty rates also tend to have more routine work. @fig-baseline-maps showed the geographic distribution of mean poverty and unemployment rates across the study period. Both measures were highest across much of the rural South, the Mississippi Delta, and parts of the Southwest border region, which overlapped with areas of low purchasing power in @fig-afford-map. This overlap was important because each additional percentage point of poverty was associated with approximately 2.9 percent lower purchasing power in the log specification. Unemployment also showed a concentration along the California coast and Central Valley that was less apparent for poverty, indicating that the two measures captured different dimensions of local economic conditions.
 
 ```{python}
 #| label: baseline-maps-data
@@ -174,7 +176,7 @@ p1 + p2 +
                               plot.tag=element_text(face="bold", size=11, color="#0B0B0B")))
 ```
 
-Fitting the log panel regression twice on the same rows tests the objection directly (@fig-coefcompare). The first specification includes only task groups and year indicators; the second adds poverty rate, unemployment rate, and log population, the specification reported in @sec-analysis. Non-routine manual and routine manual both shrink substantially when the controls enter, which is what we would expect, since poverty absorbs shared variation. Routine cognitive barely moves, at roughly −1.1 percent either way, evidence its association runs through something other than the poverty and unemployment channel the controls capture. All three remain negative and precisely estimated after the controls enter. The task group association is smaller than it first appears for two of the three groups and clearly present for all of them.
+@fig-coefcompare conducted a test to determine if the economic conditions accounted for the associations between task groups. They compared two log panel specifications estimated on the same observations. The first specification included task groups and year indicators, while the second added poverty, unemployment, and log population. After adding the controls, the estimates for the non-routine manual and routine manual became smaller, indicating that some of their initial associations overlapped with these economic conditions. However, routine cognitive remained relatively stable, staying close to −1.1 percent in both specifications. Notably, all three task group estimates remained negative and accurately estimated after adjustment. This comparison demonstrated that poverty, unemployment, and population explained part of the relationship, but they did not fully account for the association between task groups and purchasing power.
 
 ```{python}
 #| include: false
@@ -241,7 +243,7 @@ ggplot(compare_df, aes(x=est, xmin=lo, xmax=hi, y=group, color=spec, shape=spec)
 
 ## What carries the signal
 
-Two measurements say how much the task groups contribute. The first removes them and refits, and @fig-ablation shows what the random forest loses in held out R² when each block of features is taken away. Removing poverty and unemployment costs 0.178, more than four times the 0.042 lost by removing the task groups. The economic controls therefore carry more explanatory information, but the task groups still contribute beyond them.
+Two complementary tests were conducted to assess the contribution of information from the task groups. The @fig-ablation test demonstrated the impact of removing an entire feature block and refitting the random forest. Removing poverty and unemployment resulted in a 0.178 reduction in held out R², compared to a smaller decline of 0.042 when the task groups were removed. This indicates that the economic controls provided more explanatory information overall, but the task groups still improved performance beyond what poverty and unemployment alone could capture.
 
 ```{python}
 #| include: false
@@ -272,9 +274,9 @@ ggplot(ablation_df, aes(x=drop, y=model, fill=model)) +
   theme(panel.grid.major.y=element_blank())
 ```
 
-The second measurement leaves the model intact and destroys the information instead. Permuting each feature or block in turn ranks what the random forest relies on, using the grouped permutation approach from @sec-analysis so that indicator blocks and the task groups are each scored as a unit (@fig-importance). These two interpretability figures are computed on the raw target forest rather than the log target one, since the two score within 0.001 of each other on held out counties. We report the raw target version because it reads directly in dollars. In that ranking, poverty rate carries the largest single drop, consistent with its dominance in the regression. The modeled task group proportions together come next at 0.153, ahead of the year block at 0.128. State adds almost nothing, 0.008, once everything else is present.
+The @fig-importance test offered a second measure by leaving the fitted model unchanged and perturbing each feature or feature block through permutation. Jointly permuting the task groups led to a 0.153 reduction in held out R², compared to 0.128 for the year indicators and 0.008 for the state indicators. Poverty exhibited the largest individual decline. These results suggest that the fitted forest heavily relied on the task groups even after incorporating economic controls, time, and geography.
 
-The two measurements disagree in magnitude, and the reason is instructive. Permuting the task groups costs 0.153, while removing them entirely and refitting costs only 0.042. The gap exists because a refitted model can lean harder on poverty, unemployment, and time to recover much of what the task groups were carrying. The permutation figure therefore measures how much the fitted model uses the task groups, and the ablation measures how much of that is unique to them. Both measurements agree that the task groups function together as a set, which is what parts of a whole should do.
+The ablation and permutation results provided further insights into the model’s performance. Removing the task groups and refitting the model resulted in a modest reduction of 0.042 in the held-out R² value, suggesting that the model could still recover some overlapping information from poverty, unemployment, and year. In contrast, permuting the task groups after fitting caused a decline of 0.153, indicating that the model could no longer compensate for the loss of information. These two tests together revealed that the task groups contained information that overlapped with other variables but was not fully replaced by them.
 
 ```{python}
 #| include: false
@@ -315,7 +317,7 @@ ggplot(importance_df, aes(x=drop, y=feature, fill=block)) +
   theme(legend.position="bottom", panel.grid.major.y=element_blank())
 ```
 
-Across the observed range of each non-reference task group, the forest's partial dependence declines smoothly and near monotonically, without thresholds or reversals (@fig-pdp). That shape is what a proportional association implies, which is why the added flexibility bought nothing over the log linear fit. Because the four groups are parts of a whole, moving one while holding the others fixed implies a compensating change in the omitted reference group. These curves therefore describe the model's behavior rather than a combination any county could occupy.
+@fig-pdp demonstrated how the random forest depicted the relationship across the observed range of each non-routine cognitive reference comparison. Purchasing power gradually declined across the three modeled task groups, without any distinct thresholds or reversals. Despite capturing these flexible relationships, the random forest achieved a held out R² of 0.877, compared to 0.896 for the log linear model, a difference of 0.019. This pattern aligned with the proportional relationship identified by the log linear specification and explained why the additional flexibility of the random forest did not enhance held out performance. Since the four task groups collectively accounted for the entire range, these curves represented the model’s response to changes in one group while keeping the remaining values constant. Therefore, these curves should not be interpreted as independent changes in employment.
 
 ```{python}
 #| include: false
@@ -368,6 +370,7 @@ ggplot(pdp_df, aes(x=x, y=y, color=group)) +
 
 ## Where purchasing power is strained
 
+The association also exhibited a distinct geographic pattern. @fig-afford-map revealed that purchasing power was highest along the metropolitan Northeast corridor, across parts of the upper Midwest, and in certain regions of the mountain West. Conversely, the lowest values were concentrated across the rural South and the southern border region. The map included all counties with a purchasing power value, rather than only those in the analytical panel, because the outcome required only household income and Regional Price Parity.
 ```{python}
 #| label: afford-map-data
 #| include: false
@@ -413,7 +416,7 @@ dominant_n=dominant_df["dominant_group"].value_counts()
 dominant_med=dominant_df.groupby("dominant_group")["purchasing_power"].median()
 ```
 
-The association also has a clear geographic pattern. Purchasing power runs highest along the metropolitan Northeast corridor, across parts of the upper Midwest, and in pockets of the mountain West, while the lowest values concentrate across the rural South and the southern border region (@fig-afford-map). That map uses all counties with a purchasing power value rather than the analytical panel alone, since the outcome requires only income and a price parity. That geography is associated with local task groups. Counties are grouped here by whichever task group accounts for the most local employment. The `{python} int(dominant_n['Non-Routine Cognitive'])` counties where non-routine cognitive work dominates reach a median of `{python} f"${dominant_med['Non-Routine Cognitive']:,.0f}"`. The comparable medians are `{python} f"${dominant_med['Non-Routine Manual']:,.0f}"` across the `{python} int(dominant_n['Non-Routine Manual'])` non-routine manual counties and `{python} f"${dominant_med['Routine Manual']:,.0f}"` across the `{python} int(dominant_n['Routine Manual'])` routine manual ones. The association the coefficients estimate therefore holds not only across the continuous range but also at the level of a county's single largest task group.
+This geographic pattern was also reflected in county task groups. Counties were categorized based on the task group that accounted for the largest average proportion of employment over the study period. In `{python} int(dominant_n['Non-Routine Cognitive'])` counties, non-routine cognitive work was the dominant type of work, with a median purchasing power of \$`{python} f"{dominant_med['Non-Routine Cognitive']:,.0f}"`. In contrast, `{python} int(dominant_n['Non-Routine Manual'])` non-routine manual counties had a median purchasing power of \$`{python} f"{dominant_med['Non-Routine Manual']:,.0f}"`, while `{python} int(dominant_n['Routine Manual'])` routine manual counties had a median purchasing power of \$`{python} f"{dominant_med['Routine Manual']:,.0f}"`. Routine cognitive work was the dominant group in `{python} int(dominant_n.get('Routine Cognitive', 0))` counties. These differences demonstrated that the association observed across the continuous task group measures was also evident when counties were grouped by the type of work that constituted the largest portion of local employment.
 
 ```{python}
 #| label: fig-afford-map
@@ -447,7 +450,7 @@ ggplot(afford_sf) +
 
 ## The relationship is proportional
 
-Across the five grouped cross validation folds, the log target linear model and the random forest perform similarly relative to the variation observed, and neither pulls away from the other (@fig-modelcomp). This collects the ending of the complexity ladder climbed in @sec-analysis. @tbl-modelmetrics adds a further comparison to that picture, a single split that also includes the neural network. The network reaches a held out R² of `{python} f"{nn_test_r2:.3f}"` with a mean absolute error of `{python} f"${nn_test_mae:,.0f}"`. That is no better than either simpler model. The ladder was built to detect exactly this, and finding no improvement at the most flexible rung is what establishes the log linear specification as the right stopping point.
+Across the five grouped cross-validation folds, the log linear model and random forest performed similarly in terms of the variation across folds (@fig-modelcomp). The single held-out split also demonstrated the same pattern. The log linear model achieved an R² of 0.896, while the random forest achieved an R² of 0.877. @fig-nn-curves extended this comparison to the neural network, which achieved a held-out R² of 0.869 and a mean absolute error of \$4,145. The neural network did not provide any improvement over the simpler models. Overall, these results indicated that additional model flexibility did not capture enough new structure to improve performance beyond the log linear specification.
 
 ```{python}
 #| include: false
@@ -511,7 +514,7 @@ style_table(GT(metrics_df)
   .tab_source_note("Neural network results are from this single split only; the five fold grouped cross validation table in the analysis section reports cross validated results for the other two models."))
 ```
 
-This is the ladder's stopping rule working as designed. A random forest can represent any interaction or curvature the data contain, yet it finds nothing beyond what the log transformation already captured. The binned comparison in @fig-binned confirms the same conclusion, this time in the units of the outcome itself. The observed relationship is not monotonic across these bins. Purchasing power rises with the routine cognitive value through the lower part of its observed range, peaks near 20 percent, and then declines as the value continues to rise. The bins and the partial dependence curves in @fig-pdp are not in conflict, since the curves hold the other three groups fixed. In these bins the other groups move together with routine cognitive, because the four are parts of a whole, and the bins therefore trace what counties actually look like rather than the model's response to one group in isolation. The forest's predictions track this same shape closely rather than discovering a different pattern of their own, which is further evidence that the flexible model adds little beyond what the log linear specification already captures.
+@fig-binned presented a complementary perspective using purchasing power dollars. Across ten equal-sized bins of routine cognitive tasks, observed purchasing power increased in the lower range, peaked near 20 percent, and then declined. The random forest closely reproduced this pattern, rather than identifying a substantially different relationship. This observation did not contradict the smoother declines in @fig-pdp, as the partial dependence curves varied one task group while holding the others constant, whereas the binned comparison reflected how the task groups occurred together in actual counties. Since the four groups summed to one, changes in routine cognitive work in the observed data were accompanied by changes in the other groups. Therefore, the agreement between the flexible model and the simpler log linear specification supported retaining the proportional specification rather than adding further model complexity.
 
 ```{python}
 #| include: false
@@ -560,7 +563,7 @@ ggplot(binned_long, aes(x=rc_pct, y=pp, color=series)) +
 
 ## The differences are durable
 
-The final question is whether these associations describe a stable feature of places or a moment in time. Three pieces of evidence say stable. @fig-taskarea shows the panel average of each task group by year, which moves little across fifteen years apart from the 2009 to 2010 step produced by the Census occupation coding change described in @sec-data.
+The differences observed across counties were not confined to a specific time period. @fig-taskarea revealed that the average proportion of employment in each task group remained relatively stable over the fifteen-year panel. The largest discontinuity occurred between 2009 and 2010, coinciding with the Census occupation coding change mentioned in @sec-data. Outside this period, the national distribution of the four task groups remained comparatively stable.
 
 ```{python}
 #| include: false
@@ -643,7 +646,7 @@ ggplot(area_df, aes(x=year, y=share, fill=group)) +
         plot.margin=margin(26, 16, 5.5, 5.5))
 ```
 
-Individual counties hold their positions too, beyond the national aggregate. @tbl-rankcorr reports the rank correlation of each group's county ordering between 2010 and 2023, computed from 2010 onward to step over the coding change. Routine manual and non-routine cognitive hold their orderings most strongly, since the counties with the most of each in 2010 are largely the same counties in 2023. Non-routine manual is more mobile. Routine cognitive reorders the most, which is consistent with it being the one group carrying substantial within county movement in the variance decomposition of @sec-analysis.
+County rankings provided a more robust test of whether the same places maintained distinct characteristics over time. @tbl-rankcorr compared each county’s task group ranking in 2010 with its ranking in 2023 using Spearman correlations. Routine manual and non-routine cognitive work exhibited the greatest stability, indicating that counties with relatively high values in 2010 generally maintained high values in 2023. Non-routine manual work showed more movement, while routine cognitive work experienced the largest changes. This ordering aligns with the variance decomposition in @sec-analysis, which demonstrated that routine cognitive work exhibited more within-county variation compared to the other task groups.
 
 ```{python}
 #| label: tbl-rankcorr
@@ -723,7 +726,7 @@ ggplot(change_long, aes(x=change, y=group, color=group)) +
   theme(panel.grid.major.y=element_blank())
 ```
 
-Most counties moved toward non-routine cognitive work between 2010 and 2023, once task group change is collapsed onto the two axes that structure the four groups in @fig-taskframework (@fig-taskchange-arrows). That direction is consistent with routine cognitive and non-routine cognitive being the pair that moved most in @fig-taskarea. The counties colored red moved the other way, toward the three groups this study associates with lower purchasing power.
+@fig-taskchange-map illustrated the magnitude and direction of these changes county by county. Routine manual and non-routine manual changes remained centered near zero and occurred in both directions, while routine cognitive and non-routine cognitive showed larger and more consistently directed changes. @fig-taskchange-arrows summarized these movements using the same cognitive to manual and routine to non-routine dimensions introduced in @fig-taskframework. Most counties shifted towards non-routine cognitive work between 2010 and 2023, while a smaller group moved away from it towards the three task groups associated with lower purchasing power. The arrow figure is particularly valuable as it establishes a direct connection between the observed county changes and the conceptual framework introduced earlier in the study.
 
 ```{python}
 #| label: taskchange-arrows-data
@@ -800,7 +803,7 @@ ggplot() +
         plot.background=element_rect(fill=NA, color=NA))
 ```
 
-Finally, the coefficients themselves hold across time. @fig-stability refits the log panel regression on the pre pandemic window, 2010 to 2019, and the post pandemic window, 2021 to 2023, the same windows named in @sec-analysis. Reporting these in percent rather than dollars keeps the three windows comparable, since nominal purchasing power rose substantially across the panel and a dollar coefficient in the later window is measured against a larger base. The task group ordering is identical in both windows and in the full panel, and the magnitudes move modestly. The association is therefore not an artifact of any one period, recession, recovery, or pandemic era.
+Finally, the estimated associations themselves remained consistent over time. @fig-stability compared the full panel with separate specifications for 2010 to 2019 and 2021 to 2023. The ordering of the three task group coefficients remained unchanged across all three periods, and their magnitudes shifted only slightly. Reporting the coefficients as percentage changes ensured comparability between the periods, even though nominal purchasing power increased later in the panel. The persistence of both the county patterns and the coefficient ordering suggested that the association was not confined to a single recession, recovery, or pandemic period.
 
 ```{python}
 #| include: false
@@ -884,4 +887,6 @@ ggplot() +
         panel.grid.major.y=element_blank())
 ```
 
-Taken together, the results show that this pattern is not limited to a single year or model. Counties with more routine and manual work tended to have lower purchasing power at the beginning of the study period, and that pattern remained largely unchanged fifteen years later. @sec-conclusions discusses what these findings mean, their limits, and what questions remain.
+The results revealed that county task groups continued to be linked to purchasing power even after accounting for factors like poverty, unemployment, population, and the year. The largest difference was observed between non-routine manual work and other tasks. A one percentage point shift from non-routine cognitive work to non-routine manual work was associated with a reduction in purchasing power of approximately \$846 at the panel mean, with a 95 percent confidence interval of ±\$38. Routine cognitive and routine manual work were also negatively associated with purchasing power compared to non-routine cognitive work. Among the variables examined, poverty showed the strongest association with purchasing power, with each additional percentage point associated with a reduction of approximately 2.9 percent. The random forest analysis indicated that task groups provided additional information beyond the economic controls. Removing the task groups and refitting the model resulted in a decrease in the held out R² value of 0.042, while removing poverty and unemployment reduced it by 0.178. Jointly permuting the task groups further reduced the R² value by 0.153, compared to 0.128 for year indicators and 0.008 for state indicators. The geographic analysis showed that counties dominated by non-routine cognitive work had higher purchasing power, while counties dominated by the two manual groups had lower purchasing power. The stability analysis demonstrated that these county differences persisted over time. Routine manual and non-routine cognitive work maintained the most consistent county ordering between 2010 and 2023, while routine cognitive work exhibited the greatest movement. Interestingly, the ordering of the task group coefficients remained unchanged in the full panel, the 2010 to 2019 period, and the 2021 to 2023 period.
+
+The level model, log linear model, random forest, and neural network were employed to determine the most suitable representation of the relationship. The level specification established negative task group associations but revealed systematic curvature in the residuals, suggesting that a constant dollar difference across the purchasing power distribution was inadequate. Logging purchasing power mitigated residual skew from 1.01 to 0.09, resulting in an in-sample R² of 0.913 and a held-out R² of 0.896. The random forest captured the nonlinear structure evident in the level model but failed to enhance held-out performance. Its log target specification achieved a held-out R² of 0.877, 0.019 below the log linear model, while the raw target forest achieved a training R² of 0.989 but only 0.876 on held-out counties. The neural network introduced greater flexibility, but regularization did not yield an improvement over either retained model. Five-fold grouped cross-validation yielded similar general comparisons, with the difference between the log linear and random forest models remaining smaller than the variation across folds. Across these four specifications, the log linear model maintained task group associations, rectified most of the diagnostic issues in the level model, and achieved the highest held-out performance. The implications and limitations of these results are discussed in the section titled “@sec-conclusions.”

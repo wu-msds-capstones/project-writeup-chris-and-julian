@@ -53,7 +53,7 @@ reg["fitted_log"]=model_log.fittedvalues
 
 ## The unadjusted relationship
 
-The ladder starts with the relationship itself, before any controls. @fig-univariate plots purchasing power against each of the four task groups across the panel. The two manual groups slope down most steeply, non-routine cognitive slopes up, and routine cognitive is the flattest of the four. None of the four is tight enough to carry a claim on its own, which is why the models that follow adjust for the rest of the panel. The ordering survives that adjustment.
+The analysis commenced by examining the unadjusted relationship between task groups and purchasing power. @fig-univariate plotted purchasing power against each of the four task groups across the panel. The two manual groups exhibited the most pronounced negative relationships, while non-routine cognitive tasks showed a positive correlation, and routine cognitive tasks remained relatively flat. None of these relationships were strong enough to stand alone, prompting the subsequent adjustment analysis. Interestingly, the same ordering persisted after the adjustment.
 
 ```{python}
 #| include: false
@@ -112,7 +112,7 @@ ggplot(uni_pts, aes(x=share, y=affordability_salary)) +
 
 ## Variance decomposition
 
-Purchasing power and the task groups vary both across counties and within a county over time, and the two carry different implications. @fig-between-within splits each group's variation into the two components. The manual groups vary almost entirely between counties, which is what makes the purchasing power differences they carry durable rather than temporary. Routine cognitive is the only group with substantial within county movement.
+Purchasing power and task groups exhibit variations both across counties and within a county over time, each carrying distinct implications. @fig-between-within effectively divides each group’s variation into these two components. The manual groups show almost complete variation between counties, which contributes to the durability of the purchasing power differences they represent. In contrast, routine cognitive is the only group with substantial within-county movement.
 
 ```{python}
 #| include: false
@@ -174,13 +174,14 @@ ggplot(bw_df, aes(x=value, y=group, fill=component)) +
   theme(legend.position="bottom", plot.margin=margin(10, 16, 8, 10))
 ```
 
-The Census occupation coding change between 2009 and 2010, described in @sec-data, inflates apparent within county variation for the routine cognitive group. That inflation comes from how the source data were coded rather than from any property of the counties, and the figure is computed on the panel restricted to 2010 onward with each year's cross county mean removed.
+The Census occupation coding change between 2009 and 2010, as described in @sec-data, inflates the apparent variation in routine cognitive occupations within counties. This inflation arises from the coding of the source data rather than any inherent property of the counties. The figure is computed on a panel restricted to 2010 onward, with each year’s cross-county mean removed.
 
 ## Model specification
 
-Non-routine cognitive is the reference group. Each remaining coefficient is the change in purchasing power associated with a shift out of non-routine cognitive work and into that group, holding the controls fixed. No coefficient stands alone; each is a comparison against that reference. The group values run on a zero to one scale. Per percentage point figures reported later divide the estimated coefficients by 100.
+Non-routine cognitive tasks served as the reference group because the four task group proportions summed to one. Each remaining coefficient therefore represented the change in purchasing power associated with a shift from non-routine cognitive work to that group, while holding the other variables constant. This made the coefficients interpretable as comparisons between task groups rather than as independent changes in employment. Task group values ranged from zero to one, and coefficients were divided by 100 when reported as percentage point changes.
 
-Year indicators capture conditions common to all counties within a year. These include the 2008 recession, the recovery through the 2010s, and the national price movement described in @sec-data. The estimated year coefficients rise steadily across the panel under both specifications (@fig-year-effects), and we treat them as nuisance parameters rather than as evidence of rising purchasing power.
+Year indicators captured the shared conditions across all counties within a specific year, encompassing events like the 2008 recession, its subsequent recovery, and the national price movements described in @sec-data. By including these indicators, we prevented attributing national changes to variations in county task groups. Since the year coefficients absorbed all common changes within a year, they were treated as nuisance parameters rather than evidence of increasing purchasing power. @fig-year-effects illustrated their pattern across the panel.
+
 
 ```{python}
 #| label: year-effects-data
@@ -230,12 +231,11 @@ p_log <- year_panel(year_eff_log, "Percent Difference", function(v) sprintf("%g%
   theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank())
 ```
 
-
-Standard errors are clustered by county, because repeated observations of the same county across fifteen years are not independent draws. A Durbin Watson statistic of 0.496 is consistent with that dependence. @sec-results reports the estimated coefficients.
+Standard errors were clustered by county because repeated observations within the same county over fifteen years were not independent. A Durbin Watson statistic of 0.496 indicated this dependence. Clustering allowed observations within a county to be correlated, which prevented the uncertainty around the estimated associations from being underestimated. The estimated coefficients are reported in @sec-results.
 
 ### Collinearity and the reference group
 
-The unnormalized employment totals of @eq-totals cannot support a regression. A variance inflation factor measures how much a coefficient is destabilized by its correlation with the other inputs, and a value above 10 is the conventional threshold for concern. The four totals carry factors between 13 and 27, because all four are employment counts that scale with county size and therefore move together. Fitted on those totals, the coefficients were unstable and their standard errors were large relative to their magnitudes, both standard symptoms of multicollinearity. The specification estimated fixes this twice over, as @fig-vif shows. Normalizing by the four group total, as @sec-data describes, removes the shared scale, and dropping non-routine cognitive as the reference group removes the constraint that the four proportions sum to one. Every factor on the estimated specification sits between 1.2 and 1.6.
+The unnormalized employment totals of @eq-totals are not suitable for regression analysis. A variance inflation factor (VIF) quantifies the extent to which a coefficient is affected by its correlation with other inputs, and a value exceeding 10 is considered a serious concern. The four employment totals exhibit factors ranging from 13 to 27, as they all represent employment counts that are proportional to county size and therefore exhibit a strong correlation. When fitted on these totals, the coefficients were unstable, and their standard errors were notably large compared to their magnitudes, which are typical indicators of multicollinearity. The specification proposed by @fig-vif addresses this issue twice. Normalizing the data by the four group total, as described in @sec-data, eliminates the shared scale, while dropping non-routine cognitive as the reference group removes the constraint that the four proportions must sum to one. Consequently, every factor in the estimated specification falls within the range of 1.2 to 1.6.
 
 ```{python}
 #| include: false
@@ -314,7 +314,7 @@ ggplot(vif_dot_df, aes(x=vif, y=group)) +
 
 ### Distribution of the analytical variables
 
-With the specification set, we turn to the shape of the variables that enter it. @fig-dists shows the distributions of purchasing power and the four task groups across the task group panel, looking for the skewness and outliers that would shape the diagnostics below.
+The analysis next delved into the distributions of the variables employed in the specification. @fig-dists presented purchasing power and the four task groups across the panel, emphasizing the skewness and outliers that guided the diagnostic checks that followed. Purchasing power exhibited right skewness, with a skewness coefficient of 1.17 and a central tendency near \$57,000. A long upper tail extended beyond the center of the distribution, making the extremes particularly crucial for assessing model fit.
 
 ```{python}
 #| include: false
@@ -375,17 +375,15 @@ p_tasks <- ggplot(task_box_df, aes(x=variable, y=value, fill=variable, color=var
   theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank())
 ```
 
-Purchasing power is right skewed, with a skewness of 1.17. The center of the distribution sits near \$57,000, and a long tail of high purchasing power counties extends above it. That skew is why the diagnostics below concentrate on the extremes.
-
 ### Residual and quantile diagnostics
 
-A linear model assumes a constant rate of association across the data range and errors that are symmetric and evenly spread around the fit. Three diagnostics test those assumptions. They are the residuals plotted against fitted values, a quantile quantile (QQ) plot of the residuals, and the variance inflation factors already reported. The raw scale model shows clear systematic curvature in the residuals and a substantial upper tail departure in the QQ plot (@fig-diagnostics, Panels A and B). The model underestimates both the lowest and the highest purchasing power counties while fitting the middle well, and the upper tail departure reflects a residual skew of 1.01.
+A linear model assumes a constant rate of association across the data range and symmetric, evenly distributed errors around the fit. Three diagnostics test these assumptions: residuals plotted against fitted values, a quantile-quantile (QQ) plot of the residuals, and the variance inflation factors already reported. The raw scale model shows clear systematic curvature in the residuals and a marked upper tail departure in the QQ plot (@fig-diagnostics, Panels A and B). The model underestimates both the lowest and highest purchasing power counties while fitting the middle well, and the upper tail departure indicates a residual skew of 1.01.
 
-The level model still supplies the interpretable dollar estimates we report. Its own diagnostics show that the data hold structure a straight line in dollars cannot represent. Curvature in the residual smoother and widening spread with fitted values point to a specific failure in the fixed slope specification, and each model that follows relaxes the assumption behind it.
+The level model still provides the interpretable dollar estimates we report. However, its own diagnostics reveal that the data exhibit structure that a straight line in dollars cannot represent. The curvature in the residual smoother and the widening spread with fitted values suggest a specific failure in the fixed slope specification, and each subsequent model relaxes the assumption behind it.
 
 ### Influential points
 
-A fourth diagnostic, Cook's distance, checks whether any single county year is disproportionately steering the level specification's coefficients. No observation crosses the conventional threshold of 1.0 for a point that should always be investigated; the largest value is 0.009. @fig-cooks-distance ranks the 10 counties with the largest Cook's distance in any single year, taking each county's own maximum across its years in the panel. The figure also plots every year's value behind that maximum. Counties reach the ranking by two different routes. Loudoun County, Virginia, the largest by far, gets there through real year to year volatility, while several counties lower down, such as McKinley County, New Mexico, sit consistently high across nearly every year. Loudoun and Stafford County, Virginia are both high purchasing power counties in the Washington D.C. exurbs; Williamson County, Tennessee is a high purchasing power Nashville exurb; and Apache County, Arizona is a low purchasing power county on the Navajo Nation. These are the same high end outliers @fig-dists already shows in the purchasing power distribution.
+A fourth diagnostic, Cook’s distance, evaluates whether any single county year disproportionately influences the level specification’s coefficients. None of the observations exceed the conventional threshold of 1.0, indicating that only one point warrants further investigation. The highest value recorded is 0.009. @fig-cooks-distance ranks the 10 counties with the largest Cook’s distance in any single year, considering each county’s maximum value across its years in the panel. Additionally, the figure plots each year’s value against that maximum. Counties achieve the ranking through two distinct mechanisms. Loudoun County, Virginia, the largest by far, achieves this through real year-to-year volatility. In contrast, several counties lower down, such as McKinley County, New Mexico, consistently maintain high values across nearly every year. Loudoun and Stafford County, Virginia, are both high purchasing power counties located in the Washington D.C. exurbs. Williamson County, Tennessee, is a high purchasing power Nashville exurb. Apache County, Arizona, is a low purchasing power county situated on the Navajo Nation. These counties are the same high-end outliers that @fig-dists already depicts in the purchasing power distribution.
 
 ```{python}
 #| include: false
@@ -458,7 +456,9 @@ ggplot() +
        x="Cook's Distance", y=NULL)
 ```
 
-No single point threatens the fit, so the more informative check is a refit. We drop the most influential 1 percent of the panel, `{python} f"{n_excluded}"` county year observations, and estimate the model again. @tbl-influence-sensitivity reports the result. The task group coefficients move by single digit to low double digit percentages, and the poverty coefficient barely moves at all. The associations this study leans on hardest are not artifacts of a handful of extreme counties. Unemployment rate is the exception. It is already the smallest and least precisely estimated of the controls, as @sec-results reports, and its coefficient shifts by roughly a third. That sensitivity fits the weak evidence unemployment rate carries throughout this study, and does not indicate a problem specific to this check. A second stability check runs the same logic over time. We refit the main estimates on pre pandemic (2010 to 2019) and post pandemic (2021 to 2023) windows, and @sec-results reports coefficient stability across them.
+No single point threatened the overall fit, so the more informative check was to refit the model after removing the most influential 1 percent of the panel, `{python} f"{n_excluded:,}"` county year observations. @tbl-influence-sensitivity reported the results. The task group coefficients changed by single digit to low double digit percentages, while the poverty coefficient remained relatively stable. This indicated that the main associations were not driven by a small number of extreme counties.
+
+Unemployment rate was the exception. As reported in @sec-results, it was the smallest and least precisely estimated control, and its coefficient changed by approximately one third. A second stability check examined whether the main estimates were consistent over time. The model was refit separately for the pre pandemic period from 2010 to 2019 and the post pandemic period from 2021 to 2023, with @sec-results reporting the stability of the coefficients across the two periods.
 
 ```{python}
 #| label: tbl-influence-sensitivity
@@ -473,7 +473,7 @@ style_table(GT(sensitivity_df)
 
 ## Log respecification
 
-The level model's failure suggests that a constant dollar association is a poor description of the relationship. Logging the outcome tests the alternative, which is that the associations are proportional. Under that description the same shift in an input moves a high purchasing power county by more dollars than a low one. If it fits better, the transformation should resolve the residual pattern the level model leaves behind. @fig-log-transform shows the outcome before (Panel A) and after (Panel B) the transformation.
+The level model indicated that a constant dollar association was insufficient to accurately describe the relationship. Logging purchasing power was employed to determine if the association was better represented proportionally, enabling a comparable shift in a task group to correspond to a larger dollar difference in counties with higher purchasing power. The @fig-log-transform visualization demonstrated how the transformation mitigated the right skew in purchasing power and laid the groundwork for reevaluating the residual pattern.
 
 ```{python}
 #| include: false
@@ -530,7 +530,7 @@ p_log   <- dens_panel(lg, "Log Scale", log_skew, "Log Purchasing Power", FALSE, 
   theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank())
 ```
 
-Refitting the same specification on log purchasing power resolves most of the failure. @fig-diagnostics compares the residual and QQ diagnostics for both specifications directly. After logging purchasing power (Panels C and D), the residual pattern becomes substantially flatter and the QQ points track the reference line more closely. Some tail deviation remains, but the residual skew falls from 1.01 to 0.09. The log linear fit is the baseline against which we evaluate the flexible models below.
+Refitting the same specification using log purchasing power resolved most of the problems identified in the level model. @fig-diagnostics showed less systematic curvature in the residuals, while the QQ points followed the reference line more closely after the transformation. Some tail deviation remained, but residual skew declined from 1.01 to 0.09. The log linear specification therefore provided the baseline for evaluating the more flexible models that followed.
 
 ```{python}
 #| include: false
@@ -590,7 +590,7 @@ p1 <- p1 + grid_off; p2 <- p2 + grid_off; p3 <- p3 + grid_off; p4 <- p4 + grid_o
                               plot.tag=element_text(face="bold", size=11, color="#0B0B0B")))
 ```
 
-@fig-binned-scale puts the same comparison in the units of the outcome. On the level scale the model tracks purchasing power closely through the middle of the distribution, where most counties sit, while both tail bins come in roughly \$8,000 to \$9,000 above their predictions. On the log scale the points track the line throughout.
+@fig-binned-scale presents the same comparison in the units of the outcome. On the level scale, the model closely tracks purchasing power throughout the middle of the distribution, where most counties are located. However, both tail bins deviate substantially from their predictions, coming in approximately \$8,000 to \$9,000 above the expected values. On the log scale, the points closely follow the line throughout the distribution.
 
 ```{python}
 #| include: false
@@ -651,13 +651,13 @@ p_log   <- panel("Log Target", GREEN, "Fitted Log Purchasing Power",
   theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank())
 ```
 
-The smoothed residual line does not lie perfectly flat even after the transformation. What remains could be nonlinearity, interactions among the inputs, or a variable the model does not contain, and the residuals alone cannot separate the three. That is exactly the situation a flexible model is built for. A random forest searches all three at once without being told in advance which to look for, and it tests the possibilities the diagnostics raise but cannot settle. The log linear fit also sets the bar the forest has to clear, which is finding signal in held out counties that the fit does not already capture.
+The residual pattern did not disappear entirely after the transformation. The remaining structure could reflect nonlinearity, interactions among the variables, or omitted factors that the diagnostics alone could not distinguish. This motivated the use of a random forest, which could capture nonlinear relationships and interactions without specifying them in advance. The log linear specification served as the benchmark, allowing us to test whether a more flexible model captured additional signal in held out counties.
 
 ## Predictive modeling
 
-Model complexity follows a ladder, from linear models through tree ensembles to neural networks. The rule is to start with the simplest model that could plausibly work, move up a rung only while held out error improves, and stop when training and validation performance agree. Failed diagnostics on the level model justified the first step, the log respecification. Structured residuals that remain justify testing the next rung, a random forest, which represents interactions and curvature without requiring either to be specified in advance. A small neural network sits one rung above the forest and bounds the search. If the forest finds no additional signal, the network confirms whether that ceiling is real. Every rung is scored on the same held out counties from the grouped split, which makes a gain at any rung attributable to the model rather than to the rows it saw. Under this rule, finding no improvement is itself a result, because it establishes that the association is close to proportional and that the log linear model is the right stopping point.
+The predictive comparison utilized the county year panel assembled earlier, incorporating state identifiers for the subsequent models. Model complexity only increased when additional flexibility enhanced performance on the held-out counties. The log respecification addressed the issues identified in the level model, while the remaining residual structure prompted testing a random forest capable of capturing nonlinear relationships and interactions. A three hidden layer feedforward neural network served as an additional test to determine if greater model flexibility further improved performance.
 
-We reuse the county year panel assembled above, extended with state identifiers for the comparison below.
+All models were evaluated on the same held-out counties from the grouped split, so any differences in performance reflected model structure rather than variations in the evaluation observations. If the more flexible models failed to improve held-out performance, the log linear specification was retained as the simpler representation of the relationship.
 
 ```{python}
 #| include: false
@@ -690,7 +690,9 @@ feature_cols=[
 model_df=df_ml.dropna(subset=feature_cols).reset_index(drop=True).copy()
 ```
 
-We define each task group as its proportion of employment across the four categories, and the four values sum to one. As with the panel regression, that constraint makes non-routine cognitive the omitted reference, and the coefficients read the same way.
+Each task group was defined based on its proportion of total employment, ensuring that the sum of the four values equaled one for each county and year. Since increasing one group inevitably reduced at least one of the others, all four proportions could not simultaneously enter the linear specification without perfect collinearity. Consequently, non-routine cognitive tasks were excluded as the reference group, aligning with the panel regression approach. This decision maintained consistency in interpreting the task group coefficients across both inferential and predictive analyses.
+
+State indicators also required a comparable reference category. @fig-state-afford illustrated the variation in mean purchasing power across states, identifying a state situated near the center of the distribution as the reference point. By selecting a state near the middle, comparisons were avoided to states with exceptionally high or low purchasing power, simplifying the interpretation of the resulting coefficients. While the choice of reference state did not affect the overall model fit, it influenced the expression of the state coefficients.
 
 #### Grouped train and test split
 
@@ -715,7 +717,9 @@ assert len(set(groups.iloc[train_idx]) & set(groups.iloc[test_idx]))==0
 
 #### Year and state indicators
 
-Treating year as a factor rather than as a numeric variable gives each year its own coefficient, with no assumption about ordering or spacing between them. The earliest year in the panel is held out as the reference, and every other year reads against it. States enter the same way, with one state held out and named below. Every state with fewer than five distinct counties in the panel is relabeled as OTHER, since those states cannot support a stable coefficient of their own.
+A grouped train and test split was employed because observations from the same county were closely related across years. A random split could inadvertently place observations from the same county in both sets, potentially allowing the model to leverage information about a county it had already encountered. By grouping observations by county, we effectively eliminated this overlap and provided a more robust test of whether the observed relationship could generalize to new locations.
+
+The split allocated 9,565 county-year observations to the training set and 2,418 to the testing set, ensuring that each county appeared in only one of the two sets. All feature engineering was conducted after the split to maintain this separation. Consequently, every test observation originated from a county that was not represented in the training data.
 
 ```{python}
 #| include: false
@@ -755,7 +759,7 @@ year_cols_model=list(year_dummies.columns)
 state_cols_model=list(state_dummies.columns)
 ```
 
-The reference state is the one whose mean purchasing power falls at the median of the state means, which is `{python} reference_state_label` (@fig-state-afford). It is not a cost of living outlier in either direction, and it holds considerable within state diversity. Major metropolitan areas sit alongside a large number of rural counties. Reading every other state against that baseline keeps the coefficients interpretable. Most state coefficients sit within a few percent of the reference, though the largest departures reach 17 percent. The block contributes little to held out accuracy once the economic controls and time are present, as the permutation results below show.
+The reference state was `{python} reference_state_label`, whose mean purchasing power was close to the median of the state distribution depicted in @fig-state-afford. By selecting a state near the center, we avoided anchoring comparisons to an unusually high or low purchasing power state, making the coefficients more interpretable. While most state coefficients remained within a few percent of the reference, the largest differences reached 17 percent. Once the economic controls and year indicators were included, as demonstrated by the permutation results below, state indicators contributed little to held-out performance.
 
 ```{python}
 #| include: false
@@ -837,7 +841,7 @@ ggplot(state_df, aes(x=mean_pp, y=state_label)) +
 
 #### Collinearity of the indicator blocks
 
-The reference group logic of @fig-vif applies here unchanged. What is new in this feature set is the indicator blocks, and @tbl-vif-ml shows they introduce no collinearity of their own.
+The reference group logic demonstrated in @fig-vif applies here as well. The additional concern was whether the year and state indicators introduced new collinearity after being added to the predictive specification. @tbl-vif-ml revealed that they did not, as all reported variance inflation factors remained below the conventional threshold of 5. This confirmed that the indicator blocks could be retained without materially destabilizing the estimated coefficients.
 
 ```{python}
 #| include: false
@@ -898,7 +902,7 @@ X_train_base, X_test_base=X_base.iloc[train_idx], X_base.iloc[test_idx]
 
 ### Linear benchmark
 
-This specification is a predictive benchmark rather than a second inferential model. It reuses the diagnostic lessons the panel regression above already established, fit now on the training split alone. That shared split makes it directly comparable to the random forest and neural network that follow. We report two versions of each linear model, estimated by ordinary least squares (OLS). The baseline uses the task groups with poverty and unemployment only, while the full model adds year and state controls. Reporting both makes visible exactly what changes when time and geography enter. Of the two, the full model is the one carried forward.
+This specification serves as a predictive benchmark rather than a second inferential model. It reuses the diagnostic insights established by the panel regression above, now applied to the training split alone. This shared split enables direct comparability with the subsequent random forest and neural network models. We present two versions of each linear model, estimated using ordinary least squares (OLS). The baseline model utilizes only the task groups with poverty and unemployment, while the full model incorporates year and state controls. Reporting both versions highlights the changes introduced by time and geography. Among the two, the full model is the one that is carried forward.
 
 #### Baseline specification
 
@@ -908,7 +912,7 @@ X_train_base_sm=sm.add_constant(X_train_base)
 ols_model_base=sm.OLS(y_train, X_train_base_sm).fit()
 ```
 
-The baseline reaches an R² of 0.766. Every coefficient is negative, which follows from non-routine cognitive serving as the reference. Shifting a county toward any of the other three groups is associated with lower purchasing power, and non-routine manual is the steepest. The coefficients appear alongside the full specifications in @tbl-ols-comparison.
+The baseline specification yielded an R² of 0.766. Relative to non-routine cognitive work, the coefficients for the other three task groups were negative, indicating lower purchasing power as counties shifted toward those groups. The largest negative association was observed for non-routine manual work, where a one percentage point shift was associated with approximately \$1,305 lower purchasing power. @tbl-ols-comparison reports these estimates alongside those from the full specification.
 
 #### Full specification
 
@@ -918,13 +922,13 @@ X_train_sm=sm.add_constant(X_train)
 ols_model=sm.OLS(y_train, X_train_sm).fit()
 ```
 
-Adding time and geography raises R² from 0.766 to 0.871, which shows that these variables explain variance the task groups do not. The unemployment rate coefficient flips sign, which suggests that the baseline coefficient absorbed some of the geographic and temporal confounding. That is what we would expect, since places and periods with heavy unemployment also tend to be places and periods of low purchasing power. Once time and geography are controlled, the full model's coefficient reflects the within state year relationship instead. Across the change, the task group coefficients keep their direction and their relative ordering.
+Adding year and state indicators increased the coefficient from 0.766 to 0.871, indicating that time and geography contributed to additional variation in purchasing power. The unemployment rate coefficient shifted from approximately in the baseline specification to in the full specification for each one percentage point increase in unemployment. This change in direction suggested that the baseline estimate accounted for geographic and temporal differences that were not previously considered. In contrast, the task group coefficients maintained their direction and relative ordering.
 
-The raw target residuals repeat the curvature already documented in @fig-diagnostics (Panels A and B). The untransformed target defeats a linear model on the training split exactly as it did on the full panel.
+@fig-diagnostics demonstrated that residual curvature persisted even after the full level specification. This figure was important because the increase in the coefficient alone suggested that incorporating year and state indicators effectively improved the model. However, the diagnostics revealed that while these variables enhanced the overall fit, they failed to eliminate the systematic pattern in the residuals. This distinction indicated that the underlying issue was the functional form of purchasing power on its original dollar scale, rather than omitted time or geographic differences.
 
 #### Full specification on the logged outcome
 
-The binned means in @fig-binned-scale showed an approximately exponential pattern, and we test whether logging the target makes a linear model appropriate here as well.
+@fig-binned-scale showed that the level specification did not fit purchasing power evenly across its range. The largest departures occurred at the lower and upper ends of the distribution, where observed purchasing power was roughly \$8,000 to \$9,000 above the fitted values. This systematic pattern suggested that the remaining problem was related to the scale of purchasing power rather than simply omitted controls, providing a clear reason to test the outcome in logarithmic form.
 
 ```{python}
 #| include: false
@@ -944,11 +948,11 @@ ols_log_test_r2=r2_score(y_test, y_pred_ols_log_dollars)
 ols_log_test_mae=mean_absolute_error(y_test, y_pred_ols_log_dollars)
 ```
 
-Logging the target resolves the pattern here the same way it did for the panel regression (@fig-diagnostics, Panels C and D). A linear model is appropriate on the logged target. That model reaches an in sample R² of 0.913 and a held out R², back transformed into dollars, of 0.896.
+Logging purchasing power reduced the residual pattern observed in @fig-diagnostics and enhanced the performance of the linear specification. After transforming the predictions back to dollars, the log linear model achieved an in-sample accuracy of 0.913 and a held-out R² of 0.896. This close agreement suggested that the model effectively generalized to counties not included in the training data.
 
 #### Coefficient comparison
 
-@tbl-ols-comparison reports the coefficients across the three specifications, and @sec-results shows the same comparison graphically.
+@tbl-specmatrix compared the three specifications. The log specification was chosen for inference because the diagnostics for the level specification indicated that its functional form was unsuitable, making its coefficient estimates less reliable for interpretation.
 
 ```{python}
 #| label: tbl-ols-comparison
@@ -1005,9 +1009,9 @@ style_table(GT(comparison_ols, rowname_col="Variable", groupname_col="Group")
   .tab_source_note("Non-routine cognitive is the reference task group. Task group coefficients in the three model columns are per unit of group proportion; the final column converts the log coefficients to the percent change in purchasing power associated with a one percentage point shift."))
 ```
 
-The sign flip in unemployment rate holds across all three fitted forms. Task group coefficients shrink in magnitude from baseline to raw controls, while the poverty coefficient grows from roughly −1,376 to −1,729. The controls therefore sharpen the task group association rather than displacing it.
+@tbl-ols-comparison revealed that the task group coefficients maintained the same direction across all three specifications, although their magnitudes changed after incorporating controls. The non-routine manual coefficient shifted from approximately (-\$130,549) in the baseline specification to (-\$91,904) in the full level specification. Routine cognitive changed from about (-\$81,085) to (-\$87,421), while routine manual changed from (-\$71,490) to (-\$81,143). These results demonstrated that adjustments altered the magnitude of the associations without altering their overall order.
 
-Each additional percentage point of poverty rate is associated with roughly 2.9 percent lower purchasing power, holding time, geography, and task groups fixed. That is a considerably larger proportional difference than any single task group carries.
+The poverty rate coefficient increased in magnitude from approximately (-\$1,376) to (-\$1,729) for each additional percentage point of poverty. In contrast, the unemployment rate coefficient changed from approximately (-\$1,207) in the baseline specification to (+\$450) in the full level specification. This difference underscored that poverty remained strongly associated with purchasing power after adjustment, while the unemployment association was comparatively weak and sensitive to specification.
 
 ```{python}
 #| include: false
@@ -1031,11 +1035,11 @@ style_table(GT(spec_summary, rowname_col="Metric")
   .tab_source_note("R² is in sample, fit on the 9,565 training rows only."))
 ```
 
-@tbl-specmatrix compares the three specifications. The log model is the one used for inference from here, since the raw target model's coefficient significance cannot be trusted given its failed diagnostics.
+In the log specification, each additional percentage point of poverty was associated with approximately 2.9 percent lower purchasing power, assuming task groups, time, and geography remained constant. This proportional association was larger than that of any individual task group, making poverty the strongest single association among the variables reported in @tbl-ols-comparison.
 
 ### Random forest
 
-For the random forest we ran a grid search scored by grouped five fold cross validation on the training counties. The grid covered the number of trees (600 and 1,000), maximum depth (10, 20, and unlimited), minimum leaf size (1, 2, and 5), and the feature subsampling rate (all features, half, and the square root). More trees reduce variance, while depth and leaf size supply regularization. The search selected 1,000 trees, unlimited depth, a minimum leaf of 1, and half the features per split.
+For the random forest model, hyperparameters were selected using a grid search with grouped five-fold cross-validation on the training counties. The search explored various configurations, including the number of trees ranging from 600 to 1,000, maximum depth from 10 to 20 or unlimited, minimum leaf size from 1 to 5, and the proportion of features considered at each split. Grouping by county ensured that the separation between places during tuning was preserved, reducing the risk of selecting parameters that performed well only due to observations from the same county appearing across folds. The final model employed 1,000 trees, unlimited depth, a minimum leaf size of 1, and half of the available features at each split.
 
 ```{python}
 #| eval: false
@@ -1083,9 +1087,7 @@ rf_test_mae=mean_absolute_error(y_test, y_pred_rf)
 rf_train_r2=best_rf.score(X_train, y_train)
 ```
 
-The forest reaches a held out R² of 0.876 on the raw target. It does not improve on the log target OLS model, which reaches 0.896 on the same held out counties.
-
-The forest fits the training data far more closely than it fits unseen counties, 0.989 against 0.876. Its additional flexibility captures patterns in the training sample that do not carry over to counties it has not seen.
+The random forest model achieved an R² value of 0.876 on the held-out counties, which was slightly lower compared to the log linear model’s R² of 0.896 on the same held-out counties. This 0.020 difference suggested that the additional flexibility of the random forest model did not substantially enhance its performance. Additionally, the random forest model achieved an R² value of 0.989 on the training counties, resulting in a 0.113 gap between training and held-out performance. This gap indicated that the random forest model captured additional structure in the training data that did not generalize to counties it had not encountered.
 
 ```{python}
 #| include: false
@@ -1108,7 +1110,7 @@ ggplot(rf_resid_df, aes(x=pred, y=resid)) +
   theme(panel.grid.major.y=element_blank())
 ```
 
-The curvature that defeated the raw target linear model does not appear here (@fig-rf-resid). The forest represents that structure internally, without the outcome needing to be transformed first.
+@fig-rf-resid demonstrated no systematic curvature or trend in the random forest residuals across the range of predicted values. This suggested that the forest effectively captured the nonlinear structure that posed challenges for the level linear model without transforming purchasing power. However, the lower held-out R² value of 0.876 and the large gap between training and test performance indicated that this ability to capture the structure did not translate into improved generalization to unseen counties.
 
 ```{python}
 #| include: false
@@ -1132,7 +1134,7 @@ rf_log_test_r2=r2_score(y_test, y_pred_rf_log_dollars)
 rf_log_test_mae=mean_absolute_error(y_test, y_pred_rf_log_dollars)
 ```
 
-The random forest is largely insensitive to whether purchasing power is modeled on its original or logarithmic scale. Fitting the model to the logged outcome and back transforming predictions gives an R² of 0.877, compared with 0.876 when the outcome is modeled directly. Because the log specification is also used for the primary linear model, the log target forest is used for the ablations and model comparisons that follow. The interpretability measures below, grouped permutation and partial dependence, are computed on the raw target forest, which reports directly in dollars.
+The random forest is largely insensitive to whether purchasing power is modeled on its original or logarithmic scale. Fitting the model to the logged outcome and then back-transforming the predictions yields an R² of 0.877, which is slightly higher than the R² of 0.876 obtained when the outcome is modeled directly. Since the log specification is also employed for the primary linear model, the log target forest is utilized for the subsequent ablations and model comparisons. The interpretability measures, including permutation and partial dependence, are computed on the raw target forest, which reports directly in dollars.
 
 ```{python}
 #| include: false
@@ -1145,7 +1147,7 @@ rf_no_exposure.fit(X_train_ne, y_train_log)
 rf_no_exposure_r2=r2_score(y_test, np.exp(rf_no_exposure.predict(X_test_ne)))
 ```
 
-Ablation measures how well the model compensates when a whole block of predictors is removed and it is refit from scratch. Removing the task groups reduces held out R² from 0.876 to 0.834, a decline of 0.042.
+Ablation analysis revealed the model’s effectiveness in compensating for the removal of an entire group of variables and subsequent refitting from scratch. The removal of task groups resulted in a decline in the held out R² value from 0.876 to 0.834, a decrease of 0.042. Since the forest was retrained after removing the task groups, the remaining variables had the opportunity to recover any overlapping information. Consequently, the remaining decline indicated that poverty, unemployment, time, and geography could not fully replace the information provided by the task groups.
 
 ```{python}
 #| include: false
@@ -1158,11 +1160,11 @@ rf_no_econ.fit(X_train_ne2, y_train_log)
 rf_no_econ_r2=r2_score(y_test, np.exp(rf_no_econ.predict(X_test_ne2)))
 ```
 
-By comparison, a model with the task groups but without poverty and unemployment reaches an R² of 0.698. Task groups carry substantial explanatory information on their own, but the strongest performance comes from combining them with the economic controls. All three models use the same forest specification, logged outcome, and held out counties, and their performance is directly comparable.
+In comparison, eliminating poverty and unemployment reduced the held out R² from 0.877 to 0.698, resulting in a decline of 0.179. This drop was substantially larger than the 0.042 decline observed when the task groups were removed, suggesting that the economic controls provided more of the model’s explanatory power. Even after incorporating the task groups into the economic controls, performance improved, indicating that they contributed information not fully captured by poverty and unemployment alone. All three models utilized the same forest specification, logged outcome, and held-out counties, ensuring direct comparability of their performance differences.
 
 #### Grouped permutation importance
 
-To see how strongly the fitted model actually relies on the task groups, we permute the modeled task group proportions jointly and measure the resulting drop in R², leaving the fitted model itself untouched.
+Joint permutation provided a complementary measure of how strongly the fitted random forest relied on the task groups. Permuting the three modeled task group proportions together reduced the held out R² by 0.153 while leaving the fitted model unchanged. This decline was much larger than the 0.042 reduction from removing the task groups and refitting the forest.
 
 ```{python}
 #| include: false
@@ -1190,15 +1192,15 @@ year_drop=grouped_permutation_drop(year_cols_model)
 state_drop=grouped_permutation_drop(state_cols_model)
 ```
 
-Jointly permuting the task group proportions drops R² by 0.153, well beyond the 0.042 decline from removing them and refitting. The gap points to a difference between the two methods. When the task groups are dropped before training, the forest can recover part of their signal from correlated predictors such as poverty and time. Permutation instead disrupts that information after the model has already learned to rely on it, and no such recovery is possible. The task groups overlap with poverty, unemployment, and time while still adding something those three do not capture on their own.
+The difference between the two measures revealed what the model could do after removing task group information. During ablation, the forest was retrained and could recover some overlapping information from poverty, unemployment, and year. Permutation, on the other hand, disrupted the task group information after the forest had already learned to use it. The larger permutation decline indicated that the fitted forest heavily relied on the task groups, even though some of their information overlapped with the other variables.
 
-Year produces a substantially larger permutation decline than state. The drop is 0.128 for year against 0.008 for state, conditional on the economic controls and task groups already in the model. Time carries far more of the model's remaining predictive signal than geography does.
+Year indicators showed a decline of 0.128 when permuted, compared to only 0.008 for state indicators. This difference demonstrated that time contributed considerably to held-out performance compared to state after accounting for economic controls and task groups.
 
-Among the three modeled proportions, non-routine manual shows the largest individual permutation drop. None of the three should be read as additive or independent contributions, since the task groups are compositional and mechanically related to one another. This ranking is consistent with the panel regression, where non-routine manual carries the steepest coefficient among the task groups.
+Among the three modeled task groups, non-routine manual produced the largest individual permutation decline. These values were not interpreted as additive or independent contributions because the task groups were mechanically related through their employment proportions. Nevertheless, the ordering was consistent with the regression results, where non-routine manual also had the largest negative task group association with purchasing power.
 
 ### Neural network
 
-The forest gained nothing on the log linear fit, which leaves open whether that ceiling belongs to the forest or to the data. A neural network is the next rung on the ladder and the check on that question. We keep it shallow, with three hidden layers and a single linear output unit for the continuous outcome.
+The random forest model did not outperform the log linear specification, leaving us to wonder whether the lack of improvement was due to a limitation of the forest or the amount of structure present in the data. To further investigate this, we evaluated a three-hidden-layer feedforward neural network as an additional test to determine if greater model flexibility would lead to improved held-out performance. The network consisted of three hidden layers and a single linear output unit for the continuous purchasing power outcome.
 
 ```{python}
 #| include: false
@@ -1257,7 +1259,7 @@ nn_init_df=pd.DataFrame({
 }).melt(id_vars="epoch", var_name="series", value_name="loss")
 ```
 
-Training loss falls steadily, while validation loss reverses direction partway through. That divergence is overfitting, and @fig-nn-curves panel A shows it alongside the regularized model in panel B. We respond with L2 weight regularization, heavier dropout, and a shorter early stopping patience.
+Training loss steadily declined, while validation loss began to rise. This divergence indicated that the network was fitting the training data more closely without improving performance on unseen observations, suggesting overfitting. To address this, we added L2 weight regularization, increased dropout, and shortened the early stopping patience. These changes narrowed the gap between training and validation loss, providing a stronger test of whether the neural network could generalize beyond the training data.
 
 ```{python}
 #| include: false
@@ -1376,11 +1378,11 @@ p1 + p2 +
   theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank())
 ```
 
-The gap narrows after regularization, but the network still does not beat the random forest or the log target linear model, both of which are far cheaper to fit and tune. This project is built to explain the relationship between task groups and purchasing power rather than to maximize predictive accuracy. We stop tuning here and carry the linear and forest models forward as the primary results.
+@fig-nn-curves demonstrated that regularization reduced the disparity between training and validation loss, yet the neural network still failed to surpass the random forest or the log linear model. On the same counties, the random forest achieved a held-out R² of 0.877, while the log linear model achieved 0.896. Consequently, the neural network’s additional flexibility did not offer any improvement over the simpler alternatives. Since the study aimed to elucidate the relationship between task groups and purchasing power, further increases in model complexity were deemed unnecessary. Therefore, the log linear and random forest models were retained for the subsequent comparisons.
 
 ### Cross validation
 
-Having compared explained variance across the three models, we cross validate to check that the single split result generalizes.
+Five-fold grouped cross-validation was employed to assess the consistency of the observed performance in the single train and test split across various county sets. Counties remained grouped within each fold, ensuring that observations from the same county were not included in both training and validation data.
 
 ```{python}
 #| include: false
@@ -1433,12 +1435,8 @@ style_table(GT(cv_summary)
   .tab_source_note("Both models are fit on the log target and scored on the dollar scale after back transformation."))
 ```
 
-@tbl-cv-summary shows the two models performing at the same level across five folds. The difference between their means is smaller than the variation across the folds themselves, so the single split result above is not an artifact of one particular split. The neural network is not included, since it is not carried forward. @sec-results reports the model comparison across held out R² and mean absolute error.
+The @tbl-cv-summary revealed that the log linear model and random forest achieved comparable mean values across the five folds. The difference in their average performance was smaller than the variation observed across folds, suggesting that the earlier comparison was not influenced by a specific train and test split. Consequently, the neural network was excluded as it failed to enhance held-out performance and was not retained.
 
 ## Summary
 
-The panel regression, with standard errors clustered by county, is the model used for inference. It shows that routine intensive work is associated with lower purchasing power even after controlling for poverty, unemployment, population, and year. Its log respecification resolves the residual violations that make the raw target version untrustworthy for that purpose. The variance decomposition adds that the task group differences behind that association are durable features of a place rather than transient ones.
-
-The predictive models answer a different question, which is how much of purchasing power can be explained at all, and by what. On held out data the random forest and the log target linear model perform comparably, and the curvature in the relationship adds little once poverty, unemployment, time, and geography are already in the model. The neural network improves on neither, and its added complexity is not justified by this feature set.
-
-Across both approaches the task groups carry independent explanatory power, while poverty rate remains the dominant single factor. That ordering is the finding this analysis is built to support, and it is what @sec-results carries forward.
+The panel regression provided the primary inferential results, with standard errors clustered by county and controlling for poverty, unemployment, population, and year. Diagnostic checks supported a proportional relationship, justifying the log specification. However, the variance decomposition revealed that most task group variation occurred between counties rather than within counties over time. Predictive models were evaluated on held-out counties, where the log linear model achieved an R² of 0.896 compared to 0.877 for the random forest. The neural network model provided no further improvement. Removing the task groups reduced the held-out R² by 0.042, indicating that poverty, unemployment, time, and geography did not fully capture the information they provided. These results collectively support retaining the log linear specification as the primary representation of the relationship reported in @sec-results.
