@@ -48,7 +48,7 @@ The initial sample restriction stemmed from the coverage of the American Communi
 
 The final analytical sample comprised 11,983 county-year observations from 840 counties. All models presented in @sec-analysis and @sec-results utilized these same observations. To ensure unbiased machine learning evaluation, counties were exclusively included in either the training or test set, preventing observations from the same county from appearing in both partitions. @sec-analysis provides a detailed description of the evaluation procedure.
 
-The population threshold imposed a limitation on the scope of the results. While the 840 retained counties accounted for approximately 84 percent of the United States population, they represented a minority of all counties. Consequently, rural counties were underrepresented because the retained counties were generally more populous and metropolitan. It’s important to note that the results were applicable to counties above the American Community Survey publication threshold rather than the entire nation, a limitation discussed in @sec-conclusions.
+The population threshold imposed a limitation on the scope of the results. While the 840 retained counties accounted for approximately 84% of the United States population, they represented a minority of all counties. Consequently, rural counties were underrepresented because the retained counties were generally more populous and metropolitan. It’s important to note that the results were applicable to counties above the American Community Survey publication threshold rather than the entire nation, a limitation discussed in @sec-conclusions.
 
 ## Construction of task group measures
 
@@ -78,7 +78,7 @@ $$ {#eq-afford}
 
 Here, $A_{c,t}$ represented purchasing power for county $c$ in year $t$, and $\text{RPP}_{c,t}$ represented its Regional Price Parity.
 
-For instance, consider a county with a median household income of \$60,000 and a Regional Price Parity of 120. This means that its income could buy approximately what \$50,000 would buy at the national average prices. This adjustment made household income more comparable across counties by accounting for variations in local prices. However, since the Bureau of Economic Analysis didn’t publish separate Regional Price Parities for counties outside metropolitan areas, those counties were assigned the corresponding state-level parity. Within the analytical panel, 45.5 percent of county-year observations used a metropolitan parity, while 54.5 percent used the state measure. Consequently, more than half of the panel relied on a state average that didn’t account for price differences within the state.
+For instance, consider a county with a median household income of \$60,000 and a Regional Price Parity of 120. This means that its income could buy approximately what \$50,000 would buy at the national average prices. This adjustment made household income more comparable across counties by accounting for variations in local prices. However, since the Bureau of Economic Analysis didn’t publish separate Regional Price Parities for counties outside metropolitan areas, those counties were assigned the corresponding state-level parity. Within the analytical panel, 45.5% of county-year observations used a metropolitan parity, while 54.5% used the state measure. Consequently, more than half of the panel relied on a state average that didn’t account for price differences within the state.
 
 ### Inflation and year indicators
 
@@ -286,6 +286,10 @@ digraph architecture {{
   src_bls -> lake [ltail="cluster_source", lhead="cluster_lake", minlen=2]
   lake -> state [ltail="cluster_lake", lhead="cluster_warehouse", minlen=2]
   county_affordability -> analysis_table [ltail="cluster_warehouse", lhead="cluster_output", minlen=2]
+  # cbsa_rpp is the deepest warehouse node, so ranking the output cluster below it
+  # puts Modeling Tables under the warehouse instead of alongside it, which also
+  # keeps the diagram inside the rendered content width
+  cbsa_rpp -> analysis_table [style=invis]
   county_baseline -> analysis_table [style=invis]
   county_task_exposure -> analysis_table [style=invis]
 }}

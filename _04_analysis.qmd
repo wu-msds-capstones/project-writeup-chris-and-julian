@@ -204,7 +204,7 @@ year_eff_log=_year_frame(model_log, pct=True)
 #| label: fig-year-effects
 #| echo: false
 #| warning: false
-#| fig-cap: "**Year Effects Relative to 2008.** Estimated year coefficients with 95 percent intervals, each the difference from the 2008 baseline shared by every county in that year. A) The level specification, in dollars of purchasing power. B) The log specification, as a percent difference. The series carries national price drift together with every other movement common to a year, which is why it cannot be read as a measure of inflation."
+#| fig-cap: "**Year Effects Relative to 2008.** Estimated year coefficients with 95% intervals, each the difference from the 2008 baseline shared by every county in that year. A) The level specification, in dollars of purchasing power. B) The log specification, as a percent difference. The series carries national price drift together with every other movement common to a year, which is why it cannot be read as a measure of inflation."
 %%R -i year_eff_level -i year_eff_log -w 8 -h 6.5 -u in -r 150 -b transparent
 year_panel <- function(d, ylab, lab_fn) {
   ggplot(d, aes(x=year, y=estimate)) +
@@ -213,8 +213,8 @@ year_panel <- function(d, ylab, lab_fn) {
     geom_line(color=BLUE, linewidth=0.7) +
     geom_point(color=BLUE, size=1.8) +
     scale_y_continuous(labels=lab_fn) +
-    # a tick per study year rather than every fourth, scale unchanged
-    scale_x_continuous(breaks=scales::pretty_breaks(n=8)) +
+    # a tick on every year that carries a point, so the 2020 gap stays visible
+    scale_x_continuous(breaks=sort(unique(d$year))) +
     labs(x=NULL, y=ylab)
 }
 
@@ -334,7 +334,7 @@ dists_df["variable"]=dists_df["variable"].map(dist_label_map)
 #| label: fig-dists
 #| echo: false
 #| warning: false
-#| fig-cap: "**Distribution of Purchasing Power and Task Groups.** Across the 12,087 county year task group panel, before the 104 rows missing an unemployment rate are dropped, all shown as violin plots with an embedded box marking the median, interquartile range, and outliers. A) Purchasing power, in dollars at national average prices, right skewed with a long upper tail and a heavy cluster of high end outliers. B) The four task groups on a shared percentage scale, with the axis restricted to 5 to 65 percent so the bodies of the distributions stay legible. Non-routine cognitive holds the highest concentration of county employment."
+#| fig-cap: "**Distribution of Purchasing Power and Task Groups.** Across the 12,087 county year task group panel, before the 104 rows missing an unemployment rate are dropped, all shown as violin plots with an embedded box marking the median, interquartile range, and outliers. A) Purchasing power, in dollars at national average prices, right skewed with a long upper tail and a heavy cluster of high end outliers. B) The four task groups on a shared percentage scale, with the axis restricted to 5 to 65% so the bodies of the distributions stay legible. Non-routine cognitive holds the highest concentration of county employment."
 %%R -i dists_df -w 10 -h 5.5 -u in -r 150 -b transparent
 pp_vals <- subset(dists_df, variable=="Purchasing Power ($)")$value
 pp_ylim <- c(0, max(pp_vals) * 1.02)
@@ -465,32 +465,39 @@ ggplot() +
   geom_hline(yintercept=0, color=GREY, linewidth=0.4) +
   geom_point(data=influence_pts, aes(x=leverage, y=std_resid),
              size=0.5, color=BLUE, alpha=0.18) +
-  geom_line(data=influence_contours, aes(x=h, y=r, group=branch, color=level),
-            linetype="dashed", linewidth=0.55) +
-  scale_color_manual(values=c(GREY, RED)) +
+  geom_line(data=influence_contours, aes(x=h, y=r, group=branch,
+                                         color=level, linetype=level), linewidth=0.7) +
+  # purple rather than grey: the shared theme draws gridlines in GREY, so a grey
+  # contour read as one. linetype carries the same split as color, so the two
+  # levels stay separable under color vision deficiency.
+  scale_color_manual(values=c(PURPLE, RED)) +
+  scale_linetype_manual(values=c("dotted", "dashed")) +
   geom_point(data=influence_labels, aes(x=leverage, y=std_resid), size=1.9, color=RED) +
   geom_text(data=influence_labels, aes(x=leverage, y=std_resid+ny, label=label),
             size=3.0, color="#252525", hjust=-0.11) +
-  annotate("text", x=Inf, y=-Inf, hjust=1.03, vjust=-0.55, size=3.0,
-           color="#52514E", lineheight=1.05,
-           label=sprintf("n = 11,983    max Cook's D = %.4f\nReaching the conventional 1.0 threshold would take a standardized residual near %.0f",
+  annotate("text", x=Inf, y=Inf, hjust=1.03, vjust=1.5, size=3.0,
+           color="#52514E", lineheight=1.1,
+           label=sprintf("n = 11,983    max Cook's D = %.4f\nReaching the conventional 1.0 threshold would\ntake a standardized residual near %.0f",
                          max(influence_pts$cooks_d), r_at_threshold)) +
   scale_x_continuous(labels=scales::label_number(accuracy=0.001),
+                     breaks=scales::breaks_pretty(n=8),
                      expand=expansion(mult=c(0.02, 0.24))) +
-  scale_y_continuous(expand=expansion(mult=c(0.20, 0.07))) +
+  scale_y_continuous(breaks=scales::breaks_pretty(n=8),
+                     expand=expansion(mult=c(0.06, 0.16))) +
   guides(color=guide_legend(nrow=1)) +
+  theme(panel.grid.major=element_line(color="#E4E3DE", linewidth=0.25)) +
   labs(title="Residuals Against Leverage With Cook's Distance Contours",
        x="Leverage (Hat Value)", y="Standardized Residual")
 ```
 
-No single point threatened the overall fit, so the more informative check was to refit the model after removing the most influential 1 percent of the panel, `{python} f"{n_excluded:,}"` county year observations. @tbl-influence-sensitivity reported the results. The task group coefficients changed by single digit to low double digit percentages, while the poverty coefficient remained relatively stable. This indicated that the main associations were not driven by a small number of extreme counties.
+No single point threatened the overall fit, so the more informative check was to refit the model after removing the most influential 1% of the panel, `{python} f"{n_excluded:,}"` county year observations. @tbl-influence-sensitivity reported the results. The task group coefficients changed by single digit to low double digit percentages, while the poverty coefficient remained relatively stable. This indicated that the main associations were not driven by a small number of extreme counties.
 
 Unemployment rate was the exception. As reported in @sec-results, it was the smallest and least precisely estimated control, and its coefficient changed by approximately one third. A second stability check examined whether the main estimates were consistent over time. The model was refit separately for the pre pandemic period from 2010 to 2019 and the post pandemic period from 2021 to 2023, with @sec-results reporting the stability of the coefficients across the two periods.
 
 ```{python}
 #| label: tbl-influence-sensitivity
 #| echo: false
-#| tbl-cap: "**Coefficient Sensitivity to Influential Points.** Level specification coefficients, full sample versus excluding the most influential 1 percent of county year observations by Cook's distance."
+#| tbl-cap: "**Coefficient Sensitivity to Influential Points.** Level specification coefficients, full sample versus excluding the most influential 1% of county year observations by Cook's distance."
 
 style_table(GT(sensitivity_df)
   .fmt_currency(columns=["Full Sample","Excluding Top 1%"], decimals=0)
@@ -587,7 +594,7 @@ p1 <- ggplot(resid_df, aes(x=fitted, y=resid)) +
 p2 <- ggplot(resid_df, aes(sample=std_resid)) +
   stat_qq(color=BLUE, alpha=0.35, size=0.8) +
   stat_qq_line(color="#0B0B0B", linewidth=0.8) +
-  scale_y_continuous(breaks=scales::pretty_breaks(n=7)) +
+  scale_y_continuous(breaks=scales::pretty_breaks(n=10)) +
   labs(x="Theoretical Quantiles", y="Standardized Residual", title="Normal Q-Q") +
   theme(plot.title=element_text(size=11))
 
@@ -602,12 +609,12 @@ p3 <- ggplot(resid_log_df, aes(x=fitted_log, y=resid_log)) +
 p4 <- ggplot(resid_log_df, aes(sample=std_resid)) +
   stat_qq(color=GREEN, alpha=0.35, size=0.8) +
   stat_qq_line(color="#0B0B0B", linewidth=0.8) +
-  scale_y_continuous(breaks=scales::pretty_breaks(n=7)) +
+  scale_y_continuous(breaks=scales::pretty_breaks(n=10)) +
   labs(x="Theoretical Quantiles", y="Standardized Residual")
 
-# horizontal gridlines off on every panel; the dashed zero line and the QQ
-# reference line are the references that matter here
-grid_off <- theme(panel.grid.major.y=element_blank(), panel.grid.minor.y=element_blank())
+# all gridlines off on every panel; the dashed zero line and the QQ reference
+# line are the references that matter here
+grid_off <- theme(panel.grid=element_blank())
 p1 <- p1 + grid_off; p2 <- p2 + grid_off; p3 <- p3 + grid_off; p4 <- p4 + grid_off
 
 (p1 | p2) / (p3 | p4) +
@@ -786,7 +793,7 @@ year_cols_model=list(year_dummies.columns)
 state_cols_model=list(state_dummies.columns)
 ```
 
-The reference state was `{python} reference_state_label`, whose mean purchasing power was close to the median of the state distribution depicted in @fig-state-afford. By selecting a state near the center, we avoided anchoring comparisons to an unusually high or low purchasing power state, making the coefficients more interpretable. While most state coefficients remained within a few percent of the reference, the largest differences reached 17 percent. Once the economic controls and year indicators were included, as demonstrated by the permutation results below, state indicators contributed little to held-out performance.
+The reference state was `{python} reference_state_label`, whose mean purchasing power was close to the median of the state distribution depicted in @fig-state-afford. By selecting a state near the center, we avoided anchoring comparisons to an unusually high or low purchasing power state, making the coefficients more interpretable. While most state coefficients remained within a few percent of the reference, the largest differences reached 17%. Once the economic controls and year indicators were included, as demonstrated by the permutation results below, state indicators contributed little to held-out performance.
 
 ```{python}
 #| include: false
@@ -815,20 +822,19 @@ state_df$pt_color <- ifelse(seq_len(nrow(state_df)) %in% ref_i, ACCENT, "#0B0B0B
 state_df$pt_size  <- ifelse(seq_len(nrow(state_df)) %in% ref_i, 3.8, 2.6)
 median_label <- sprintf("Median: $%.0fk", state_median/1000)
 n_states <- length(levels(state_df$state_label))
-pp_range <- range(state_df$mean_pp)
 
 # axis starts at $30k rather than zero. The Lie Factor concern that motivated a
 # zero anchor does not bind here: each segment runs from the median line to the
 # state's value, so its length encodes deviation from the median rather than
 # absolute magnitude, and moving the left edge rescales every segment equally.
 x_lo <- 30000
-x_hi <- pp_range[2] * 1.05
+x_hi <- 80000
 
-# round $20k breaks. Offsets from the median were tried and reverted: anchoring
-# every tick to the median produced labels like $4.47k and $9.47k that collided.
-# The median keeps its own dotted line and its labeled annotation instead.
-state_breaks <- seq(0, 200000, by=10000)
-state_breaks <- state_breaks[state_breaks >= x_lo & state_breaks <= x_hi]
+# $5,000 breaks from $30k to $80k. Offsets from the median were tried and
+# reverted: anchoring every tick to the median produced labels like $4.47k and
+# $9.47k that collided. The median keeps its own dotted line and its labeled
+# annotation instead.
+state_breaks <- seq(x_lo, x_hi, by=5000)
 
 # annotation centered within each visual half of the zero-anchored panel
 low_mid  <- (x_lo + state_median) / 2
@@ -1036,9 +1042,9 @@ style_table(GT(comparison_ols, rowname_col="Variable", groupname_col="Group")
   .tab_source_note("Non-routine cognitive is the reference task group. Task group coefficients in the three model columns are per unit of group proportion; the final column converts the log coefficients to the percent change in purchasing power associated with a one percentage point shift."))
 ```
 
-@tbl-ols-comparison revealed that the task group coefficients maintained the same direction across all three specifications, although their magnitudes changed after incorporating controls. The non-routine manual coefficient shifted from approximately (-\$130,549) in the baseline specification to (-\$91,904) in the full level specification. Routine cognitive changed from about (-\$81,085) to (-\$87,421), while routine manual changed from (-\$71,490) to (-\$81,143). These results demonstrated that adjustments altered the magnitude of the associations without altering their overall order.
+@tbl-ols-comparison revealed that the task group coefficients maintained the same direction across all three specifications, although their magnitudes changed after incorporating controls. The non-routine manual coefficient shifted from approximately -\$130,549 in the baseline specification to -\$91,904 in the full level specification. Routine cognitive changed from about -\$81,085 to -\$87,421, while routine manual changed from -\$71,490 to -\$81,143. These results demonstrated that adjustments altered the magnitude of the associations without altering their overall order.
 
-The poverty rate coefficient increased in magnitude from approximately (-\$1,376) to (-\$1,729) for each additional percentage point of poverty. In contrast, the unemployment rate coefficient changed from approximately (-\$1,207) in the baseline specification to (+\$450) in the full level specification. This difference underscored that poverty remained strongly associated with purchasing power after adjustment, while the unemployment association was comparatively weak and sensitive to specification.
+The poverty rate coefficient increased in magnitude from approximately -\$1,376 to -\$1,729 for each additional percentage point of poverty. In contrast, the unemployment rate coefficient changed from approximately -\$1,207 in the baseline specification to +\$450 in the full level specification. This difference underscored that poverty remained strongly associated with purchasing power after adjustment, while the unemployment association was comparatively weak and sensitive to specification.
 
 ```{python}
 #| include: false
@@ -1062,7 +1068,7 @@ style_table(GT(spec_summary, rowname_col="Metric")
   .tab_source_note("R² is in sample, fit on the 9,565 training rows only."))
 ```
 
-In the log specification, each additional percentage point of poverty was associated with approximately 2.9 percent lower purchasing power, assuming task groups, time, and geography remained constant. This proportional association was larger than that of any individual task group, making poverty the strongest single association among the variables reported in @tbl-ols-comparison.
+In the log specification, each additional percentage point of poverty was associated with approximately 2.9% lower purchasing power, assuming task groups, time, and geography remained constant. This proportional association was larger than that of any individual task group, making poverty the strongest single association among the variables reported in @tbl-ols-comparison.
 
 ### Random forest
 
@@ -1137,7 +1143,7 @@ ggplot(rf_resid_df, aes(x=pred, y=resid)) +
   theme(panel.grid.major.y=element_blank())
 ```
 
-@fig-rf-resid demonstrated no systematic curvature or trend in the random forest residuals across the range of predicted values. This suggested that the forest effectively captured the nonlinear structure that posed challenges for the level linear model without transforming purchasing power. However, the lower held-out R² value of 0.876 and the large gap between training and test performance indicated that this ability to capture the structure did not translate into improved generalization to unseen counties.
+@fig-rf-resid demonstrated no systematic curvature or trend in the random forest residuals across the range of predicted values. This suggested that the random forest effectively captured the nonlinear structure that posed challenges for the level linear model without transforming purchasing power. However, the lower held-out R² value of 0.876 and the large gap between training and test performance indicated that this ability to capture the structure did not translate into improved generalization to unseen counties.
 
 ```{python}
 #| include: false
@@ -1161,7 +1167,7 @@ rf_log_test_r2=r2_score(y_test, y_pred_rf_log_dollars)
 rf_log_test_mae=mean_absolute_error(y_test, y_pred_rf_log_dollars)
 ```
 
-The random forest is largely insensitive to whether purchasing power is modeled on its original or logarithmic scale. Fitting the model to the logged outcome and then back-transforming the predictions yields an R² of 0.877, which is slightly higher than the R² of 0.876 obtained when the outcome is modeled directly. Since the log specification is also employed for the primary linear model, the log target forest is utilized for the subsequent ablations and model comparisons. The interpretability measures, including permutation and partial dependence, are computed on the raw target forest, which reports directly in dollars.
+The random forest is largely insensitive to whether purchasing power is modeled on its original or logarithmic scale. Fitting the model to the logged outcome and then back-transforming the predictions yields an R² of 0.877, which is slightly higher than the R² of 0.876 obtained when the outcome is modeled directly. Since the log specification is also employed for the primary linear model, the log target random forest is utilized for the subsequent ablations and model comparisons. The interpretability measures, including permutation and partial dependence, are computed on the raw target random forest, which reports directly in dollars.
 
 ```{python}
 #| include: false
@@ -1174,7 +1180,7 @@ rf_no_exposure.fit(X_train_ne, y_train_log)
 rf_no_exposure_r2=r2_score(y_test, np.exp(rf_no_exposure.predict(X_test_ne)))
 ```
 
-Ablation analysis revealed the model’s effectiveness in compensating for the removal of an entire group of variables and subsequent refitting from scratch. The removal of task groups resulted in a decline in the held out R² value from 0.876 to 0.834, a decrease of 0.042. Since the forest was retrained after removing the task groups, the remaining variables had the opportunity to recover any overlapping information. Consequently, the remaining decline indicated that poverty, unemployment, time, and geography could not fully replace the information provided by the task groups.
+Ablation analysis revealed the model’s effectiveness in compensating for the removal of an entire group of variables and subsequent refitting from scratch. The removal of task groups resulted in a decline in the held out R² value from 0.876 to 0.834, a decrease of 0.042. Since the random forest was retrained after removing the task groups, the remaining variables had the opportunity to recover any overlapping information. Consequently, the remaining decline indicated that poverty, unemployment, time, and geography could not fully replace the information provided by the task groups.
 
 ```{python}
 #| include: false
@@ -1187,11 +1193,11 @@ rf_no_econ.fit(X_train_ne2, y_train_log)
 rf_no_econ_r2=r2_score(y_test, np.exp(rf_no_econ.predict(X_test_ne2)))
 ```
 
-In comparison, eliminating poverty and unemployment reduced the held out R² from 0.877 to 0.698, resulting in a decline of 0.179. This drop was substantially larger than the 0.042 decline observed when the task groups were removed, suggesting that the economic controls provided more of the model’s explanatory power. Even after incorporating the task groups into the economic controls, performance improved, indicating that they contributed information not fully captured by poverty and unemployment alone. All three models utilized the same forest specification, logged outcome, and held-out counties, ensuring direct comparability of their performance differences.
+In comparison, eliminating poverty and unemployment reduced the held out R² from 0.877 to 0.698, resulting in a decline of 0.179. This drop was substantially larger than the 0.042 decline observed when the task groups were removed, suggesting that the economic controls provided more of the model’s explanatory power. Even after incorporating the task groups into the economic controls, performance improved, indicating that they contributed information not fully captured by poverty and unemployment alone. All three models utilized the same random forest specification, logged outcome, and held-out counties, ensuring direct comparability of their performance differences.
 
 #### Grouped permutation importance
 
-Joint permutation provided a complementary measure of how strongly the fitted random forest relied on the task groups. Permuting the three modeled task group proportions together reduced the held out R² by 0.153 while leaving the fitted model unchanged. This decline was much larger than the 0.042 reduction from removing the task groups and refitting the forest.
+Joint permutation provided a complementary measure of how strongly the fitted random forest relied on the task groups. Permuting the three modeled task group proportions together reduced the held out R² by 0.153 while leaving the fitted model unchanged. This decline was much larger than the 0.042 reduction from removing the task groups and refitting the random forest.
 
 ```{python}
 #| include: false
@@ -1219,7 +1225,7 @@ year_drop=grouped_permutation_drop(year_cols_model)
 state_drop=grouped_permutation_drop(state_cols_model)
 ```
 
-The difference between the two measures revealed what the model could do after removing task group information. During ablation, the forest was retrained and could recover some overlapping information from poverty, unemployment, and year. Permutation, on the other hand, disrupted the task group information after the forest had already learned to use it. The larger permutation decline indicated that the fitted forest heavily relied on the task groups, even though some of their information overlapped with the other variables.
+The difference between the two measures revealed what the model could do after removing task group information. During ablation, the random forest was retrained and could recover some overlapping information from poverty, unemployment, and year. Permutation, on the other hand, disrupted the task group information after the random forest had already learned to use it. The larger permutation decline indicated that the fitted random forest heavily relied on the task groups, even though some of their information overlapped with the other variables.
 
 Year indicators showed a decline of 0.128 when permuted, compared to only 0.008 for state indicators. This difference demonstrated that time contributed considerably to held-out performance compared to state after accounting for economic controls and task groups.
 
@@ -1227,7 +1233,7 @@ Among the three modeled task groups, non-routine manual produced the largest ind
 
 ### Neural network
 
-The random forest model did not outperform the log linear specification, leaving us to wonder whether the lack of improvement was due to a limitation of the forest or the amount of structure present in the data. To further investigate this, we evaluated a three-hidden-layer feedforward neural network as an additional test to determine if greater model flexibility would lead to improved held-out performance. The network consisted of three hidden layers and a single linear output unit for the continuous purchasing power outcome.
+The random forest model did not outperform the log linear specification, leaving us to wonder whether the lack of improvement was due to a limitation of the random forest or the amount of structure present in the data. To further investigate this, we evaluated a three-hidden-layer feedforward neural network as an additional test to determine if greater model flexibility would lead to improved held-out performance. The network consisted of three hidden layers and a single linear output unit for the continuous purchasing power outcome.
 
 ```{python}
 #| include: false
@@ -1361,9 +1367,9 @@ p1 <- ggplot(nn_init_df, aes(x=epoch, y=loss, color=series)) +
   geom_label(data=label_df1, aes(label=series, y=label_y), hjust=-0.1, size=3.4, fontface="bold",
              fill=NA, linewidth=0, label.padding=unit(0.08, "lines"), show.legend=FALSE) +
   # the minimum sits near the left edge here, so the label reads rightward off the
-  # marker instead of running off the panel and into the y axis title. Nudged
-  # further right and up so the now transparent label clears the validation curve.
-  annotate("label", x=best_init_epoch + 0.6, y=best_init_loss + ymax*0.26,
+  # marker instead of running off the panel and into the y axis title. Raised to
+  # the same offset panel B uses, so the two annotations sit level across the pair.
+  annotate("label", x=best_init_epoch + 0.6, y=best_init_loss + ymax*0.45,
            label=paste0("Minimum validation loss\nepoch ", best_init_epoch),
            hjust=0, size=2.9, color="grey35", fill=NA, linewidth=0,
            label.padding=unit(0.12, "lines")) +
