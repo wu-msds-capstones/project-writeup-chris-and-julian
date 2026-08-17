@@ -835,9 +835,9 @@ gdf_arrows["cy"]=gdf_arrows.geometry.centroid.y
 county_arrows=gdf_arrows[["fips","cx","cy"]].merge(arrow_shift_df, on="fips", how="inner")
 
 # counties east of the Mississippi are small enough that one arrow each reads as a
-# smudge, so counties are pooled onto an 85 km grid and drawn as one averaged arrow
+# smudge, so counties are pooled onto a 65 km grid and drawn as one averaged arrow
 # per cell; the sparser western counties mostly keep a cell to themselves
-ARROW_GRID_M=85_000
+ARROW_GRID_M=65_000
 county_arrows["grid_col"]=np.floor(county_arrows["cx"]/ARROW_GRID_M)
 county_arrows["grid_row"]=np.floor(county_arrows["cy"]/ARROW_GRID_M)
 
@@ -886,7 +886,7 @@ Figure 29 summarized these movements using the same cognitive to manual and rout
 ```{python}
 #| echo: false
 #| warning: false
-#| fig-cap: "**Figure 29. Direction of County Task Group Shift, 2010 to 2014 Versus 2019 to 2023.** Counties are pooled onto an 85 kilometer grid, and each cell draws one arrow, so a dense eastern cluster reads as a single direction rather than a knot of overlapping arrows. The arrow points along the cell's average movement across the manual to cognitive and routine to non-routine axes, and its length and thickness follow the size of that average, with a floor so small shifts still read as arrows and a cap at the 95th percentile so a few cells do not dominate. Color counts counties rather than averaging them: purple marks a cell holding counties moving in both directions, so a county moving away from non-routine cognitive work stays visible even where its neighbors moved toward it. ACS five year estimates provide near complete county coverage; gray counties lack estimates for both periods."
+#| fig-cap: "**Figure 29. Direction of County Task Group Shift, 2010 to 2014 Versus 2019 to 2023.** Counties are pooled onto a 65 kilometer grid, and each cell draws one arrow, so a dense eastern cluster reads as a single direction rather than a knot of overlapping arrows. The arrow points along the cell's average movement across the manual to cognitive and routine to non-routine axes, and its length and thickness follow the size of that average, with a floor so small shifts still read as arrows and a cap at the 95th percentile so a few cells do not dominate. Color counts counties rather than averaging them: purple marks a cell holding counties moving in both directions, so a county moving away from non-routine cognitive work stays visible even where its neighbors moved toward it. ACS five year estimates provide near complete county coverage; gray counties lack estimates for both periods."
 %%R -i arrow_data -w 9.5 -h 6.5 -u in -r 150 -b transparent
 suppressMessages(library(sf))
 
@@ -907,7 +907,7 @@ ggplot() +
   geom_sf(data=counties_arrows, fill="#FCFCFB", color="#E1E0D9", linewidth=0.08) +
   geom_segment(data=arrow_data,
                aes(x=xstart, y=ystart, xend=xend, yend=yend, color=risk_direction, linewidth=shift_magnitude),
-               arrow=arrow(length=unit(1.0,"mm"), type="closed"), lineend="round", alpha=0.8) +
+               arrow=arrow(length=unit(0.85,"mm"), type="closed"), lineend="round", alpha=0.8) +
   scale_linewidth_continuous(range=c(0.25, 0.9), guide="none") +
   # Green and red, keyed to the sign of the association: non-routine cognitive is
   # the reference group the other three are each negatively associated against.
@@ -974,7 +974,7 @@ window_key=pd.DataFrame([
 #| warning: false
 #| fig-cap: "**Figure 30. Coefficient Stability Across Time Windows.** Log panel regression coefficients, as percent change in purchasing power per one percentage point shift out of non-routine cognitive work, refit on the pre pandemic and post pandemic windows alongside the full panel (diamond). Each window carries its own county year count in the legend, and the horizontal bar through each point is that window's 95% confidence interval. Only the full panel estimate is labeled with its value, at the left of each row. Standard errors clustered by county in every fit."
 %%R -i stab_long -i window_key -w 9 -h 4.6 -u in -r 150 -b transparent
-BLACK <- "#252525"
+LABEL_INK <- "#252525"
 
 # rows read top to bottom in the order the prose introduces them, so the first level
 # sits at the bottom of a discrete y axis
@@ -983,7 +983,9 @@ window_order <- c("2010 to 2019", "Full panel", "2021 to 2023")
 stab_long$window <- factor(stab_long$window, levels=window_order)
 stab_long$`Task group` <- factor(stab_long$`Task group`, levels=group_order)
 
-window_colors <- c("2010 to 2019"="#2A78D6", "Full panel"=BLACK, "2021 to 2023"="#EB6834")
+# green marks the preferred specification, the same role it carries elsewhere in the
+# report; the full panel is the estimate the study quotes, the two windows flank it
+window_colors <- c("2010 to 2019"="#2A78D6", "Full panel"="#1BAF7A", "2021 to 2023"="#EB6834")
 window_shapes <- c("2010 to 2019"=16, "Full panel"=18, "2021 to 2023"=16)
 window_sizes  <- c("2010 to 2019"=2.9, "Full panel"=4.0, "2021 to 2023"=2.9)
 
@@ -1008,7 +1010,7 @@ full_lab$label <- sub("-", "−", sprintf("%.2f%%", full_lab$value))
 ggplot(stab_long, aes(x=value, y=yy, color=window)) +
   geom_errorbar(aes(xmin=ci_lo, xmax=ci_hi), orientation="y", width=0.09, linewidth=0.7) +
   geom_point(aes(shape=window, size=window)) +
-  geom_text(data=full_lab, aes(x=lx, label=label), color=BLACK,
+  geom_text(data=full_lab, aes(x=lx, label=label), color=LABEL_INK,
             hjust=1, size=3.1, fontface="bold", show.legend=FALSE) +
   scale_color_manual(values=window_colors, labels=window_labels, name=NULL) +
   scale_shape_manual(values=window_shapes, labels=window_labels, name=NULL) +
@@ -1023,13 +1025,7 @@ ggplot(stab_long, aes(x=value, y=yy, color=window)) +
   labs(title="Coefficient Stability Across Time Windows",
        x="Percent Change in Purchasing Power per One Percentage Point Shift",
        y=NULL) +
-  # light vertical gridlines only
   theme(axis.text.y=element_text(face="bold", size=9.5),
-        panel.grid.major.x=element_line(color="#E4E3DE", linewidth=0.25),
-        panel.border=element_blank(),
-        legend.position="top",
-        legend.justification="right",
-        legend.direction="horizontal",
         legend.key.spacing.x=unit(10, "pt"),
         legend.text=element_text(size=9),
         axis.ticks.x=element_line(color="#0B0B0B", linewidth=0.4),
