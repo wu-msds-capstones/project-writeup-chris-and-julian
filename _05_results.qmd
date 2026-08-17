@@ -69,7 +69,7 @@ ggplot(coef_df, aes(x=est, y=group, color=group)) +
 
 All three estimates of the purchasing power difference associated with a one percentage point shift from non-routine cognitive work toward another task group remained below zero, with non-routine manual work showing the largest negative association (@fig-logcoefs). The narrow intervals around the estimates indicated that the direction and ordering of these task group relationships were precisely estimated after accounting for the other variables in the model.
 
-The level specification provided an additional perspective on the task group associations and economic controls in dollar terms. Among the controls, the poverty rate carried the largest and most precisely estimated coefficient, while the unemployment rate and log population were smaller but remained distinguishable from zero at the 0.05 level (@tbl-panel-coefs). The table also reported the model’s overall F test, sample size, and , offering a summary of the fit and precision of the complete level specification.
+The level specification provided an additional perspective on the task group associations and economic controls in dollar terms. Among the controls, the poverty rate carried the largest and most precisely estimated coefficient, while the unemployment rate and log population were smaller but remained distinguishable from zero at the 0.05 level (@tbl-panel-coefs). The table also reported the model’s overall F test, sample size, and R², offering a summary of the fit and precision of the complete level specification.
 
 ```{python}
 #| include: false
