@@ -2,7 +2,6 @@
 
 **[Read the study](https://wu-msds-capstones.github.io/project-writeup-chris-and-julian/)**
 
-Chris Bell | Julian Pacheco
 DATA 510 Data Science Capstone, Willamette University | Summer 2026
 
 ## Overview
@@ -69,23 +68,94 @@ Analysis notebooks and data construction code live in the companion `project-wor
 
 ## Build and publish
 
-The writeup uses Quarto and the `capstone` conda environment. The required Python interpreter can be specified explicitly when rendering:
+### What you need
+
+| Requirement | Detail |
+| --- | --- |
+| Quarto | v1.8.25 or later, on macOS (Apple silicon) |
+| Python | 3.12, supplied by a conda environment named `capstone` |
+| R | Installed inside the same conda environment, reached from Python through rpy2 |
+| Database access | Two environment variables, `AUTORACK_URL` and `THOMAS_URL` |
+
+Every figure in the study is a ggplot drawn through rpy2, and every number is queried live from PostgreSQL, so R and both database URLs are required rather than optional.
+
+### Environment setup
+
+Create the conda environment and install the Python and R packages the section files import:
 
 ```bash
+conda create -n capstone python=3.12
+conda install -n capstone -c conda-forge \
+  r-base rpy2 r-ggplot2 r-scales r-patchwork
+conda run -n capstone pip install \
+  tensorflow scikit-learn statsmodels pandas numpy \
+  sqlalchemy psycopg2-binary geopandas graphviz great_tables \
+  jupyter ipykernel
+```
+
+Register the environment as the `python3` Jupyter kernel, because Quarto resolves the kernel by name and will otherwise pick whichever Python kernel it finds first:
+
+```bash
+/opt/anaconda3/envs/capstone/bin/python -m ipykernel install --user --name python3
+```
+
+### Database credentials
+
+Both databases are hosted on Railway and are read at render time. Export the connection strings before rendering, and never write them into a file in this repository:
+
+```bash
+export AUTORACK_URL='postgresql://...'   # analytical warehouse; most cells query this
+export THOMAS_URL='postgresql://...'     # data lake; the task framework figure queries this
+```
+
+`AUTORACK_URL` alone is not enough. One cell in `_02_background.qmd` reads individual occupational categories from the lake, since the warehouse stores only the four aggregated task groups.
+
+### Rendering
+
+The section files carry Python cells, so Quarto runs the project through the jupyter engine and holds one interpreter for the whole render. Point it at the conda environment explicitly; the shell default Python is incompatible with TensorFlow and the render fails partway through rather than at the start.
+
+```bash
+# Full render of the manuscript
+QUARTO_PYTHON=/opt/anaconda3/envs/capstone/bin/python quarto render
+
+# Single section, while iterating
+QUARTO_PYTHON=/opt/anaconda3/envs/capstone/bin/python quarto render _03_data.qmd
+```
+
+Rendered output is written to `_output/`, and figures are written to `output/` at 300 dpi.
+
+Single file renders work only for sections without R cells. The `%%R` magic is registered by `capstone.qmd`, so `_02_background.qmd`, `_04_analysis.qmd`, and `_05_results.qmd` can be checked only through a full render.
+
+### The freeze cache
+
+The `_freeze/` directory is committed so a rebuild can reuse cached results instead of rerunning every model, notably the neural network. Its hash covers `capstone.qmd` alone, so edits inside an included section file do not invalidate it and a full render will silently reuse the stale execution. After editing a section file, clear the cache first:
+
+```bash
+rm -rf _freeze/capstone .quarto/_freeze/capstone
 QUARTO_PYTHON=/opt/anaconda3/envs/capstone/bin/python quarto render
 ```
 
-Rendered output is written to `_output/`.
+Then confirm the edited prose actually appears in `_output/index.html` before publishing. Clear the whole of `_freeze/` only when the environment itself changes, such as a package upgrade or a new Quarto version.
 
-To publish an already rendered version:
+### Publishing
+
+Render first, confirm the output, then publish what was already built:
 
 ```bash
 quarto publish gh-pages --no-render
 ```
 
-The `--no-render` option prevents Quarto from rendering the project again with a different Python interpreter during publication.
+The `--no-render` option matters. Without it, Quarto renders again outside the `QUARTO_PYTHON` prefix and picks the wrong interpreter. Quarto manages the `gh-pages` branch itself, so do not check it out or edit it by hand.
 
-The `_freeze/` directory is committed so cached results can be reused without rerunning every model during each build.
+### If a render fails
+
+| Symptom | Cause |
+| --- | --- |
+| Dies on a TensorFlow import | The `QUARTO_PYTHON` prefix was omitted |
+| `FileNotFoundError` on an unrelated Python path | A stale user level Jupyter kernelspec; remove it with `jupyter kernelspec uninstall <name>` |
+| A ggplot cell fails, or R objects behave oddly | rpy2 found a system R rather than the conda R; check the `R_HOME` pin in `capstone.qmd` still runs before the rpy2 extension loads |
+| Connection error partway through | Railway dropped an idle connection; engines use `pool_pre_ping=True` and `pool_recycle=300`, and `engine.dispose()` clears a stale one |
+| Edited prose missing from the output | The freeze cache was not cleared after a section file edit |
 
 ## Limitations
 

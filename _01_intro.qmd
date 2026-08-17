@@ -1,64 +1,13 @@
 # Introduction {#sec-intro}
 
-According to Gallup, 22 percent of American workers worried technology would make their job obsolete in 2023, up seven percentage points from 2021 [@Gallup2023]. Concerns about automation were evident years earlier, when in 2017 the Pew Research Center reported that Americans expected automation to displace workers, although only 30 percent considered it likely that their own job would be replaced within their lifetime [@Pew2017]. These concerns reflect subjective expectations about future disruption rather than empirical evidence of current labor market conditions.The primary concern was the impact of job disruption on the economic security of households and the communities they resided in.
+According to Gallup, 22% of American workers worried technology would make their job obsolete in 2023, up seven percentage points from 2021 [@Gallup2023]. Concerns about automation were evident years earlier. In 2017, the Pew Research Center reported that 72% of Americans surveyed worried about a future in which technology could perform many jobs currently done by humans [@Pew2017]. Underlying these concerns was automation, in which technology assumes tasks that were previously performed by human workers. These concerns have a clear economic basis. Job displacement can result in large and long-lasting reductions in worker earnings [@CouchPlaczek2010].
 
-Couch and Placzek [-@CouchPlaczek2010] found that displaced workers experienced earnings losses of more than 30 percent initially, with losses remaining as high as 15 percent six years later. The extent of these losses varied depending on local prices, making purchasing power a valuable metric for assessing these concerns. While earnings captured the losses experienced by displaced workers, our study used median household income to describe household resources at the county level. Due to varying local prices, the same income could support different living standards in different places [@Moretti2013]. To capture this difference, purchasing power was adjusted by county median household income using Bureau of Economic Analysis Regional Price Parities. The study then explored the relationship between purchasing power and county task groups.
+A study found that displaced workers' earnings fell by more than 30% from 1993 to 2004, remaining about 15% lower six years later [@CozziFella2016]. The burden of those earnings losses depended in part on local prices. As demonstrated by @Moretti2013, the same income could support different living standards in different cities in the United States. This variation also makes the geographic scale of measurement important. As a result, a single value representing an entire state or metropolitan area can obscure the variations in prices and household resources across different communities. For this reason, measuring these conditions locally provides a more realistic view of where households face greater economic strain [@Curran2006].
 
-The framework we build upon is based on three studies. The first study, conducted by @Autor2003, demonstrated that computers replace routine tasks and enhance non-routine ones, enabling us to identify occupations susceptible to automation. Applying this concept to local labor markets, @AutorDorn2013 observed polarization in routine-intensive sectors. In these areas, employment growth was observed at both the high and low ends of the wage distribution, while employment in the middle wage range declined. Subsequently, @AcemogluAutor2011 generalized the argument into a model where tasks serve as the production unit, and skill groups compete to supply them.
+Examining whether these concerns corresponded with local economic conditions required a measurable indicator of automation risk. Autor’s task based framework provided the basis for measuring automation risk through the tasks performed in local labor markets. @Autor2003 first demonstrated that computers replaced routine tasks while complementing non-routine ones, which made it possible to identify work more susceptible to automation. @AcemogluAutor2011 later expanded the framework by treating tasks as the production unit and different skill groups as their suppliers. @AutorDorn2013 then applied the framework to local labor markets, finding that areas concentrated in routine work experienced employment polarization.
 
-Nevertheless, none of this research directly addressed purchasing power at the county level. These studies reported outcomes in unadjusted wages and employment counts rather than in what those wages could buy locally. They also measured these outcomes at a broader labor market geography than the county. Earlier studies primarily focused on employment and wages, leaving the question unanswered whether purchasing power varied with task groups in fixed dollar amounts or in proportion.
+Nevertheless, these studies generally examined wages and employment at geographic scales broader than the county. A wage describes what a job paid, while purchasing power describes what that pay could buy. That distinction left unresolved whether the task groups present in local employment are associated with household purchasing power at the county level.
 
-In this study, we investigate the relationship between county task groups and purchasing power, after controlling for poverty and unemployment. We utilize a county-level panel dataset spanning from 2008 to 2023, excluding the year 2020. This dataset comprises 840 counties and 11,983 observations. All input data originates from federal sources that are published annually at the county level, ensuring the reproducibility of our analysis using publicly available data. Notably, these counties collectively represent approximately 84 percent of the United States population, as reported by the Census Bureau in 2023 [@census_popest2023]. In 2023, the counties exhibited an average of 39 percent routine task content, with the middle range of task content varying between 35 and 43 percent. County employment is categorized into four task groups, as illustrated in @fig-taskframework and further described in @sec-data, along with the overall construction of the panel.
+Building on this task based framework, we investigated the relationship between county automation and purchasing power, which is defined as household income adjusted for variations in local price levels. The analysis used a county-level panel spanning from 2008 to 2023, excluding the year 2020, encompassing 11,983 observations across 840 counties. These counties collectively represented a substantial portion of the U.S. population, reaching approximately 84% [@census_popest2023]. County employment was organized into four task groups to capture differences in the kinds of work performed across local economies.
 
-```{python}
-#| label: fig-taskframework
-#| echo: false
-#| warning: false
-#| fig-cap: "**The Four Task Groups.** Each occupation falls in one cell of the Autor (2003) task framework. Routine tasks follow explicit rules that a machine can be programmed to carry out; non-routine tasks require judgment, adaptability, or in person interaction. Cognitive tasks work primarily with information; manual tasks work with physical objects and people. Occupation groupings follow Autor and Dorn (2013). Non-routine cognitive, outlined with a dashed border, is the reference group omitted from the regression."
-%%R -w 8.5 -h 6 -u in -r 150 -b transparent
-quad_df <- data.frame(
-  group = c("Non-Routine Cognitive", "Non-Routine Manual", "Routine Cognitive", "Routine Manual"),
-  col = c(2, 2, 1, 1),
-  row = c(2, 1, 2, 1),
-  examples = c("Management, engineering,\nteaching", "Food service, care work,\ncleaning",
-               "Clerical, sales,\nclaims processing", "Production, assembly,\nmachine operation"),
-  is_reference = c(TRUE, FALSE, FALSE, FALSE)
-)
-quad_df$group_label <- gsub(" ", "\n", quad_df$group)
-quad_df$linetype <- ifelse(quad_df$is_reference, "dashed", "solid")
-quad_df$linewidth <- ifelse(quad_df$is_reference, 1.3, 0.9)
-
-box_w <- 0.42; box_h <- 0.42
-
-col_headers <- data.frame(
-  col = c(1, 2),
-  label = c("Routine", "Non-Routine")
-)
-row_headers <- data.frame(
-  row = c(2, 1),
-  label = c("Cognitive", "Manual")
-)
-
-ggplot(quad_df) +
-  geom_rect(aes(xmin=col-box_w, xmax=col+box_w, ymin=row-box_h, ymax=row+box_h,
-                color=group, linetype=linetype, linewidth=linewidth),
-            fill="#FCFCFB") +
-  geom_text(aes(x=col, y=row+0.14, label=group_label, color=group),
-            fontface="bold", size=4.6, lineheight=0.95) +
-  geom_text(aes(x=col, y=row-0.20, label=examples), color="#52514E", size=3.1, lineheight=1.0) +
-  geom_text(data=col_headers, aes(x=col, y=2.65, label=label),
-            fontface="bold", size=4.3, color="#0B0B0B", inherit.aes=FALSE) +
-  geom_text(data=row_headers, aes(x=0.52, y=row, label=label),
-            hjust=1, size=3.6, color="#0B0B0B", lineheight=0.95, inherit.aes=FALSE) +
-  scale_color_manual(values=TASK_COLORS, guide="none") +
-  scale_linetype_identity() +
-  scale_linewidth_identity() +
-  coord_cartesian(xlim=c(0.05, 2.55), ylim=c(0.5, 2.85), clip="off") +
-  theme_void() +
-  theme(plot.margin=margin(10, 10, 10, 10),
-        plot.background=element_rect(fill=NA, color=NA),
-        plot.title=element_text(face="bold", size=13, hjust=0.5)) +
-  labs(title="The Four Task Groups")
-```
-
-We estimated a panel regression model with year indicators and standard errors clustered by county to account for dependence among repeated observations of the same county. Diagnostic checks led to a log respecification, while random forest and neural network models tested whether additional flexibility captured structure missed by the linear model. Our primary finding was that a one percentage point shift from non-routine cognitive work to non-routine manual work was associated with approximately \$846 less purchasing power (95% CI: ±\$38 at the panel mean). Task groups therefore provided information about local economic conditions beyond poverty and unemployment rates. This additional information could help policymakers and economic development agencies identify differences across counties that conventional measures alone did not capture. @sec-analysis describes the modeling strategy and diagnostics.
+We conducted a panel regression analysis to investigate the relationship between purchasing power and county task groups, while controlling for factors such as poverty, unemployment, and population. Year indicators accounted for changes over time, and standard errors were clustered by county for statistical inference. Diagnostic checks favored a log specification, while random forest and neural network models assessed whether nonlinear relationships captured patterns missed by the regression model. The most notable finding was that a one percentage point shift from non-routine cognitive to non-routine manual work was associated with approximately \$846 less purchasing power at the panel mean (95% confidence interval, ±\$38). Task groups remained associated with purchasing power after accounting for poverty and unemployment. These findings have practical implications for policymakers and economic development agencies by helping identify counties that appear similar on conventional indicators but differ in what residents can afford.
