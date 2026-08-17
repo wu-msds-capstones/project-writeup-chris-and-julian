@@ -1,11 +1,263 @@
-# Background and Related Work {#sec-background}
+# Background {#sec-background}
 
-The project begins with a change in how economists think about what technology replaces. @Autor2003 argued that technology does not entirely replace occupations, rather, it replaces tasks. Tasks that follow explicit, rule based procedures can be documented as programs, making computers suitable substitutes. On the other hand, tasks that require judgment, adaptability, or situational response resist this translation and are instead complemented. By categorizing tasks along two axes, routine versus non-routine and cognitive versus manual, we can identify the four groups we use here. This transformation turns a vague concern about automation into a measurable concept.
+Autor developed a task-based approach to measure the variation in automation risk across different types of work. Initially, @Autor2003 distinguished between routine and non-routine tasks by demonstrating that technology impacts tasks differently based on their potential to be formalized into explicit procedures. @AcemogluAutor2011 further expanded his framework by treating tasks as production units and analyzing how workers with varying skills are distributed among them. This progression laid the conceptual foundation for the four task groups depicted in Figure 1, linking technological advancements to shifts in the demand for different types of work.
 
-Once task scores become measurable at the occupational level, they can also be measured at the place level. This is because places differ in the types of work their residents do. @AutorDorn2013 demonstrated this by showing that local labor markets have long-lasting differences in their composition of work, which contributed to the polarization of employment across US commuting zones. Routine intensive areas experienced a decline in middle-wage jobs and an increase in employment at both the low and high ends of the wage distribution. Their occupation taxonomy is the one we use when categorizing occupations into task groups. Their finding that task groups are a persistent characteristic of a place, rather than a temporary feature of its residents, makes a panel design a sensible approach.
+Building upon this framework, @AutorDorn2013 applied the task-based approach to local labor markets. Areas with higher initial concentrations of routine work experienced more pronounced employment polarization. Employment growth was observed at both the upper and lower ends of the wage distribution, while it declined in the middle. These patterns indicated that the local impacts of technological change varied depending on the types of tasks concentrated within each economy. This provided a foundation for exploring whether differences in county task groups were also linked to variations in purchasing power.
 
-@AcemogluAutor2011 laid the formal groundwork for this approach. Their model conceptualizes tasks as the production units, with skill groups vying to supply them. Technological shifts determine which group holds the comparative advantage in which task. Consequently, local outcomes are contingent upon the tasks performed within a local economy. This framework has become the standard for empirical research on automation and labor markets, and our county-level design incorporates its core assumption.
+```{python}
+#| label: taskframework-data
+#| include: false
+import os
+import numpy as np
+import pandas as pd
+from sqlalchemy import create_engine, text
 
-Alongside this research, a separate line of evidence focuses on what workers themselves anticipate. Gallup’s findings indicate a significant increase in concerns about technology potentially rendering jobs obsolete between 2021 and 2023 [@Gallup2023]. Similarly, Pew’s reports suggest that Americans anticipate automation to displace other workers while preserving their own jobs largely intact [@Pew2017]. These surveys measure beliefs rather than task scores, and it’s possible for these two measures to diverge. For instance, a worker in a county with a high concentration of routine work may not be as worried as one in a county with a lower concentration, and vice versa. This discrepancy between worker expectations and the actual composition of local work is a key motivation behind directly measuring the latter.
+# This is the one cell in the writeup that reads the data lake rather than the
+# warehouse: autorack stores only the four aggregated groups, and this figure needs
+# the detailed occupations underneath them.
+if not os.environ.get("THOMAS_URL"):
+    raise RuntimeError(
+        "THOMAS_URL is not set. fig-taskframework reads the detailed occupation list "
+        "from the thomas data lake, which autorack does not store."
+    )
+lake=create_engine(os.environ["THOMAS_URL"], pool_pre_ping=True, pool_recycle=300)
+with lake.connect() as conn:
+    occ=pd.read_sql(text("select soc_code, title from occupation_crosswalk order by soc_code"),
+                    conn)
+lake.dispose()
 
-The purchasing power of a wage, measured in dollars, varies depending on the location where it is earned. Prior work reports outcomes in unadjusted wages and employment shares, so a high-wage metropolitan area and a low-wage rural county can appear vastly different in dollar terms even when the goods those wages can buy are comparable. Geography further complicates matters because the commuting zone averages over the counties it encompasses, obscuring the variation that determines whether a paycheck covers rent in any specific county. Additionally, estimation is typically linear, so whether purchasing power varies with task groups in fixed dollar increments or proportionally is not something these designs can address. None of these limitations are flaws in the earlier studies, which were intended to address different questions. However, together, these limitations restrict the extent to which we can say about county-level purchasing power.
+# the live occupation to task group assignment, matching sql_final_erd.sql in the
+# companion workbook repository, applied at the Standard Occupational Classification
+# major group. Community and social service (21) and military (55) are deliberately
+# absent: they are assigned to no group and do not enter the four group total. Two
+# major groups split internally, as the American Community Survey categories do.
+NRC="Non-Routine Cognitive"
+NRM="Non-Routine Manual"
+RC="Routine Cognitive"
+RM="Routine Manual"
+major={"11":NRC,"13":NRC,"15":NRC,"17":NRC,"19":NRC,"23":NRC,"25":NRC,"27":NRC,
+       "31":NRM,"33":NRM,"35":NRM,"37":NRM,"39":NRM,
+       "41":RC,"43":RC,
+       "45":RM,"47":RM,"49":RM,"51":RM}
+
+def assign(code):
+    """healthcare practitioners (29-1) are non-routine cognitive while health
+    technicians (29-2) are non-routine manual; material moving (53-7) is routine
+    manual while the rest of transportation is non-routine manual."""
+    mg=code[:2]
+    if mg=="29": return NRC if code[3]=="1" else NRM
+    if mg=="53": return RM if code[3]=="7" else NRM
+    return major.get(mg)
+
+occ["group"]=occ.soc_code.map(assign)
+occ=occ[occ.group.notna()].reset_index(drop=True)
+
+# quadrant sign: x is manual (negative) to cognitive (positive), y is routine
+# (negative) to non-routine (positive). Assignment is categorical, so position within
+# a quadrant is scatter drawn from a fixed seed and carries no measured value.
+quad={NRC:(1,1), NRM:(-1,1), RC:(1,-1), RM:(-1,-1)}
+rng=np.random.default_rng(510)
+sx=occ.group.map(lambda g: quad[g][0]).to_numpy()
+sy=occ.group.map(lambda g: quad[g][1]).to_numpy()
+# the clip bounds keep a clear band at each edge so no point can run under a
+# quadrant heading.
+occ["x"]=sx*np.clip(np.abs(rng.normal(0.82, 0.34, len(occ))), 0.10, 1.50)
+occ["y"]=sy*np.clip(np.abs(rng.normal(0.70, 0.29, len(occ))), 0.09, 1.24)
+
+# a readable subset carries a short display name; the full list is far too dense to
+# label, and the points carry the group assignment on their own.
+named={"29-12XX":"Physicians","23-1011":"Lawyers","17-2051":"Civil Engineers",
+       "25-2020":"Teachers","15-1252":"Software Developers","29-1141":"Registered Nurses",
+       "19-1020":"Biological Scientists","11-1021":"General Managers",
+       "43-6014":"Secretaries","43-3031":"Bookkeeping Clerks","43-9021":"Data Entry Keyers",
+       "41-2010":"Cashiers","43-3071":"Tellers","43-9061":"Office Clerks",
+       "43-4171":"Receptionists",
+       "51-4041":"Machinists","51-2020":"Assemblers","47-2031":"Carpenters",
+       "51-4120":"Welders","47-2111":"Electricians","51-91XX":"Production Workers",
+       "53-7062":"Material Movers","47-2061":"Construction Laborers",
+       "31-1121":"Home Health Aides","31-1122":"Personal Care Aides","35-3031":"Waiters",
+       "39-9011":"Childcare Workers","37-201X":"Janitors","33-9030":"Security Guards",
+       "35-2010":"Cooks","53-3030":"Truck Drivers"}
+missing=sorted(set(named)-set(occ.soc_code))
+if missing:
+    raise RuntimeError(f"labeled occupation codes absent from the crosswalk: {missing}")
+occ["label"]=occ.soc_code.map(named)
+occ_df=occ[["group","x","y","label"]]
+n_occ=len(occ_df)
+n_labeled=int(occ_df.label.notna().sum())
+```
+
+```{python}
+#| echo: false
+#| warning: false
+#| fig-cap: "**Figure 1. Occupations in the Task Framework.** Every detailed occupation in the Standard Occupational Classification crosswalk behind the American Community Survey, placed in the task group it was assigned to. Routine tasks follow explicit rules a machine can be programmed to carry out; non-routine tasks require judgment, adaptability, or in person interaction. Cognitive tasks work primarily with information; manual tasks work with physical objects and people. The horizontal and vertical axes name these two distinctions rather than a scale: assignment follows Autor and Dorn (2013) and is categorical, so a point's position inside its quadrant is scatter for legibility and carries no measured value. Color and point shape both mark the task group, and a readable subset of occupations is drawn larger and labeled. Community and social service and military occupations are assigned to no group and are excluded from the measure. Non-routine cognitive is the reference group omitted from the regression."
+%%R -i occ_df -w 10 -h 7 -u in -r 150 -b transparent
+# every occupation is one point; labeled points are the same points drawn larger.
+suppressWarnings(suppressMessages(library(ggrepel)))
+lab <- occ_df[!is.na(occ_df$label), ]
+
+ggplot(occ_df, aes(x=x, y=y, color=group, shape=group)) +
+  annotate("rect", xmin=-1.70, xmax=0, ymin=0, ymax=1.50, fill="#993F00", alpha=0.05) +
+  annotate("rect", xmin=0, xmax=1.70, ymin=0, ymax=1.50, fill="#FFAD65", alpha=0.05) +
+  annotate("rect", xmin=-1.70, xmax=0, ymin=-1.50, ymax=0, fill="#006666", alpha=0.05) +
+  annotate("rect", xmin=0, xmax=1.70, ymin=-1.50, ymax=0, fill="#51C3CC", alpha=0.05) +
+  annotate("segment", x=0, xend=0, y=-1.50, yend=1.50, color="#0B0B0B", linewidth=0.5) +
+  annotate("segment", x=-1.70, xend=1.70, y=0, yend=0, color="#0B0B0B", linewidth=0.5) +
+  geom_point(size=1, alpha=0.6, stroke=0.4) +
+  geom_point(data=lab, size=3, alpha=1, stroke=0.7) +
+  geom_point(data=lab, aes(x=x, y=y), inherit.aes=FALSE, shape=16, size=0.9,
+             color="#0B0B0B") +
+  # point.size matches the enlarged labeled marker so a label is pushed clear of its
+  # own point rather than settling on top of it
+  geom_text_repel(data=lab, aes(x=x, y=y, label=label), inherit.aes=FALSE,
+                  size=2.3, fontface="bold", color="#0B0B0B", seed=510,
+                  point.size=3, box.padding=0.45, point.padding=0.4,
+                  min.segment.length=0.2, segment.color="#8F8D87",
+                  segment.size=0.25, max.overlaps=Inf) +
+  scale_color_manual(values=c("Routine Cognitive"="#51C3CC", "Routine Manual"="#006666",
+                              "Non-Routine Cognitive"="#FFAD65",
+                              "Non-Routine Manual"="#993F00"), guide="none") +
+  scale_shape_manual(values=c("Routine Cognitive"=17, "Routine Manual"=15,
+                              "Non-Routine Cognitive"=16,
+                              "Non-Routine Manual"=18), guide="none") +
+  annotate("text", x=c(1.66,-1.66,1.66,-1.66), y=c(1.42,1.42,-1.42,-1.42), hjust=c(1,0,1,0),
+           label=c("NON-ROUTINE COGNITIVE","NON-ROUTINE MANUAL",
+                   "ROUTINE COGNITIVE","ROUTINE MANUAL"),
+           fontface="bold", size=4,
+           color=c("#FFAD65", "#993F00", "#51C3CC", "#006666")) +
+  annotate("text", x=0, y=1.62, label="NON-ROUTINE", size=2.9, color="#52514E", fontface="bold") +
+  annotate("text", x=0, y=-1.62, label="ROUTINE", size=2.9, color="#52514E", fontface="bold") +
+  annotate("text", x=-1.84, y=0, label="MANUAL", angle=90, size=2.9, color="#52514E", fontface="bold") +
+  annotate("text", x=1.84, y=0, label="COGNITIVE", angle=-90, size=2.9, color="#52514E", fontface="bold") +
+  coord_cartesian(xlim=c(-1.76,1.76), ylim=c(-1.70,1.70), clip="off") +
+  theme(axis.line=element_blank(), axis.text=element_blank(), axis.ticks=element_blank(),
+        legend.position="none", plot.margin=margin(8,26,8,26)) +
+  labs(title="Occupations in the Task Framework", x=NULL, y=NULL)
+```
+
+Once occupations are categorized based on their task content, it becomes easier to measure differences across local economies. The occupation taxonomy developed by @AutorDorn2013 served as the foundation for assigning employment to the four task groups used in this study. Their own measure scored each occupation continuously on a single routine task intensity index built from ratings of its task content. @AcemogluAutor2011 provided economic significance to these differences by treating tasks as units of production supplied by workers possessing varying skills. Technological advancements can shift labor demand across different types of tasks. These differences in county task groups provide a way to examine whether local work structures are associated with purchasing power.
+
+Accurately measuring purchasing power requires accounting for differences in local price levels. Regional Price Parities (RPPs), published by the Bureau of Economic Analysis (BEA), offer a measure of these differences relative to the national average. A score of 100 in the RPP represents the national price level. Relative to this baseline, values above 100 indicate higher local price levels, while values below 100 indicate lower local price levels. The index combines prices for goods and services such as housing, food, transportation, medical care, education, and recreation. RPPs became an official BEA statistic in 2014, with estimates available back to 2008. However, BEA does not publish RPPs directly for individual counties. Instead, estimates are available for states, metropolitan areas, and nonmetropolitan portions of states, which can mask price differences among counties within the same region.
+
+Multiple indicators collectively capture different aspects of local economic conditions. Poverty measures the proportion of residents living below an established income threshold. Unemployment measures the share of the labor force actively seeking work. Median household income represents the midpoint of the household income distribution, and RPPs compare local price levels with the national average. Each captures a different dimension of local conditions, and the four produce distinct geographic patterns across counties (Figure 2).
+
+```{python}
+#| label: context-setup
+#| include: false
+import geopandas as gpd
+from sqlalchemy import create_engine
+
+engine=create_engine(os.environ["AUTORACK_URL"], pool_pre_ping=True, pool_recycle=300)
+```
+
+
+```{python}
+#| label: county-context-data
+#| include: false
+context_year = 2023
+context_df = pd.read_sql("""
+    select cb.county_fips, cb.poverty_rate, cb.unemployment_rate,
+           cb.median_household_income, ca.affordability_salary as purchasing_power
+    from county_baseline cb
+    join county_affordability ca
+      on ca.county_fips = cb.county_fips and ca.year = cb.year
+    where cb.year = %(yr)s
+""", engine, params={"yr": context_year})
+context_df["fips"] = context_df["county_fips"].astype(str).str.zfill(5)
+# RPP recovered from the already computed purchasing power measure (@eq-afford, inverted):
+# purchasing power = income / (RPP / 100), so RPP = income / purchasing power * 100.
+context_df["rpp"] = context_df["median_household_income"] / context_df["purchasing_power"] * 100
+
+gdf_context = gpd.read_file(
+    "https://www2.census.gov/geo/tiger/GENZ2021/shp/cb_2021_us_county_500k.zip"
+)
+gdf_context = gdf_context.rename(columns={"GEOID": "fips"})
+merged_context = gdf_context.merge(
+    context_df[["fips", "poverty_rate", "unemployment_rate",
+                "median_household_income", "rpp"]],
+    on="fips", how="left"
+)
+merged_context = merged_context[
+    ~merged_context["STATEFP"].isin(["02", "15", "60", "66", "69", "72", "78"])
+].copy()
+
+pov_ctx_vmin = float(context_df["poverty_rate"].quantile(0.02))
+pov_ctx_vmax = float(context_df["poverty_rate"].quantile(0.98))
+unemp_ctx_vmin = float(context_df["unemployment_rate"].quantile(0.02))
+unemp_ctx_vmax = float(context_df["unemployment_rate"].quantile(0.98))
+inc_ctx_vmin = float(context_df["median_household_income"].quantile(0.02))
+inc_ctx_vmax = float(context_df["median_household_income"].quantile(0.98))
+rpp_ctx_vmin = float(context_df["rpp"].quantile(0.02))
+rpp_ctx_vmax = float(context_df["rpp"].quantile(0.98))
+
+os.makedirs("output", exist_ok=True)
+merged_context[["fips", "poverty_rate", "unemployment_rate",
+                "median_household_income", "rpp", "geometry"]].to_file(
+    "output/county_context.geojson", driver="GeoJSON"
+)
+```
+
+```{python}
+#| echo: false
+#| warning: false
+#| fig-cap: "**Figure 2. County Economic Conditions.** County patterns in 2023 are shown for A) poverty rate in percent, B) unemployment rate in percent, C) median household income in dollars, and D) RPP as an index on which 100 is the national average price level. Each indicator captures a distinct dimension of local economic conditions, producing geographic patterns that do not fully overlap across measures."
+#|
+%%R -i pov_ctx_vmin -i pov_ctx_vmax -i unemp_ctx_vmin -i unemp_ctx_vmax -i inc_ctx_vmin -i inc_ctx_vmax -i rpp_ctx_vmin -i rpp_ctx_vmax -w 10 -h 9 -u in -r 150 -b transparent
+suppressMessages(library(sf))
+
+context_sf <- st_read("output/county_context.geojson", quiet=TRUE)
+
+context_panel_theme <- theme_void() +
+  theme(legend.position="bottom", legend.key.width=unit(1.1, "cm"),
+        plot.title=element_text(face="bold", size=11, hjust=0.5),
+        plot.background=element_rect(fill=NA, color=NA))
+
+bottom_guide <- guide_colorbar(direction="horizontal", title.position="bottom", title.hjust=0.5)
+
+p_pov <- ggplot(context_sf) +
+  geom_sf(aes(fill=poverty_rate), color="white", linewidth=0.05) +
+  scale_fill_gradient(low="#FCFCFB", high=ORANGE, limits=c(pov_ctx_vmin, pov_ctx_vmax),
+                      oob=scales::squish, na.value="#EEEEEE", name="Poverty Rate (%)",
+                      guide=bottom_guide) +
+  coord_sf(crs=st_crs(5070), datum=NA) +
+  context_panel_theme +
+  labs(title="Poverty Rate")
+
+p_unemp <- ggplot(context_sf) +
+  geom_sf(aes(fill=unemployment_rate), color="white", linewidth=0.05) +
+  scale_fill_gradient(low="#FCFCFB", high=PINK, limits=c(unemp_ctx_vmin, unemp_ctx_vmax),
+                      oob=scales::squish, na.value="#EEEEEE", name="Unemployment Rate (%)",
+                      guide=bottom_guide) +
+  coord_sf(crs=st_crs(5070), datum=NA) +
+  context_panel_theme +
+  labs(title="Unemployment Rate")
+
+p_inc <- ggplot(context_sf) +
+  geom_sf(aes(fill=median_household_income), color="white", linewidth=0.05) +
+  scale_fill_gradient(low="#FCFCFB", high=GREEN, limits=c(inc_ctx_vmin, inc_ctx_vmax),
+                      oob=scales::squish, na.value="#EEEEEE",
+                      labels=function(v) sprintf("$%.0fk", v/1000),
+                      name="Median Household Income",
+                      guide=bottom_guide) +
+  coord_sf(crs=st_crs(5070), datum=NA) +
+  context_panel_theme +
+  labs(title="Median Household Income")
+
+p_rpp <- ggplot(context_sf) +
+  geom_sf(aes(fill=rpp), color="white", linewidth=0.05) +
+  scale_fill_gradient(low="#FCFCFB", high=BLUE, limits=c(rpp_ctx_vmin, rpp_ctx_vmax),
+                      oob=scales::squish, na.value="#EEEEEE",
+                      name="Regional Price Parity",
+                      guide=bottom_guide) +
+  coord_sf(crs=st_crs(5070), datum=NA) +
+  context_panel_theme +
+  labs(title="Regional Price Parity")
+
+(p_pov | p_unemp) / (p_inc | p_rpp) +
+  plot_annotation(title="Four Views of County Economic Conditions",
+                  tag_levels="A", tag_suffix=")",
+                  theme=theme(plot.title=element_text(face="bold", size=13, hjust=0.5),
+                              plot.tag=element_text(face="bold", size=11, color="#0B0B0B")))
+```
+
+Geographic scale presented an additional measurement challenge because broader geographic units could obscure economic differences between nearby counties. Local prices and household resources varied within the same labor market, while earlier studies often combined several counties into a single regional measure. This aggregation could mask meaningful local variation that remained visible at the county level. @Curran2006 showed that accounting for geographic cost of living differences alters how places compare on economic wellbeing, which makes the choice of geographic unit consequential for any measure of household resources. By measuring purchasing power at the county level, we preserved more of this variation by incorporating both household income and local price levels. Additionally, we evaluated whether the association between purchasing power and county task groups was better represented in dollar terms or proportional terms. This approach addressed a gap in prior research, which examined task groups in relation to employment and wages without evaluating their association with purchasing power at the county level.

@@ -11,6 +11,7 @@ manuscript:
 format:
   html:
     embed-resources: true
+    notebook-view: false
     theme:
       light: lightly
       dark: darkly

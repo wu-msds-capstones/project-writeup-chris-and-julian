@@ -1,141 +1,302 @@
 # Data {#sec-data}
 
-## Data Collection
+## Data sources and study period
 
-Data for this analysis come from five datasets published by three U.S. federal agencies. Each was retrieved through an agency API or bulk file download and loaded into a PostgreSQL database. @tbl-sources reports each source, record counts, and the variables it supplies.
+This study integrated five federal datasets published by three agencies, summarized in @tbl-sources, along with the number of records and variables provided by each source. Most sources reported data at the county level, and they were joined using the county Federal Information Processing Standards (FIPS) code and the year. RPPs were published at the metropolitan area level and required an additional matching step. Counties were first linked to their metropolitan areas using the Census Bureau Core Based Statistical Area (CBSA) delineation file and then matched to the corresponding BEA price measure [@bea_rpp; @census_cbsa].
 
-| Source | Records retrieved | Variables supplied | Warehouse table |
-|---|---|---|---|
-| Census SAIPE | 50,283 | median household income, poverty rate | `county_baseline` |
-| BEA Regional Price Parities | 884 | county price level relative to the national average | `cbsa_rpp` |
-| Census CBSA delineation | 387 | county to metropolitan area crosswalk | `cbsa` |
-| ACS 1 year estimates | 15,690 | population, occupational employment by category | `county_baseline`, `county_task_exposure` |
-| BLS LAUS | 88,004 | unemployment rate | `county_baseline` |
+```{python}
+#| label: tbl-sources
+#| echo: false
+#| tbl-cap: "**Federal Data Sources.** The five federal datasets combined to build the county year panel. Each row names the source, the number of records retrieved, the variables it supplies, and the warehouse table it feeds."
+import pandas as pd
+from great_tables import GT
 
-: Federal data sources and variables supplied {#tbl-sources}
+sources_df=pd.DataFrame({
+    "Data Source": ["Small Area Income and Poverty Estimates",
+                    "Bureau of Economic Analysis Regional Price Parities",
+                    "Core Based Statistical Area delineation",
+                    "American Community Survey 1 year estimates",
+                    "Bureau of Labor Statistics Local Area Unemployment Statistics"],
+    "Abbreviation": ["Census SAIPE","BEA RPP","Census CBSA",
+                     "Census ACS","BLS LAUS"],
+    "Records": [50283, 884, 387, 15690, 88004],
+    "Measures": ["median household income, poverty rate",
+                 "county price level relative to the national average",
+                 "county to metropolitan area crosswalk",
+                 "population, occupational employment by category",
+                 "unemployment rate"],
+    "Destination Table": ["`county_baseline`","`cbsa_rpp`","`cbsa`",
+                          "`county_baseline`, `county_task_exposure`","`county_baseline`"],
+})
 
-The five sources arrive at two levels of observation: county by year, and metropolitan area. The pipeline transforms each to a common county by year grain, and county FIPS code and year together serve as the join key across the warehouse. Regional Price Parities require one extra step. BEA publishes them at the metropolitan area level, so counties are linked to their metropolitan area through the Census CBSA delineation file before joining.
+style_table(GT(sources_df)
+  .fmt_integer(columns="Records", use_seps=True)
+  .fmt_markdown(columns=["Destination Table"])
+  .cols_align(align="center", columns=["Abbreviation","Records","Measures","Destination Table"])
+  .cols_align(align="left", columns="Data Source")
+  .tab_source_note("Scale: 3,143 counties per year, 15 years (2008 to 2023, excluding 2020), 47,140 county year universe, 11,983 rows in the analytical panel.")
+  .tab_source_note("Records count rows retrieved from each source rather than analytical observations. The ACS publishes 1 year estimates only for areas above 65,000 residents, which reduces the universe to the 848 county panel.")
+  .tab_source_note("All sources retrieved June 2026 through agency APIs or bulk file download."))
+```
 
-The study period spans 2008 to 2023, excluding 2020. ACS suspended its 1 year estimates that year following COVID related disruptions to data collection. Because those estimates supply the occupational employment counts underlying the task group values, the task groups cannot be constructed for 2020. SAIPE publishes estimates for approximately 3,143 counties per year, giving 47,140 county year observations across the fifteen study years.[^universe]
+The study spans 2008 through 2023 but excludes 2020, because the American Community Survey (ACS) did not publish data due to disruptions of data collection during the COVID-19 pandemic [@census_acs]. Those estimates served as the occupational employment counts used to construct the task groups. Over the subsequent fifteen years, the Small Area Income and Poverty Estimates (SAIPE) program provided an initial sample of 47,140 county-year observations [@census_saipe].[^universe]
 
-[^universe]: Two jurisdictions present in SAIPE for all fifteen years, the District of Columbia (FIPS 11001) and Kalawao County, Hawaii (FIPS 15005), are absent from the county reference file and are therefore excluded from the panel. The District of Columbia exceeds the population threshold described below and would otherwise have been retained. Connecticut requires a related note: the state replaced its eight counties with nine planning regions beginning in 2022, and only the legacy counties were ingested, so Connecticut counties exit the panel after 2021 rather than continuing under successor codes.
+[^universe]: The District of Columbia and Kalawao County, Hawaii, are excluded because they are absent from the county reference file. Connecticut counties leave the panel after 2021 because the state replaced its legacy counties with planning regions beginning in 2022.
 
-## Measuring Task Groups
+## Analytical sample
 
-Following the task framework introduced in @sec-background, each of the broad occupational categories published in ACS 1 year estimates is assigned to one of four task groups: routine cognitive, routine manual, non routine cognitive, and non routine manual. The Census categories carry no such labels, so the assignment follows the classification logic of @AutorDorn2013: clerical and sales work as routine cognitive, production and construction work as routine manual, managerial, professional and technical work as non routine cognitive, and service work as non routine manual. For each county and year, the task group totals are the employment sums across the categories assigned to each group, shown in @eq-totals.
+The initial sample restriction stemmed from the coverage of the ACS occupational estimates. The Census Bureau published ACS 1 year occupational estimates exclusively for counties with populations of at least 65,000. Consequently, counties below this threshold lacked the employment counts necessary to construct the four task groups. Consequently, applying this restriction reduced the sample to 12,087 county-year observations across 848 counties. A subsequent restriction mandated the inclusion of complete model covariates, resulting in the removal of 104 observations with missing unemployment rates.[^ct-missing] However, population, median household income, and poverty rate data were complete throughout the sample.
+
+[^ct-missing]: All 104 missing observations came from Connecticut's eight legacy counties, where unemployment rates were unavailable at the required geography [@bls_laus]. Because the missingness reflected geography rather than unemployment itself, it was treated as missing at random.
+
+The final analytical sample comprised 11,983 county-year observations from 840 counties. All models presented in @sec-analysis and @sec-results used these same observations. To ensure unbiased machine learning evaluation, counties were exclusively included in either the training or test set, preventing observations from the same county from appearing in both partitions. @sec-analysis provides a detailed description of the evaluation procedure.
+
+The population threshold imposed a limitation on the scope of the results. While the 840 retained counties accounted for approximately 84% of the United States population, they represented a minority of all counties. Consequently, rural counties were underrepresented because the retained counties were generally more populous and metropolitan. The results were applicable to counties above the ACS publication threshold rather than the entire nation, a limitation discussed in @sec-conclusions.
+
+## Construction of task group measures
+
+Following the framework introduced in @sec-background, we classified broad occupational categories in the ACS 1 year estimates into four task groups, applying the task type distinctions of @Autor2003 and the occupation taxonomy of @AutorDorn2013. For instance, clerical and sales occupations were categorized as routine cognitive tasks, while service occupations were classified as non-routine manual tasks. Subsequently, we summed employment within each task group for every county and year.
 
 $$
 T_{g,c,t} = \sum_{o \in g} E_{o,c,t}
 $$ {#eq-totals}
 
-Here $E_{o,c,t}$ is employment in occupational category $o$ in county $c$ during year $t$, and the sum runs over the categories assigned to group $g$. No task rating weights are applied. Each group total is a simple employment count over the categories assigned to it, so a county's four values describe the composition of its workforce rather than a rated intensity of any task. The four totals are then divided by their sum, as in @eq-group, so that each county year is described by four values on a zero to one scale that sum to one. These four values are the county's task score.
+Here, $T_{g,c,t}$ represented total employment in task group $g$ for county $c$ in year $t$. The sum ran over the occupational categories $o$ assigned to that group, and $E_{o,c,t}$ represented employment in a single category. Since the calculation used employment counts without task intensity weights, each total represented the number of jobs in that group. Scoring each occupation continuously, as @AutorDorn2013 did, would have required employment counts for detailed occupations, which the Census Bureau did not publish for counties. Every job within a broad category therefore carried equal weight, and variation in task content inside those categories went unmeasured. Dividing each group’s total by the total across all four groups, as shown in @eq-group, converted these totals into proportions between zero and one that summed to one.
 
 $$
 G_{g,c,t} = \frac{T_{g,c,t}}{\sum_{g'} T_{g',c,t}}
 $$ {#eq-group}
 
-Normalizing by the four group total converts employment counts into a composition, so counties of very different sizes are described on a common scale and the quantity of interest is the relative mix of work rather than its volume. The implications for estimation are reported in @sec-analysis.
+Here, $G_{g,c,t}$ represented the proportion of employment in task group $g$, and $g'$ indexed the four groups summed in the denominator.
 
-Retaining four separate groups, rather than collapsing them into a single routine intensity index, preserves a distinction that a composite measure erases. Under one index, a county shifting away from clerical work and a county shifting away from assembly work look identical.
+These proportions assigned counties of varying sizes to a common scale. Since the four proportions added up to one, non-routine cognitive work was excluded from the regression as the reference group, and the remaining coefficients were interpreted in relation to it. We maintained the four task groups as separate entities because a single routine intensity index would obscure differences between types of work. For instance, a shift away from clerical work and a shift away from assembly work could otherwise appear identical. @sec-analysis provides an explanation of how the task groups were incorporated into the models.
 
-## Measuring Purchasing Power
+Additionally, the Census Bureau revised its occupational classification between 2009 and 2010. While some category boundaries changed, their assignment to the four task groups remained consistent. @sec-analysis reports the corresponding robustness checks.
 
-The outcome variable is purchasing power, measured in dollars and defined in @eq-afford as county median household income, from the Census SAIPE program, divided by the local Regional Price Parity. BEA publishes parities as an index with the national average set to 100, so dividing by 100 converts the index into a price multiplier.
+## Construction of the purchasing power measure
+
+Median household income was used because it represented the income of a typical household better than the mean, which was more sensitive to high incomes in a positively skewed distribution [@Chiripanhura2011]. It described what households received rather than what they could buy.
+
+The outcome was measured as purchasing power to account for variations in what household income could purchase across different counties. We calculated it by adjusting the county median household income from SAIPE [@census_saipe] using RPPs. These provided local price levels relative to the national average [@bea_rpp]. Since the index was expressed as a percentage, dividing it by 100 converted it into a price multiplier. Subsequently, we divided the median household income by this multiplier to determine purchasing power, as illustrated in @eq-afford.
 
 $$
 A_{c,t} = \frac{\text{Median household income}_{c,t}}{\text{RPP}_{c,t} / 100}
 $$ {#eq-afford}
 
-A county with a median household income of \$60,000 and a price parity of 120 has a purchasing power of \$50,000, meaning local income buys what \$50,000 would buy at national average prices. Stated this way, income is comparable across counties, since a given figure purchases roughly the same bundle wherever it appears.
+Here, $A_{c,t}$ represented purchasing power for county $c$ in year $t$, and $\text{RPP}_{c,t}$ represented the RPP for that same county and year.
 
-Regional Price Parities correct for price differences between places but not between years, so purchasing power is not deflated to a constant base year and the series is in nominal dollars. Year indicators in the regression absorb whatever is common to all counties in a given year, national price movement included. The task group coefficients are therefore comparisons across counties within a year and are unaffected by this. The year effects themselves are not, since they carry price level drift alongside any other national change, and they are reported as nuisance parameters rather than as evidence of rising purchasing power.
+For instance, consider a county with a median household income of \$60,000 and an RPP of 120. This means that its income could buy approximately what \$50,000 would buy at the national average prices. This adjustment made household income more comparable across counties by accounting for variations in local prices. However, since BEA did not publish separate RPPs for counties outside metropolitan areas, those counties were assigned the corresponding state-level parity. Within the analytical panel, 45.5% of county-year observations used a metropolitan parity, while 54.5% used the state measure. Consequently, more than half of the panel relied on a state average that did not account for price differences within the state.
 
-Counties outside any metropolitan area have no published parity of their own and take their state parity instead. Within the analytical panel, 45.5 percent of county year rows use a metropolitan parity and 54.5 percent use the state fallback. This is a substantive limitation, since a single state level price index is applied to counties whose actual price levels differ, and a majority of panel rows carry it. The counties involved are above the 65,000 population threshold but predominantly outside metropolitan statistical areas, where BEA publishes no local parity.
+### Inflation and year indicators
 
-## Control Variables
+RPPs were adjusted for variations across regions but not for changes in the national price level over time. Consequently, purchasing power was reported in nominal U.S. dollars. A national deflator would apply the same annual adjustment to every county. In the log specification, this adjustment would be incorporated into the year indicators, leaving the task group and control coefficients unchanged. Additionally, the year indicators captured other changes that occurred simultaneously across counties within a year, making it impossible to interpret their coefficients solely as inflation. @sec-analysis provides an explanation of how the year indicators were incorporated into the model, while @sec-conclusions addresses this limitation.
 
-Three baseline county conditions enter the models as controls. Unemployment rate comes from BLS LAUS and poverty rate from the Census SAIPE program, both measured in percentage points. Total population comes from ACS 1 year estimates and enters the models in logs. Unemployment and poverty capture labor market slack and material hardship that would otherwise be attributed to task groups. Population accounts for scale differences across counties, which range from the ACS publication threshold of 65,000 to the roughly 10.2 million residents of Los Angeles County.
+## Control variables
 
-## Storage and Organization
+The analysis incorporated poverty rate, unemployment rate, and population as county-level covariates. Poverty and unemployment captured the economic distress mentioned in @sec-background, enabling the analysis to determine if task groups provided information beyond these measures. Median household income directly entered the purchasing power outcome, so it was not included as a control variable. Population accounted for variations in county size, which could otherwise affect the estimates.
 
-Data are stored in PostgreSQL across two databases that serve different purposes.
+Figure 3 displayed the distributions of poverty rate, unemployment rate, population, and median household income across the same task group panel used in Figure 9. All four variables were right skewed, but population was the most extreme and therefore entered the analysis in logarithmic form. Poverty rate, unemployment rate, and median household income remained in their original units. This supported the log respecification in @sec-analysis as a response to the outcome's own distribution rather than a transformation applied across all variables.
 
-The first is a data lake of roughly 41 tables holding raw retrievals and intermediate results, deliberately left unnormalized. Its purpose is traceability. Any figure in this report can be traced back to the records it came from, and any processing step can be rerun without returning to an agency API, including retrievals for analysis branches later scoped out.
+```{python}
+#| label: baseline-dists-data
+#| include: false
+import os
+from sqlalchemy import create_engine
+from dotenv import load_dotenv
 
-The second is the analytical warehouse of eleven tables, whose analytical core is in third normal form. All cleaning occurs upstream, so the warehouse is effectively read only from the perspective of the analysis. @fig-erd shows the eight tables the analysis reads; a population staging table, a compatibility view, and an employment composition table retained from an earlier analysis branch are omitted.
+load_dotenv()
+engine=create_engine(os.environ["AUTORACK_URL"], pool_pre_ping=True, pool_recycle=300)
+baseline_df=pd.read_sql("""
+select ca.county_fips, ca.year, cb.poverty_rate, cb.unemployment_rate,
+    cb.population, cb.median_household_income
+from county_affordability ca
+join county_task_exposure cte on ca.county_fips=cte.county_fips and ca.year=cte.year
+join county_baseline cb on ca.county_fips=cb.county_fips and ca.year=cb.year
+""", engine)
 
-```{mermaid}
-%%| label: fig-erd
-%%| fig-cap: "Warehouse schema in third normal form"
-erDiagram
-    state {
-        varchar state_code PK
-        varchar state_name
-    }
-    county {
-        bigint county_fips PK
-        varchar county_name
-        varchar state_code FK
-    }
-    cbsa {
-        varchar cbsa_code PK
-        varchar cbsa_name
-    }
-    county_cbsa_code {
-        bigint county_fips PK,FK
-        varchar cbsa_code PK,FK
-    }
-    cbsa_rpp {
-        varchar cbsa_code PK,FK
-        int year PK
-        numeric rpp_value
-    }
-    county_baseline {
-        bigint county_fips PK,FK
-        int year PK
-        numeric population
-        numeric median_household_income
-        numeric poverty_rate
-        numeric unemployment_rate
-    }
-    county_task_exposure {
-        bigint county_fips PK,FK
-        int year PK
-        numeric routine_cognitive
-        numeric routine_manual
-        numeric non_routine_cognitive
-        numeric non_routine_manual
-        numeric routine_cognitive_share "generated"
-        numeric routine_manual_share "generated"
-        numeric non_routine_cognitive_share "generated"
-        numeric non_routine_manual_share "generated"
-    }
-    county_affordability {
-        bigint county_fips PK,FK
-        int year PK
-        numeric affordability_salary
-    }
-    state ||--o{ county : contains
-    county ||--o{ county_baseline : ""
-    county ||--o{ county_task_exposure : ""
-    county ||--o{ county_affordability : ""
-    county ||--o{ county_cbsa_code : ""
-    cbsa ||--o{ county_cbsa_code : ""
-    cbsa ||--o{ cbsa_rpp : ""
+baseline_names={"poverty_rate":"Poverty Rate (%)", "unemployment_rate":"Unemployment Rate (%)",
+                "population":"Population", "median_household_income":"Median Household Income ($)"}
+baseline_long=baseline_df.melt(value_vars=list(baseline_names.keys()),
+                               var_name="variable", value_name="value")
+baseline_long["variable"]=baseline_long["variable"].map(baseline_names)
 ```
 
-The schema centers on a `county` table keyed by FIPS code, with `state` as a reference table. Three fact tables join to `county` on FIPS code and year. `county_baseline` holds population, median household income, poverty rate and unemployment rate, `county_task_exposure` holds the four task group totals from @eq-totals, and `county_affordability` holds the outcome variable. Two table names are historical. `county_task_exposure` dates from an earlier measure built on O*NET task ratings that was not carried forward, and the values it holds are the employment totals of @eq-totals. `county_affordability` and its `affordability_salary` column predate the purchasing power terminology used throughout this report; the quantity stored is the one defined in @eq-afford. The normalized values from @eq-group are not computed in analysis code but stored as generated columns, which the database derives from the four totals on every write. The equation is enforced in the schema itself, so no analysis can read a stale or inconsistently normalized value.
+```{python}
+#| echo: false
+#| warning: false
+#| fig-cap: "**Figure 3. Distribution of the Control Variables.** Across the 12,087 county year task group panel, shown as violin plots with an embedded box marking the median, interquartile range, and outliers. A) Poverty rate and B) unemployment rate are both right skewed, with unemployment the more extreme of the two; both are shown in percent. C) Population is plotted on a logarithmic scale because it spans several orders of magnitude, which is also why the models use its log form. D) Median household income, in dollars, is right skewed with a moderate upper tail."
 
-Price parities require a separate path. Metropolitan membership is kept out of the `county` table and in the `county_cbsa_code` junction table, so counties outside any metropolitan area carry no null CBSA fields, and the crosswalk stands alone as its own fact. From there `cbsa` connects to `cbsa_rpp`. Storing parities at the CBSA level reflects the level at which BEA measures them and avoids repeating a single value across every county in a metropolitan area.
+%%R -i baseline_long -w 9 -h 7 -u in -r 150 -b transparent
+baseline_order <- c("Poverty Rate (%)","Unemployment Rate (%)","Population","Median Household Income ($)")
+baseline_long$variable <- factor(baseline_long$variable, levels=baseline_order)
 
-## The Analytical Dataset
+p_pov <- ggplot(subset(baseline_long, variable=="Poverty Rate (%)"), aes(x=variable, y=value)) +
+  geom_violin(fill=ORANGE, color=ORANGE, alpha=0.35, linewidth=0.6, trim=TRUE) +
+  geom_boxplot(width=0.12, fill="white", color="grey30", alpha=0.7,
+               outlier.size=0.8, outlier.alpha=0.5) +
+  scale_y_continuous(labels=function(v) sprintf("%g%%", v), breaks=scales::pretty_breaks(n=4)) +
+  labs(title="Poverty Rate", x=NULL, y="Percent") +
+  theme(axis.text.x=element_blank(), plot.title=element_text(size=11),
+        panel.grid=element_blank())
 
-The 47,140 county year observations described above are the records the source data support, not the records the models estimate on. Two filters reduce it.
+p_unemp <- ggplot(subset(baseline_long, variable=="Unemployment Rate (%)"), aes(x=variable, y=value)) +
+  geom_violin(fill=PINK, color=PINK, alpha=0.35, linewidth=0.6, trim=TRUE) +
+  geom_boxplot(width=0.12, fill="white", color="grey30", alpha=0.7,
+               outlier.size=0.8, outlier.alpha=0.5) +
+  scale_y_continuous(labels=function(v) sprintf("%g%%", v), breaks=scales::pretty_breaks(n=4)) +
+  labs(title="Unemployment Rate", x=NULL, y="Percent") +
+  theme(axis.text.x=element_blank(), plot.title=element_text(size=11),
+        panel.grid=element_blank())
 
-Task group coverage is the binding constraint. The occupational employment counts that build the four task groups come from ACS 1 year estimates, which the Census Bureau publishes only for areas with populations above 65,000. Counties below that threshold have no occupational estimates in any year, so no task groups can be constructed for them. This leaves 12,087 county year observations across 848 counties, roughly a quarter of the 47,140.
+p_pop <- ggplot(subset(baseline_long, variable=="Population"), aes(x=variable, y=value)) +
+  geom_violin(fill="#2A78D6", color="#2A78D6", alpha=0.35, linewidth=0.6, trim=TRUE) +
+  geom_boxplot(width=0.12, fill="white", color="grey30", alpha=0.7,
+               outlier.size=0.8, outlier.alpha=0.5) +
+  scale_y_log10(labels=label_comma(), breaks=scales::log_breaks(n=4)) +
+  labs(title="Population", x=NULL, y="Residents (Log Scale)") +
+  theme(axis.text.x=element_blank(), plot.title=element_text(size=11),
+        panel.grid=element_blank())
 
-Requiring non missing controls removes a further 104 observations. Every one of the 104 is missing an unemployment rate, giving BLS LAUS a coverage rate of 99.1 percent across the retained counties. Population, median household income and poverty rate are complete. The estimation sample is therefore 11,983 county year observations, and all models reported in @sec-analysis and @sec-results fit on these same rows.
+p_inc <- ggplot(subset(baseline_long, variable=="Median Household Income ($)"), aes(x=variable, y=value)) +
+  geom_violin(fill=GREEN, color=GREEN, alpha=0.35, linewidth=0.6, trim=TRUE) +
+  geom_boxplot(width=0.12, fill="white", color="grey30", alpha=0.7,
+               outlier.size=0.8, outlier.alpha=0.5) +
+  scale_y_continuous(labels=dollar_axis, breaks=scales::pretty_breaks(n=4)) +
+  labs(title="Median Household Income", x=NULL, y="Dollars") +
+  theme(axis.text.x=element_blank(), plot.title=element_text(size=11),
+        panel.grid=element_blank())
 
-The 848 counties are also the unit the machine learning models split on. Because a county appears in the panel up to fifteen times, splitting rows at random would place the same county in both training and test data, so the split is grouped by county and every observation of a given county falls entirely on one side. This makes 848, rather than 11,983, the effective sample size for held out evaluation. The reasoning behind the grouped split is taken up in @sec-analysis.
+(p_pov | p_unemp) / (p_pop | p_inc) +
+  plot_annotation(title="Distribution of the Control Variables",
+                  tag_levels="A", tag_suffix=")",
+                  theme=theme(plot.title=element_text(face="bold", size=13, hjust=0.5),
+                              plot.tag=element_text(face="bold", size=11, color="#0B0B0B")))
+```
 
-The population threshold shapes what the results can describe. The 848 retained counties hold the large majority of the United States population but a minority of its counties, and they are more metropolitan, more populous and more economically diverse than those dropped. Rural counties are underrepresented as a direct consequence. The restriction covers the regression coefficients and the machine learning results alike, so the partial dependence curves and importance rankings in @sec-results describe how the models behave across counties above 65,000 residents rather than across counties in general. @sec-conclusions returns to this limitation and to one approach for addressing it in future work.
+## Data architecture and organization
+
+The data architecture separated raw source records from the tables used for analysis. Raw retrievals and intermediate results were stored in a PostgreSQL data lake containing 41 tables, which remained unnormalized to maintain traceability. Processed data were then written to an analytical warehouse containing eleven tables. In this warehouse, county identifiers were standardized, records were restricted to the study period, jurisdictions outside the panel were removed, and foreign key constraints were enforced.
+
+Figure 4 provided a diagram that summarized the path from federal sources through the data lake and warehouse to the analysis-ready tables.
+
+```{python}
+#| fig-cap: "**Figure 4. Data Pipeline Architecture, Source to Analysis Ready Output.** Federal sources feed a raw data lake, which feeds the normalized warehouse, which feeds the analysis ready county year table. Node fill marks the publishing agency. Warehouse tables list their columns with primary and foreign keys marked, and the four task group proportions marked as generated columns derived from the group totals. Three supporting warehouse tables not used in the models are omitted."
+#| echo: false
+import graphviz
+
+def entity(name, rows):
+    body = f'<TR><TD COLSPAN="3" BGCOLOR="#2A78D6"><FONT COLOR="white" POINT-SIZE="15"><B>{name}</B></FONT></TD></TR>'
+    for typ, col, marker in rows:
+        m = f'<FONT COLOR="#8F8D87" POINT-SIZE="10">{marker}</FONT>' if marker else ""
+        body += f'<TR><TD ALIGN="LEFT"><FONT POINT-SIZE="10">{typ}</FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="13">{col}</FONT></TD><TD ALIGN="LEFT">{m}</TD></TR>'
+    return f'<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="3" BGCOLOR="white">{body}</TABLE>>'
+
+CENSUS_FILL = "#DCEEF7"; CENSUS_BORDER = "#2A78D6"
+BEA_FILL = "#DCF3EA"; BEA_BORDER = "#1BAF7A"
+BLS_FILL = "#F7DCE6"; BLS_BORDER = "#C2255C"
+OUT_FILL = "#FBE3D3"; OUT_BORDER = "#EB6834"
+LAKE_FILL = "#EDEDEA"; LAKE_BORDER = "#8F8D87"
+
+dot = f'''
+digraph architecture {{
+  rankdir=TB
+  compound=true
+  bgcolor="transparent"
+  fontname="Helvetica"
+  label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD><FONT FACE="Helvetica-Bold" POINT-SIZE="24">Data Pipeline Architecture</FONT></TD></TR></TABLE>>
+  labelloc="t"
+  nodesep=0.4
+  ranksep=0.9
+  node [fontname="Helvetica", shape=box, style="rounded", color="#C3C2B7"]
+  edge [fontname="Helvetica", color="black", arrowsize=0.6]
+
+  subgraph cluster_source {{
+    label="Data Sources"
+    labeljust="c"
+    fontsize=16
+    fontname="Helvetica-Bold"
+    style="rounded"
+    color="#C3C2B7"
+    bgcolor="#F2F8FC"
+    margin=18
+    node [style="filled,rounded", margin="0.1,0.05", fontsize=14]
+    src_census [label="Census Bureau\\nSAIPE · ACS 1yr · CBSA delineation", fillcolor="{CENSUS_FILL}", color="{CENSUS_BORDER}"]
+    src_bea [label="BEA\\nRegional Price Parities", fillcolor="{BEA_FILL}", color="{BEA_BORDER}"]
+    src_bls [label="BLS\\nLAUS", fillcolor="{BLS_FILL}", color="{BLS_BORDER}"]
+  }}
+
+  subgraph cluster_lake {{
+    label="Data Lake"
+    labeljust="c"
+    fontsize=16
+    fontname="Helvetica-Bold"
+    style="rounded"
+    color="#C3C2B7"
+    bgcolor="#F4F4F1"
+    margin=18
+    node [style="filled,rounded", fillcolor="{LAKE_FILL}", color="{LAKE_BORDER}", margin="0.1,0.05", fontsize=14]
+    lake [label="Raw retrievals and intermediate results\\n41 tables, unnormalized"]
+  }}
+
+  subgraph cluster_warehouse {{
+    label="Data Warehouse (3NF)"
+    labeljust="c"
+    fontsize=16
+    fontname="Helvetica-Bold"
+    style="rounded"
+    color="#C3C2B7"
+    bgcolor="#F2FAF6"
+    margin=18
+    node [shape=plain]
+
+    state [label={entity("state", [("varchar","state_code","PK"),("varchar","state_name","")])}]
+    county [label={entity("county", [("bigint","county_fips","PK"),("varchar","county_name",""),("varchar","state_code","FK")])}]
+    county_baseline [label={entity("county_baseline", [("bigint","county_fips","PK,FK"),("int","year","PK"),("numeric","population",""),("numeric","median_household_income",""),("numeric","poverty_rate",""),("numeric","unemployment_rate","")])}]
+    county_task_exposure [label={entity("county_task_exposure", [("bigint","county_fips","PK,FK"),("int","year","PK"),("numeric","routine_cognitive_share","generated"),("numeric","routine_manual_share","generated"),("numeric","non_routine_cognitive_share","generated"),("numeric","non_routine_manual_share","generated")])}]
+    county_affordability [label={entity("county_affordability", [("bigint","county_fips","PK,FK"),("int","year","PK"),("numeric","affordability_salary","")])}]
+    county_cbsa_code [label={entity("county_cbsa_code", [("bigint","county_fips","PK,FK"),("varchar","cbsa_code","PK,FK")])}]
+    cbsa [label={entity("cbsa", [("varchar","cbsa_code","PK"),("varchar","cbsa_name","")])}]
+    cbsa_rpp [label={entity("cbsa_rpp", [("varchar","cbsa_code","PK,FK"),("int","year","PK"),("numeric","rpp_value","")])}]
+
+    {{rank=same; county_baseline; county_task_exposure; county_affordability}}
+
+    state -> county
+    county -> county_baseline
+    county -> county_task_exposure
+    county -> county_affordability
+    county -> county_cbsa_code
+    county_cbsa_code -> cbsa
+    cbsa -> cbsa_rpp
+  }}
+
+  subgraph cluster_output {{
+    label="Modeling Tables"
+    labeljust="c"
+    fontsize=16
+    fontname="Helvetica-Bold"
+    style="rounded"
+    color="#C3C2B7"
+    bgcolor="#FDF5EF"
+    margin=18
+    node [style="filled,rounded", fillcolor="{OUT_FILL}", color="{OUT_BORDER}", margin="0.1,0.05", fontsize=14]
+    analysis_table [label="Analysis ready county year table\\n(joined on county_fips and year)"]
+    models [label="Statistical and ML models"]
+    figures [label="Figures and tables"]
+    {{rank=same; models; figures}}
+    analysis_table -> models
+    analysis_table -> figures
+  }}
+
+  src_census -> lake [ltail="cluster_source", lhead="cluster_lake", minlen=2]
+  src_bea -> lake [ltail="cluster_source", lhead="cluster_lake", minlen=2]
+  src_bls -> lake [ltail="cluster_source", lhead="cluster_lake", minlen=2]
+  lake -> state [ltail="cluster_lake", lhead="cluster_warehouse", minlen=2]
+  county_affordability -> analysis_table [ltail="cluster_warehouse", lhead="cluster_output", minlen=2]
+  county_baseline -> analysis_table [style=invis]
+  county_task_exposure -> analysis_table [style=invis]
+}}
+'''
+graphviz.Source(dot)
+```
+
+The warehouse is organized around a county table, which is keyed by FIPS code and linked to the state as a reference table. Three analytical tables join to each county by FIPS code and year. The county_baseline table contains population, median household income, poverty rate, and unemployment rate. The county_task_exposure table contains the four task group totals defined in @eq-totals, while the county_affordability table contains the purchasing power outcome.

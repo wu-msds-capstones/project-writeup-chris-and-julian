@@ -1,9 +1,6 @@
 ---
 title: "Automation and Affordability in U.S. Counties"
 subtitle: "Is the task composition of local work associated with what residents can afford?"
-authors:
-  - Chris Bell
-  - Julian Pacheco
 bibliography: references.bib
 title-block-banner: true
 format:
@@ -12,6 +9,91 @@ format:
       light: lightly
       dark: darkly
 ---
+
+```{python}
+#| include: false
+import os
+import sys
+os.environ["R_HOME"]=os.path.join(sys.prefix, "lib", "R")
+%load_ext rpy2.ipython
+import rpy2.robjects as ro
+from great_tables import style, loc
+ro.r('''
+suppressMessages({
+  library(ggplot2)
+  library(patchwork)
+  library(scales)
+})
+
+BLUE <- "#2A78D6"
+ORANGE <- "#EB6834"
+GREEN <- "#1BAF7A"
+PINK <- "#C2255C"
+GREY <- "#8F8D87"
+
+RED <- "#F21A00"
+PURPLE <- "#35274A"
+FOREST <- "#0B775E"
+BROWN <- "#79402E"
+MAGENTA <- "#E6A0C4"
+
+PP_PURPLE <- "#8659C4"
+RC_TEAL <- "#51C3CC"
+RM_TEAL <- "#006666"
+NRC_ORANGE <- "#FFAD65"
+NRM_ORANGE <- "#993F00"
+TASK_COLORS <- c(
+  "Purchasing Power" = PP_PURPLE,
+  "Routine Cognitive" = RC_TEAL,
+  "Routine Manual" = RM_TEAL,
+  "Non-Routine Cognitive" = NRC_ORANGE,
+  "Non-Routine Manual" = NRM_ORANGE
+  )
+
+# Dollar axis labels, used by every figure reporting purchasing power.
+dollar_axis <- function(v) ifelse(is.na(v), "", ifelse(v == 0, "$0",
+  sprintf("%s$%s", ifelse(v < 0, "-", ""), formatC(abs(v), format="d", big.mark=","))))
+
+theme_set(
+  theme_minimal(base_size=9.5) +
+    theme(
+      panel.background=element_rect(fill=NA, color=NA),
+      plot.background=element_rect(fill=NA, color=NA),
+      panel.grid=element_blank(),
+      plot.title=element_text(face="bold", size=13, color="#0B0B0B", hjust=0.5, margin=margin(b=4)),
+      plot.subtitle=element_text(size=8.5, color="#52514E", margin=margin(b=8)),
+      strip.background=element_blank(),
+      strip.text=element_text(face="bold", size=9, color="#0B0B0B"),
+      axis.line=element_line(color="#0B0B0B", linewidth=0.4),
+      axis.ticks=element_blank(),
+      axis.text=element_text(size=9, color="#0B0B0B", face="bold"),
+      axis.title=element_text(size=9.5, color="#0B0B0B"),
+      legend.position="bottom",
+      legend.title=element_blank(),
+      legend.text=element_text(size=8.5, color="#0B0B0B"),
+      legend.key=element_blank(),
+      plot.margin=margin(10, 14, 8, 10)
+    )
+)
+''')
+
+def style_table(gt):
+    """Shared table typography, applied to every GT table in the report so table
+    text reads clearly smaller than body prose (great_tables defaults to 16px,
+    matching body text)."""
+    return gt.tab_options(
+        table_font_size="12.5px",
+        table_background_color="transparent",
+        heading_title_font_size="14px",
+        heading_subtitle_font_size="12px",
+        column_labels_font_size="12.5px",
+        column_labels_font_weight="bold",
+        source_notes_font_size="10.5px",
+    ).tab_style(
+        style=style.text(style="italic"),
+        locations=loc.source_notes(),
+    )
+```
 
 {{< include _01_intro.qmd >}}
 {{< include _02_background.qmd >}}
