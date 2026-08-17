@@ -53,7 +53,7 @@ reg["fitted_log"]=model_log.fittedvalues
 
 ## The unadjusted relationship
 
-The analysis commenced by examining the unadjusted relationship between task groups and purchasing power. Across the panel, the two manual groups exhibited the most pronounced negative relationships, while non-routine cognitive tasks showed a positive correlation, and routine cognitive tasks remained relatively flat (@fig-raw-scatter). None of these relationships were strong enough to stand alone, prompting the subsequent adjustment analysis. Interestingly, the same ordering persisted after the adjustment.
+The analysis commenced by examining the unadjusted relationship between task groups and purchasing power. Across the panel, the two manual groups exhibited the most pronounced negative relationships, while non-routine cognitive tasks showed a positive correlation, and routine cognitive tasks remained relatively flat (@fig-raw-scatter). None of these relationships were strong enough to stand alone, prompting the subsequent adjustment analysis.
 
 ```{python}
 #| include: false
@@ -248,7 +248,7 @@ Standard errors were clustered by county because repeated observations within th
 
 ### Collinearity and the reference group
 
-The unnormalized employment totals of @eq-totals are not suitable for regression analysis. A variance inflation factor (VIF) quantifies the extent to which a coefficient is affected by its correlation with other inputs, and a value exceeding 10 is considered a serious concern. The four employment totals exhibit factors ranging from 13 to 27, as they all represent employment counts that are proportional to county size and therefore exhibit a strong correlation. When fitted on these totals, the coefficients were unstable, and their standard errors were notably large compared to their magnitudes, which are typical indicators of multicollinearity. The proposed specification addresses this issue twice (@fig-vif). Normalizing the data by the four group total, as described in @sec-data, eliminates the shared scale, while dropping non-routine cognitive as the reference group removes the constraint that the four proportions must sum to one. Consequently, every factor in the estimated specification falls within the range of 1.2 to 1.6.
+The unnormalized employment totals of @eq-totals are not suitable for regression analysis. A variance inflation factor (VIF) quantifies the extent to which a coefficient is affected by its correlation with other inputs, and a value exceeding 10 is considered a serious concern. The four employment totals exhibit factors ranging from 13 to 27, as they all represent employment counts that are proportional to county size and therefore exhibit a strong correlation. When fitted on these totals, the coefficients were unstable, and their standard errors were notably large compared to their magnitudes, which are typical indicators of multicollinearity. The proposed specification addresses this issue twice (@fig-vif). Normalizing the data by the four group total, as described in @sec-data, eliminates the shared scale, while using non-routine cognitive as the reference group, as established above, removes the constraint that the four proportions must sum to one. Consequently, every factor in the estimated specification falls within the range of 1.2 to 1.6.
 
 ```{python}
 #| include: false
@@ -800,13 +800,13 @@ feature_cols=[
 model_df=df_ml.dropna(subset=feature_cols).reset_index(drop=True).copy()
 ```
 
-Each task group was defined based on its proportion of total employment, ensuring that the sum of the four values equaled one for each county and year. Since increasing one group inevitably reduced at least one of the others, all four proportions could not simultaneously enter the linear specification without perfect collinearity. Consequently, non-routine cognitive tasks were excluded as the reference group, aligning with the panel regression approach. This decision maintained consistency in interpreting the task group coefficients across both inferential and predictive analyses.
+Consistent with the reference-group approach established in Section 4.2, non-routine cognitive tasks were excluded from the predictive specification as well, maintaining consistency in interpreting the task group coefficients across both inferential and predictive analyses.
 
 State indicators also required a comparable reference category. Mean purchasing power varied widely across states, and a state situated near the center of that distribution served as the reference point (@fig-state-means). By selecting a state near the middle, comparisons were avoided to states with exceptionally high or low purchasing power, simplifying the interpretation of the resulting coefficients. While the choice of reference state did not affect the overall model fit, it influenced the expression of the state coefficients.
 
 #### Grouped train and test split
 
-This is not a forecasting exercise, and a time ordered split is not required for its usual reason. A grouped split is still necessary, because a county's economic profile barely moves year to year, which makes its 2018 and 2019 rows near duplicates. If two adjacent rows land on opposite sides of the split, the model can recall a county rather than learn a relationship. We group by county and split on row membership before any further feature engineering. The split assigns 9,565 county year observations to training and holds out the remaining 2,418, with no county contributing rows to both. Every test set prediction therefore comes from a county the model has seen nothing of, which tests whether the pattern generalizes to new places.
+This is not a forecasting exercise, and a time ordered split is not required for its usual reason. A grouped split is still necessary, because a county's economic profile barely moves year to year, which makes its 2018 and 2019 rows near duplicates. If two adjacent rows land on opposite sides of the split, the model can recall a county rather than learn a relationship. We group by county and split on row membership before any further feature engineering. The split assigns 9,565 county year observations to training and holds out the remaining 2,418, with no county contributing rows to both. All feature engineering was conducted after the split to maintain this separation. Consequently, every test observation originated from a county that was not represented in the training data. 
 
 ```{python}
 #| include: false
@@ -828,8 +828,6 @@ assert len(set(groups.iloc[train_idx]) & set(groups.iloc[test_idx]))==0
 #### Year and state indicators
 
 A grouped train and test split was used because observations from the same county were closely related across years. A random split could inadvertently place observations from the same county in both sets, potentially allowing the model to use information about a county it had already encountered. By grouping observations by county, we effectively eliminated this overlap and provided a more robust test of whether the observed relationship could generalize to new locations.
-
-The split allocated 9,565 county-year observations to the training set and 2,418 to the testing set, ensuring that each county appeared in only one of the two sets. All feature engineering was conducted after the split to maintain this separation. Consequently, every test observation originated from a county that was not represented in the training data.
 
 ```{python}
 #| include: false
@@ -1048,7 +1046,7 @@ X_train_sm=sm.add_constant(X_train)
 ols_model=sm.OLS(y_train, X_train_sm).fit()
 ```
 
-Adding year and state indicators increased the coefficient from 0.766 to 0.871, indicating that time and geography contributed to additional variation in purchasing power. The unemployment rate coefficient shifted from approximately in the baseline specification to in the full specification for each one percentage point increase in unemployment. This change in direction suggested that the baseline estimate accounted for geographic and temporal differences that were not previously considered. In contrast, the task group coefficients maintained their direction and relative ordering.
+Adding year and state indicators increased the R² from 0.766 to 0.871, indicating that time and geography contributed to additional variation in purchasing power. The unemployment rate coefficient shifted from approximately −$1,207 in the baseline specification to +$450 in the full specification for each one percentage point increase in unemployment. This change in direction suggested that the baseline estimate accounted for geographic and temporal differences that were not previously considered. In contrast, the task group coefficients maintained their direction and relative ordering.
 
 Residual curvature persisted even after the full level specification (@fig-diagnostics). This figure was important because the increase in the coefficient alone suggested that incorporating year and state indicators effectively improved the model. However, the diagnostics revealed that while these variables enhanced the overall fit, they failed to eliminate the systematic pattern in the residuals. This distinction indicated that the underlying issue was the functional form of purchasing power on its original dollar scale, rather than omitted time or geographic differences.
 
