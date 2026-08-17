@@ -162,7 +162,7 @@ ggplot(bw_df, aes(x=value, y=group, fill=component)) +
                              "Within Counties Over Time"=ORANGE), name=NULL) +
   guides(fill=guide_legend(reverse=TRUE)) +
   # in-bar labels carry the values, so the axis is dropped rather than encoding
-  # the same numbers twice. Same rule applied to fig-ablation and fig-importance.
+  # the same numbers twice
   scale_x_continuous(expand=c(0, 0)) +
   scale_y_discrete(expand=expansion(add=c(0.3, 0.3))) +
   labs(title="Between County vs. Within County Variation by Task Group",
@@ -491,9 +491,8 @@ y_min <- min(influence_pts$std_resid); y_max <- max(influence_pts$std_resid)
 x_rng <- x_max - x_min; y_rng <- y_max - y_min
 
 # the labelled points sit in one tight low leverage clump, so an inline label there
-# lands on a neighbouring marked point. They are pulled out into a stacked callout
-# column in the empty space above the contours and joined to their own point by a
-# leader line. A labelled point out in open space would keep an inline label instead.
+# lands on a neighbouring marked point. They are pulled into a stacked callout column
+# above the contours and joined to their own point by a leader line.
 is_clumped <- influence_labels$leverage < (x_min + 0.15 * x_rng)
 lab_call <- influence_labels[is_clumped, ]
 lab_inline <- influence_labels[!is_clumped, ]
@@ -547,15 +546,15 @@ ggplot() +
   geom_text(data=lab_inline, aes(x=leverage, y=std_resid+ny, label=label),
             size=3.0, color="#252525", hjust=-0.11) +
   # the axis stops just past the largest observed leverage rather than running on to
-  # an empty 0.014; the wide right expansion existed only to seat the removed note
+  # an empty 0.014
   scale_x_continuous(labels=scales::label_number(accuracy=0.001),
                      breaks=scales::breaks_pretty(n=8),
                      limits=c(NA, x_max),
                      expand=expansion(mult=c(0.02, 0.03))) +
   scale_y_continuous(breaks=scales::breaks_pretty(n=14),
                      expand=expansion(mult=c(0.06, 0.22))) +
-  # the one figure in the report that keeps gridlines: points are read against the
-  # Cook's distance contours, which needs a reference grid behind them
+  # points are read against the Cook's distance contours, which needs a reference
+  # grid behind them
   theme(panel.grid.major=element_line(color="#E4E3DE", linewidth=0.25)) +
   labs(title="Residuals Against Leverage With Cook's Distance Contours",
        x="Leverage (Hat Value)", y="Standardized Residual (Standard Deviations)")
@@ -886,14 +885,11 @@ ref_i <- which(state_df$state_label == reference_state_label)
 state_df$pt_color <- ifelse(seq_len(nrow(state_df)) %in% ref_i, ACCENT, "#0B0B0B")
 state_df$pt_size  <- ifelse(seq_len(nrow(state_df)) %in% ref_i, 3.8, 2.6)
 
-# the reference state's axis label picks up the same blue as its point. the styling rides
-# on the label text as markdown, since a vectorised element_text() is unsupported
-is_ref <- as.character(state_df$state_label) == reference_state_label
-axis_labels <- ifelse(is_ref,
-                      sprintf("**<span style='color:%s'>%s</span>**", ACCENT,
-                              as.character(state_df$state_label)),
-                      as.character(state_df$state_label))
-state_df$axis_label <- factor(axis_labels, levels=axis_labels)
+# the reference state's axis label picks up the same blue as its point. the colour and
+# face vectors follow the factor levels, which is the order the y axis draws them in
+is_ref <- levels(state_df$state_label) == reference_state_label
+lab_colors <- ifelse(is_ref, ACCENT, "#0B0B0B")
+lab_faces <- ifelse(is_ref, "bold", "plain")
 
 median_label <- sprintf("Median: $%.0fk", state_median/1000)
 n_states <- length(levels(state_df$state_label))
@@ -908,9 +904,7 @@ state_breaks <- state_breaks[state_breaks >= x_lo & state_breaks <= x_hi]
 low_mid  <- (x_lo + state_median) / 2
 high_mid <- (state_median + x_hi) / 2
 
-suppressPackageStartupMessages(library(ggtext))
-
-ggplot(state_df, aes(x=mean_pp, y=axis_label)) +
+ggplot(state_df, aes(x=mean_pp, y=state_label)) +
   annotate("rect", xmin=-Inf, xmax=state_median, ymin=-Inf, ymax=Inf,
            fill="#C0392B", alpha=0.10) +
   annotate("rect", xmin=state_median, xmax=Inf, ymin=-Inf, ymax=Inf,
@@ -924,7 +918,7 @@ ggplot(state_df, aes(x=mean_pp, y=axis_label)) +
   geom_vline(xintercept=state_median, linetype="dotted", linewidth=0.8, color=ACCENT) +
   annotate("text", x=state_median + (x_hi - x_lo) * 0.012, y=n_states + 1.9, label=median_label,
            size=3, color="black", hjust=0, vjust=0) +
-  geom_segment(aes(x=state_median, xend=mean_pp, yend=axis_label),
+  geom_segment(aes(x=state_median, xend=mean_pp, yend=state_label),
                linewidth=0.9, alpha=0.5, color="black") +
   geom_point(aes(color=pt_color, size=pt_size)) +
   scale_color_identity() +
@@ -936,7 +930,10 @@ ggplot(state_df, aes(x=mean_pp, y=axis_label)) +
   labs(title="Mean Purchasing Power by State",
        x="Mean Purchasing Power", y=NULL) +
   theme(
-    axis.text.y=element_markdown(size=7, colour="#0B0B0B"),
+    # vectorised colour is flagged as unofficial by ggplot2, so the notice is suppressed
+    # at construction; it is the only way to accent one axis label without ggtext, which
+    # renders markdown literally under the shared theme_minimal base
+    axis.text.y=suppressWarnings(element_text(size=7, colour=lab_colors, face=lab_faces)),
     panel.grid=element_blank(),
     plot.margin=margin(10,10,10,10)
   )
@@ -1230,9 +1227,8 @@ ggplot(rf_resid_df, aes(x=pred, y=resid)) +
                      guide=guide_axis(minor.ticks=TRUE)) +
   labs(title="Random Forest Residuals vs. Predicted Values",
        x="Predicted Values", y="Residuals") +
-  # gridlines off, so tick marks carry the scale instead. the shared theme blanks
-  # ticks globally, so they are switched back on here. the y axis adds minor ticks,
-  # drawn shorter than major ones so the labeled breaks still read first
+  # the y axis adds minor ticks, drawn shorter than major ones so the labeled
+  # breaks still read first
   theme(panel.grid=element_blank(),
         axis.ticks=element_line(color="#0B0B0B", linewidth=0.4),
         axis.ticks.length=unit(3.5, "pt"),
@@ -1462,8 +1458,7 @@ p1 <- ggplot(nn_init_df, aes(x=epoch, y=loss, color=series)) +
   geom_label(data=label_df1, aes(label=series, y=label_y), hjust=-0.1, size=3.4, fontface="bold",
              fill=NA, linewidth=0, label.padding=unit(0.08, "lines"), show.legend=FALSE) +
   # the minimum sits near the left edge here, so the label reads rightward off the
-  # marker instead of running off the panel and into the y axis title. Nudged
-  # further right and up so the now transparent label clears the validation curve.
+  # marker instead of running off the panel and into the y axis title
   annotate("label", x=best_init_epoch + 0.6, y=best_init_loss + ymax*0.26,
            label=paste0("Minimum validation loss\nepoch ", best_init_epoch),
            hjust=0, size=2.9, color="grey35", fill=NA, linewidth=0,

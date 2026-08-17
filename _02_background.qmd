@@ -93,7 +93,7 @@ n_labeled=int(occ_df.label.notna().sum())
 #| fig-cap: "**Figure 1. Occupations in the Task Framework.** Every detailed occupation in the Standard Occupational Classification crosswalk behind the American Community Survey, placed in the task group it was assigned to. Routine tasks follow explicit rules a machine can be programmed to carry out; non-routine tasks require judgment, adaptability, or in person interaction. Cognitive tasks work primarily with information; manual tasks work with physical objects and people. The horizontal and vertical axes name these two distinctions rather than a scale: assignment follows Autor and Dorn (2013) and is categorical, so a point's position inside its quadrant is scatter for legibility and carries no measured value. Color and point shape both mark the task group, and a readable subset of occupations is drawn larger and labeled. Community and social service and military occupations are assigned to no group and are excluded from the measure. Non-routine cognitive is the reference group omitted from the regression."
 %%R -i occ_df -w 10 -h 7 -u in -r 150 -b transparent
 # every occupation is one point; labeled points are the same points drawn larger.
-suppressMessages(library(ggrepel))
+suppressWarnings(suppressMessages(library(ggrepel)))
 lab <- occ_df[!is.na(occ_df$label), ]
 
 ggplot(occ_df, aes(x=x, y=y, color=group, shape=group)) +
@@ -106,11 +106,14 @@ ggplot(occ_df, aes(x=x, y=y, color=group, shape=group)) +
   geom_point(size=1, alpha=0.6, stroke=0.4) +
   geom_point(data=lab, size=3, alpha=1, stroke=0.7) +
   geom_point(data=lab, aes(x=x, y=y), inherit.aes=FALSE, shape=16, size=0.9,
-             color="#2B2B28") +
+             color="#0B0B0B") +
+  # point.size matches the enlarged labeled marker so a label is pushed clear of its
+  # own point rather than settling on top of it
   geom_text_repel(data=lab, aes(x=x, y=y, label=label), inherit.aes=FALSE,
-                  size=2.3, fontface="bold", color="#2B2B28", seed=510,
-                  box.padding=0.36, point.padding=0.3, min.segment.length=0.2,
-                  segment.color="#8F8D87", segment.size=0.25, max.overlaps=Inf) +
+                  size=2.3, fontface="bold", color="#0B0B0B", seed=510,
+                  point.size=3, box.padding=0.45, point.padding=0.4,
+                  min.segment.length=0.2, segment.color="#8F8D87",
+                  segment.size=0.25, max.overlaps=Inf) +
   scale_color_manual(values=c("Routine Cognitive"="#51C3CC", "Routine Manual"="#006666",
                               "Non-Routine Cognitive"="#FFAD65",
                               "Non-Routine Manual"="#993F00"), guide="none") +

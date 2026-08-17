@@ -61,7 +61,6 @@ ggplot(coef_df, aes(x=est, y=group, color=group)) +
                      expand=expansion(mult=c(0.1, 0.15))) +
   labs(title="Task Group Coefficients, Log Specification",
        x="Purchasing Power Change ($ per 1 pp)", y=NULL) +
-  # gridlines off, tick marks on in their place; the shared theme blanks ticks
   theme(panel.grid=element_blank(),
         axis.ticks.x=element_line(color="#0B0B0B", linewidth=0.4),
         axis.ticks.length.x=unit(2.5, "pt"))
@@ -239,7 +238,6 @@ ggplot(compare_df, aes(x=est, xmin=lo, xmax=hi, y=group, color=spec, shape=spec)
   scale_y_discrete(expand=expansion(add=0.6)) +
   labs(title="Task Group Coefficients Before and After Controls",
        x="Purchasing Power Change", y=NULL, color=NULL, shape=NULL) +
-  # gridlines off, tick marks on in their place; the shared theme blanks ticks
   theme(legend.position="bottom",
         panel.grid=element_blank(),
         axis.ticks.x=element_line(color="#0B0B0B", linewidth=0.4),
@@ -276,7 +274,7 @@ ggplot(ablation_df, aes(x=drop, y=model, fill=model)) +
   labs(title="Held Out R² Loss From Feature Block Removal",
        x="R² Loss", y=NULL) +
   # no gridlines: each bar carries its own value label, so a gridline is duplicate
-  # ink for a number the reader is already given (DATA 502 L5, data-ink ratio)
+  # ink for a number the reader is already given
   theme(panel.grid=element_blank())
 ```
 
@@ -319,7 +317,7 @@ ggplot(importance_df, aes(x=drop, y=feature, fill=block)) +
                      expand=expansion(mult=c(0, 0.15))) +
   labs(title="Feature Importance by Grouped Permutation",
        x="Drop in Held Out R² When Permuted", y=NULL, fill=NULL) +
-  # no gridlines, same reasoning as fig-ablation: the bars are directly labeled
+  # no gridlines: the bars are directly labeled
   theme(legend.position="bottom", panel.grid=element_blank())
 ```
 
@@ -347,7 +345,6 @@ pdp_df=pd.concat(pdp_frames, ignore_index=True)
 %%R -i pdp_df -w 9.5 -h 3.8 -u in -r 150 -b transparent
 pdp_levels <- c("Routine Cognitive","Routine Manual","Non-Routine Manual")
 pdp_df$group <- factor(pdp_df$group, levels=pdp_levels)
-# task group colors kept in the cell rather than referenced from capstone.qmd
 TASK_COLORS <- c(
   "Purchasing Power"      = "#8659C4",
   "Routine Cognitive"     = "#51C3CC",
@@ -377,7 +374,6 @@ ggplot(pdp_df, aes(x=x, y=y, color=group)) +
   labs(title="Partial Dependence on Each Task Group",
        x="Shift from Non-Routine Cognitive (Percentage Points)",
        y="Predicted Purchasing Power") +
-  # gridlines off, tick marks on in their place; the shared theme blanks ticks
   theme(panel.spacing=unit(1.2, "lines"), plot.margin=margin(16, 10, 8, 10),
         panel.grid=element_blank(),
         axis.ticks=element_line(color="#0B0B0B", linewidth=0.4),
@@ -499,14 +495,12 @@ ggplot(cv_folds, aes(x=x_spread, y=r2, color=model)) +
   scale_x_continuous(breaks=c(1,2), labels=c("Ordinary Least Squares","Random Forest"),
                       expand=expansion(add=0.6)) +
   # zoomed to the band the folds occupy. coord_cartesian rather than limits= so no
-  # fold is dropped; note this magnifies a mean gap of roughly 0.006, which the
-  # caption and surrounding prose both state in numbers rather than leaving to the eye
+  # fold is dropped; this magnifies a mean gap of roughly 0.006
   scale_y_continuous(breaks=seq(0.875, 0.975, 0.025)) +
   coord_cartesian(ylim=c(0.875, 0.975)) +
   labs(title="Held Out R² by Fold, Linear Model vs. Random Forest",
        x=NULL, y="Held Out R²") +
   guides(color="none") +
-  # gridlines off, tick marks on in their place; the shared theme blanks ticks
   theme(panel.grid=element_blank(),
         axis.ticks=element_line(color="#0B0B0B", linewidth=0.4),
         axis.ticks.length=unit(2.5, "pt"))
@@ -574,7 +568,6 @@ ggplot(binned_long, aes(x=rc_pct, y=pp, color=series)) +
                      expand=expansion(mult=c(0.02, 0.02))) +
   labs(title="Observed and Predicted Purchasing Power by Routine Cognitive Value",
        x="Routine Cognitive Value", y="Purchasing Power") +
-  # gridlines off, tick marks on in their place; the shared theme blanks ticks
   theme(panel.grid=element_blank(),
         axis.ticks=element_line(color="#0B0B0B", linewidth=0.4),
         axis.ticks.length=unit(2.5, "pt"))
@@ -736,11 +729,18 @@ change_stat <- do.call(rbind, lapply(split(change_long, change_long$group), func
                med=median(d$change, na.rm=TRUE),
                pct_up=mean(d$change > 0, na.rm=TRUE) * 100)))
 change_stat$med_lab <- sprintf("median %+.1fpp", change_stat$med)
+# the label sits outboard of its median tick, away from zero, so the zero line never
+# runs through the text where a median lands close to it
+change_stat$lab_x <- change_stat$med + ifelse(change_stat$med >= 0, 0.5, -0.5)
+change_stat$lab_h <- ifelse(change_stat$med >= 0, 0, 1)
 change_stat$dir_lab <- sprintf("%.0f%% of counties moved up", change_stat$pct_up)
 change_n <- length(unique(change_long$county_fips))
 change_bound_strip <- max(abs(change_long$change), na.rm=TRUE) * 1.05
 change_swarm <- 0.30   # swarm half height, y units
-change_lab_y <- 0.46   # annotation baseline, clear of the swarm
+change_lab_y <- 0.40   # median label baseline, clear of the swarm and its median tick
+# the direction label sits a line higher, so a median far along the axis cannot run
+# into it and read as one continuous string
+change_dir_y <- 0.56
 
 ggplot(change_long, aes(x=change, y=idx, color=group)) +
   geom_vline(xintercept=0, linewidth=0.4, color="#000000") +
@@ -752,10 +752,10 @@ ggplot(change_long, aes(x=change, y=idx, color=group)) +
                aes(x=med, xend=med, y=idx-change_swarm-0.04, yend=idx+change_swarm+0.04),
                color="#000000", linewidth=0.9) +
   geom_text(data=change_stat, inherit.aes=FALSE,
-            aes(x=med, y=idx+change_lab_y, label=med_lab),
+            aes(x=lab_x, y=idx+change_lab_y, label=med_lab, hjust=lab_h),
             size=2.9, fontface="bold", color="#000000") +
   geom_text(data=change_stat, inherit.aes=FALSE,
-            aes(y=idx+change_lab_y, label=dir_lab), x=change_bound_strip, hjust=1,
+            aes(y=idx+change_dir_y, label=dir_lab), x=change_bound_strip, hjust=1,
             size=2.8, color="#000000") +
   annotate("text", x=-change_bound_strip, y=0.42, hjust=0, size=2.8, color="#000000",
            label=sprintf("n = %s counties observed in both years",
@@ -769,7 +769,6 @@ ggplot(change_long, aes(x=change, y=idx, color=group)) +
                      limits=c(0.32, length(change_levels)+0.62)) +
   labs(title="County Task Group Change, 2010 to 2023",
        x="Percentage Point Change", y=NULL) +
-  # gridlines off, tick marks on in their place; the shared theme blanks ticks
   theme(panel.grid=element_blank(),
         axis.ticks.x=element_line(color="#000000", linewidth=0.4),
         axis.ticks.length.x=unit(2.5, "pt"))
@@ -867,10 +866,11 @@ arrow_data["shift_magnitude"]=np.sqrt(arrow_data["manual_change"]**2
 mag_cap=float(arrow_data["shift_magnitude"].quantile(0.95))
 mag_capped=arrow_data["shift_magnitude"].clip(upper=mag_cap)
 
-# draw the arrow in map units rather than data units: a floor of a third of the grid
-# spacing keeps the shortest shifts visible as arrows rather than bare arrowheads,
-# and the rest of the length scales with the shift, up to the grid spacing itself
-arrow_len=ARROW_GRID_M*(0.34+0.62*mag_capped/mag_cap)
+# draw the arrow in map units rather than data units: a floor keeps the shortest shifts
+# visible as arrows rather than bare arrowheads, and the rest of the length scales with
+# the shift. the ceiling stays well inside the grid spacing because each arrow is drawn
+# centered on its cell, so neighboring arrows do not run into one another
+arrow_len=ARROW_GRID_M*(0.22+0.45*mag_capped/mag_cap)
 unit=arrow_data["shift_magnitude"].replace(0, np.nan)
 arrow_data["arrow_dx"]=(arrow_data["manual_change"]/unit*arrow_len).fillna(0)
 arrow_data["arrow_dy"]=(arrow_data["nonroutine_change"]/unit*arrow_len).fillna(0)
@@ -890,8 +890,12 @@ Figure 29 summarized these movements using the same cognitive to manual and rout
 %%R -i arrow_data -w 9.5 -h 6.5 -u in -r 150 -b transparent
 suppressMessages(library(sf))
 
-arrow_data$xend <- arrow_data$cx + arrow_data$arrow_dx
-arrow_data$yend <- arrow_data$cy + arrow_data$arrow_dy
+# each arrow is centered on its cell rather than starting there, so it stays inside the
+# cell it summarizes instead of reaching into its neighbor
+arrow_data$xstart <- arrow_data$cx - arrow_data$arrow_dx/2
+arrow_data$ystart <- arrow_data$cy - arrow_data$arrow_dy/2
+arrow_data$xend <- arrow_data$cx + arrow_data$arrow_dx/2
+arrow_data$yend <- arrow_data$cy + arrow_data$arrow_dy/2
 arrow_data$risk_direction <- factor(arrow_data$risk_direction,
     levels=c("Majority Away From Non-Routine Cognitive","Mixed Directions",
              "All Counties Toward Non-Routine Cognitive"))
@@ -902,9 +906,9 @@ counties_arrows <- counties_arrows[!duplicated(counties_arrows$fips),]
 ggplot() +
   geom_sf(data=counties_arrows, fill="#FCFCFB", color="#E1E0D9", linewidth=0.08) +
   geom_segment(data=arrow_data,
-               aes(x=cx, y=cy, xend=xend, yend=yend, color=risk_direction, linewidth=shift_magnitude),
-               arrow=arrow(length=unit(1.2,"mm"), type="closed"), lineend="round", alpha=0.8) +
-  scale_linewidth_continuous(range=c(0.3, 1.2), guide="none") +
+               aes(x=xstart, y=ystart, xend=xend, yend=yend, color=risk_direction, linewidth=shift_magnitude),
+               arrow=arrow(length=unit(1.0,"mm"), type="closed"), lineend="round", alpha=0.8) +
+  scale_linewidth_continuous(range=c(0.25, 0.9), guide="none") +
   # Green and red, keyed to the sign of the association: non-routine cognitive is
   # the reference group the other three are each negatively associated against.
   # Purple marks a cell holding counties of both directions. Validated at deutan
@@ -979,8 +983,6 @@ window_order <- c("2010 to 2019", "Full panel", "2021 to 2023")
 stab_long$window <- factor(stab_long$window, levels=window_order)
 stab_long$`Task group` <- factor(stab_long$`Task group`, levels=group_order)
 
-# the two windows take the project's blue/orange contrast pair; green is reserved for
-# a preferred specification, which neither window is
 window_colors <- c("2010 to 2019"="#2A78D6", "Full panel"=BLACK, "2021 to 2023"="#EB6834")
 window_shapes <- c("2010 to 2019"=16, "Full panel"=18, "2021 to 2023"=16)
 window_sizes  <- c("2010 to 2019"=2.9, "Full panel"=4.0, "2021 to 2023"=2.9)
@@ -994,8 +996,7 @@ window_labels <- setNames(window_key$legend_label, as.character(window_key$windo
 offsets <- c("2010 to 2019"=0.22, "Full panel"=0, "2021 to 2023"=-0.22)
 stab_long$yy <- as.numeric(stab_long$`Task group`) + offsets[as.character(stab_long$window)]
 
-# only the full panel estimate is labelled: three numbers per row collided, and the
-# other two windows are read off position against the interval they sit in. The label
+# only the full panel estimate is labelled: three numbers per row collided. The label
 # sits at the left margin rather than beside its diamond, which the dodged intervals
 # above and below leave no clear room for.
 x_lo <- min(stab_long$ci_lo); x_hi <- max(stab_long$ci_hi)
@@ -1005,7 +1006,7 @@ full_lab$lx <- x_lo - 0.02 * x_span
 full_lab$label <- sub("-", "−", sprintf("%.2f%%", full_lab$value))
 
 ggplot(stab_long, aes(x=value, y=yy, color=window)) +
-  geom_errorbarh(aes(xmin=ci_lo, xmax=ci_hi), height=0.09, linewidth=0.7) +
+  geom_errorbar(aes(xmin=ci_lo, xmax=ci_hi), orientation="y", width=0.09, linewidth=0.7) +
   geom_point(aes(shape=window, size=window)) +
   geom_text(data=full_lab, aes(x=lx, label=label), color=BLACK,
             hjust=1, size=3.1, fontface="bold", show.legend=FALSE) +
@@ -1022,7 +1023,7 @@ ggplot(stab_long, aes(x=value, y=yy, color=window)) +
   labs(title="Coefficient Stability Across Time Windows",
        x="Percent Change in Purchasing Power per One Percentage Point Shift",
        y=NULL) +
-  # light vertical gridlines only; the shared theme blanks every gridline and tick
+  # light vertical gridlines only
   theme(axis.text.y=element_text(face="bold", size=9.5),
         panel.grid.major.x=element_line(color="#E4E3DE", linewidth=0.25),
         panel.border=element_blank(),
