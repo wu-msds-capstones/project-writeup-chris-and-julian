@@ -1,6 +1,6 @@
 # Automation and Affordability in U.S. Counties
 
-**[Read the study](https://wu-msds-capstones.github.io/project-writeup-chris-and-julian/)**
+**[Read the project](https://wu-msds-capstones.github.io/project-writeup-chris-and-julian/)**
 
 DATA 510 Data Science Capstone, Willamette University | Summer 2026
 
@@ -20,12 +20,12 @@ We compared these task groups with purchasing power, which was measured as the c
 * Random forest models revealed additional structure, but the primary relationships were still evident in the regression results.
 * The results described associations but did not support causal claims.
 
-## Study design
+## Project design
 
 |                         |                                                                              |
 | ----------------------- | ---------------------------------------------------------------------------- |
 | **Unit of analysis**    | County year                                                                  |
-| **Study period**        | 2008 to 2023, excluding 2020                                                 |
+| **Project period**      | 2008 to 2023, excluding 2020                                                 |
 | **Analytical sample**   | 848 counties and 11,983 county year observations                             |
 | **Population coverage** | About 84% of the U.S. population                                             |
 | **Outcome**             | Purchasing power in dollars                                                  |
@@ -77,7 +77,7 @@ Analysis notebooks and data construction code live in the companion `project-wor
 | R | Installed inside the same conda environment, reached from Python through rpy2 |
 | Database access | Two environment variables, `AUTORACK_URL` and `THOMAS_URL` |
 
-Every figure in the study is a ggplot drawn through rpy2, and every number is queried live from PostgreSQL, so R and both database URLs are required rather than optional.
+Every figure in the project is a ggplot drawn through rpy2, and every number is queried live from PostgreSQL, so R and both database URLs are required rather than optional.
 
 ### Environment setup
 
@@ -162,4 +162,4 @@ The `--no-render` option matters. Without it, Quarto renders again outside the `
 * American Community Survey 1 year occupational estimates limited the analytical sample to larger counties, so rural counties were underrepresented.
 * The 848 counties in the analytical sample contained about 84% of the U.S. population but represented a minority of U.S. counties.
 * Counties outside metropolitan areas used their state Regional Price Parity because the Bureau of Economic Analysis did not publish a separate local price parity for those counties.
-* The study identified associations and did not support causal conclusions.
+* The project identified associations and did not support causal conclusions.

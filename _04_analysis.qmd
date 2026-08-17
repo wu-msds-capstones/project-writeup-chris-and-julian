@@ -53,7 +53,7 @@ reg["fitted_log"]=model_log.fittedvalues
 
 ## The unadjusted relationship
 
-The analysis commenced by examining the unadjusted relationship between task groups and purchasing power. Figure 5 plotted purchasing power against each of the four task groups across the panel. The two manual groups exhibited the most pronounced negative relationships, while non-routine cognitive tasks showed a positive correlation, and routine cognitive tasks remained relatively flat. None of these relationships were strong enough to stand alone, prompting the subsequent adjustment analysis. Interestingly, the same ordering persisted after the adjustment.
+The analysis commenced by examining the unadjusted relationship between task groups and purchasing power. Across the panel, the two manual groups exhibited the most pronounced negative relationships, while non-routine cognitive tasks showed a positive correlation, and routine cognitive tasks remained relatively flat (@fig-raw-scatter). None of these relationships were strong enough to stand alone, prompting the subsequent adjustment analysis. Interestingly, the same ordering persisted after the adjustment.
 
 ```{python}
 #| include: false
@@ -78,7 +78,8 @@ uni_order=list(uni_labels.values())
 ```{python}
 #| echo: false
 #| warning: false
-#| fig-cap: "**Figure 5. Purchasing Power Against Each Task Group.** County year purchasing power, in dollars at national average prices, plotted against each task group's value as a percent of county employment, before any controls. Faint points are individual county years; solid points are means within twenty equal count bins. Each panel keeps its own x axis range, since the four groups span different proportions of county employment. The manual groups decline most steeply and non-routine cognitive rises, an ordering the adjusted estimates preserve."
+#| label: fig-raw-scatter
+#| fig-cap: "**Purchasing Power Against Each Task Group.** County year purchasing power, in dollars at national average prices, plotted against each task group's value as a percent of county employment, before any controls. Faint points are individual county years; solid points are means within twenty equal count bins. Each panel keeps its own x axis range, since the four groups span different proportions of county employment. The manual groups decline most steeply and non-routine cognitive rises, an ordering the adjusted estimates preserve."
 %%R -i uni_pts -i uni_bins -i uni_order -w 10 -h 6 -u in -r 150 -b transparent
 uni_pts$group <- factor(uni_pts$group, levels=unlist(uni_order))
 uni_bins$group <- factor(uni_bins$group, levels=unlist(uni_order))
@@ -111,7 +112,7 @@ ggplot(uni_pts, aes(x=share, y=affordability_salary)) +
 
 ## Variance decomposition
 
-Purchasing power and task groups exhibit variations both across counties and within a county over time, each carrying distinct implications. Figure 6 effectively divides each group’s variation into these two components. The manual groups show almost complete variation between counties, which contributes to the durability of the purchasing power differences they represent. In contrast, routine cognitive is the only group with substantial within-county movement.
+Purchasing power and task groups exhibit variations both across counties and within a county over time, each carrying distinct implications. Each group’s variation divides into these two components (@fig-variance). The manual groups show almost complete variation between counties, which contributes to the durability of the purchasing power differences they represent. In contrast, routine cognitive is the only group with substantial within-county movement.
 
 ```{python}
 #| include: false
@@ -142,7 +143,8 @@ bw_text_df=pd.concat([
 ```{python}
 #| echo: false
 #| warning: false
-#| fig-cap: "**Figure 6. Between County vs. Within County Variation by Task Group.** Computed on the panel restricted to 2010 onward, with each year's cross county mean removed. Bars give each component as a percent of that task group's total variance, so the two components sum to 100 percent. Three of the four groups appear, since non-routine cognitive is the reference group dropped from the regression, the four proportions summing to one. The manual groups vary almost entirely between counties; routine cognitive is the one group with substantial within county movement."
+#| label: fig-variance
+#| fig-cap: "**Between County vs. Within County Variation by Task Group.** Computed on the panel restricted to 2010 onward, with each year's cross county mean removed. Bars give each component as a percent of that task group's total variance, so the two components sum to 100 percent. Three of the four groups appear, since non-routine cognitive is the reference group dropped from the regression, the four proportions summing to one. The manual groups vary almost entirely between counties; routine cognitive is the one group with substantial within county movement."
 %%R -i bw_df -i bw_text_df -w 9 -h 3.5 -u in -r 150 -b transparent
 bw_df$group <- factor(bw_df$group,
     levels=rev(c("Routine Cognitive","Routine Manual","Non-Routine Manual")))
@@ -180,7 +182,7 @@ The Census occupation coding change between 2009 and 2010, as described in @sec-
 
 Non-routine cognitive tasks served as the reference group because the four task group proportions summed to one. Each remaining coefficient therefore represented the change in purchasing power associated with a shift from non-routine cognitive work to that group, while holding the other variables constant. This made the coefficients interpretable as comparisons between task groups rather than as independent changes in employment. Task group values ranged from zero to one, and coefficients were divided by 100 when reported as percentage point changes.
 
-Year indicators captured the shared conditions across all counties within a specific year, encompassing events like the 2008 recession, its subsequent recovery, and the national price movements described in @sec-data. By including these indicators, we prevented attributing national changes to variations in county task groups. Since the year coefficients absorbed all common changes within a year, they were treated as nuisance parameters rather than evidence of increasing purchasing power. Figure 7 illustrated their pattern across the panel.
+Year indicators captured the shared conditions across all counties within a specific year, encompassing events like the 2008 recession, its subsequent recovery, and the national price movements described in @sec-data. By including these indicators, we prevented attributing national changes to variations in county task groups. Since the year coefficients absorbed all common changes within a year, they were treated as nuisance parameters rather than evidence of increasing purchasing power. The year coefficients traced this pattern across the panel (@fig-year-effects).
 
 
 ```{python}
@@ -203,7 +205,8 @@ year_eff_log=_year_frame(model_log, pct=True)
 ```{python}
 #| echo: false
 #| warning: false
-#| fig-cap: "**Figure 7. Year Effects Relative to 2008.** Estimated year coefficients with 95% intervals, each the difference from the 2008 baseline shared by every county in that year. A) The level specification, in dollars of purchasing power. B) The log specification, as a percent difference. The gray band between 2019 and 2021 marks 2020, which the ACS did not publish, so the line spans a year with no estimate rather than passing through one. The series carries national price drift together with every other movement common to a year, which is why it cannot be read as a measure of inflation."
+#| label: fig-year-effects
+#| fig-cap: "**Year Effects Relative to 2008.** Estimated year coefficients with 95% intervals, each the difference from the 2008 baseline shared by every county in that year. A) The level specification, in dollars of purchasing power. B) The log specification, as a percent difference. The gray band between 2019 and 2021 marks 2020, which the ACS did not publish, so the line spans a year with no estimate rather than passing through one. The series carries national price drift together with every other movement common to a year, which is why it cannot be read as a measure of inflation."
 %%R -i year_eff_level -i year_eff_log -w 8 -h 6.5 -u in -r 150 -b transparent
 year_panel <- function(d, ylab, lab_fn) {
   y_lo <- min(d$lo, na.rm=TRUE); y_hi <- max(d$hi, na.rm=TRUE)
@@ -245,7 +248,7 @@ Standard errors were clustered by county because repeated observations within th
 
 ### Collinearity and the reference group
 
-The unnormalized employment totals of @eq-totals are not suitable for regression analysis. A variance inflation factor (VIF) quantifies the extent to which a coefficient is affected by its correlation with other inputs, and a value exceeding 10 is considered a serious concern. The four employment totals exhibit factors ranging from 13 to 27, as they all represent employment counts that are proportional to county size and therefore exhibit a strong correlation. When fitted on these totals, the coefficients were unstable, and their standard errors were notably large compared to their magnitudes, which are typical indicators of multicollinearity. The specification proposed by Figure 8 addresses this issue twice. Normalizing the data by the four group total, as described in @sec-data, eliminates the shared scale, while dropping non-routine cognitive as the reference group removes the constraint that the four proportions must sum to one. Consequently, every factor in the estimated specification falls within the range of 1.2 to 1.6.
+The unnormalized employment totals of @eq-totals are not suitable for regression analysis. A variance inflation factor (VIF) quantifies the extent to which a coefficient is affected by its correlation with other inputs, and a value exceeding 10 is considered a serious concern. The four employment totals exhibit factors ranging from 13 to 27, as they all represent employment counts that are proportional to county size and therefore exhibit a strong correlation. When fitted on these totals, the coefficients were unstable, and their standard errors were notably large compared to their magnitudes, which are typical indicators of multicollinearity. The proposed specification addresses this issue twice (@fig-vif). Normalizing the data by the four group total, as described in @sec-data, eliminates the shared scale, while dropping non-routine cognitive as the reference group removes the constraint that the four proportions must sum to one. Consequently, every factor in the estimated specification falls within the range of 1.2 to 1.6.
 
 ```{python}
 #| include: false
@@ -287,7 +290,8 @@ vif_seg_df=pd.DataFrame({
 ```{python}
 #| echo: false
 #| warning: false
-#| fig-cap: "**Figure 8. Variance Inflation Factors by Task Specification.** VIFs for each task group, on a linear scale, computed two ways. The first uses the raw employment counts, the second the group proportions that actually enter the regression. Dotted and dashed vertical lines mark the conventional thresholds of 5 and 10. Every unnormalized total sits well above 10; every estimated factor sits near one. An asterisk marks non-routine cognitive as the reference group, which has no estimated factor because it is dropped from the regression, since the four proportions sum to one."
+#| label: fig-vif
+#| fig-cap: "**Variance Inflation Factors by Task Specification.** VIFs for each task group, on a linear scale, computed two ways. The first uses the raw employment counts, the second the group proportions that actually enter the regression. Dotted and dashed vertical lines mark the conventional thresholds of 5 and 10. Every unnormalized total sits well above 10; every estimated factor sits near one. An asterisk marks non-routine cognitive as the reference group, which has no estimated factor because it is dropped from the regression, since the four proportions sum to one."
 %%R -i vif_dot_df -w 8 -h 4 -u in -r 150 -b transparent
 vif_dot_df$group <- factor(vif_dot_df$group,
     levels=rev(c("Routine Cognitive","Routine Manual",
@@ -323,7 +327,7 @@ ggplot(vif_dot_df, aes(x=vif, y=group)) +
 
 ### Distribution of the analytical variables
 
-The analysis next delved into the distributions of the variables used in the specification. Figure 9 presented purchasing power and the four task groups across the panel. The skewness and outliers it shows guided the diagnostic checks that followed. Purchasing power exhibited right skewness, with a skewness coefficient of 1.17 and a central tendency near \$57,000. A long upper tail extended beyond the center of the distribution, so the extremes carry most of the information about model fit.
+The analysis next delved into the distributions of the variables used in the specification. Purchasing power and the four task groups spread across the panel with skewness and outliers that guided the diagnostic checks that followed (@fig-dists). Purchasing power exhibited right skewness, with a skewness coefficient of 1.17 and a central tendency near \$57,000. A long upper tail extended beyond the center of the distribution, so the extremes carry most of the information about model fit.
 
 ```{python}
 #| include: false
@@ -342,7 +346,8 @@ dists_df["variable"]=dists_df["variable"].map(dist_label_map)
 ```{python}
 #| echo: false
 #| warning: false
-#| fig-cap: "**Figure 9. Distribution of Purchasing Power and Task Groups.** Across the 12,087 county year task group panel, before the 104 rows missing an unemployment rate are dropped, all shown as violin plots with an embedded box marking the median, interquartile range, and outliers. A) Purchasing power, in dollars at national average prices, right skewed with a long upper tail and a heavy cluster of high end outliers. B) The four task groups on a shared percentage scale, with the axis restricted to 5% to 65% so the bodies of the distributions stay legible. Non-routine cognitive holds the highest concentration of county employment."
+#| label: fig-dists
+#| fig-cap: "**Distribution of Purchasing Power and Task Groups.** Across the 12,087 county year task group panel, before the 104 rows missing an unemployment rate are dropped, all shown as violin plots with an embedded box marking the median, interquartile range, and outliers. A) Purchasing power, in dollars at national average prices, right skewed with a long upper tail and a heavy cluster of high end outliers. B) The four task groups on a shared percentage scale, with the axis restricted to 5% to 65% so the bodies of the distributions stay legible. Non-routine cognitive holds the highest concentration of county employment."
 %%R -i dists_df -w 10 -h 5.5 -u in -r 150 -b transparent
 pp_vals <- subset(dists_df, variable=="Purchasing Power ($)")$value
 pp_ylim <- c(0, max(pp_vals) * 1.02)
@@ -385,7 +390,7 @@ p_tasks <- ggplot(task_box_df, aes(x=variable, y=value, fill=variable, color=var
 
 ### Residual and quantile diagnostics
 
-A linear model assumes a constant rate of association across the data range and symmetric, evenly distributed errors around the fit. Three diagnostics test these assumptions: residuals plotted against fitted values, a quantile-quantile (QQ) plot of the residuals, and the variance inflation factors already reported. The raw scale model shows clear systematic curvature in the residuals and a marked upper tail departure in the QQ plot (Figure 12, Panels A and B). The model underestimates both the lowest and highest purchasing power counties while fitting the middle well, and the upper tail departure indicates a residual skew of 1.01.
+A linear model assumes a constant rate of association across the data range and symmetric, evenly distributed errors around the fit. Three diagnostics test these assumptions: residuals plotted against fitted values, a quantile-quantile (QQ) plot of the residuals, and the variance inflation factors already reported. The raw scale model shows clear systematic curvature in the residuals and a marked upper tail departure in the QQ plot (@fig-diagnostics, Panels A and B). The model underestimates both the lowest and highest purchasing power counties while fitting the middle well, and the upper tail departure indicates a residual skew of 1.01.
 
 The level model still provides the interpretable dollar estimates we report. However, its own diagnostics reveal that the data exhibit structure that a straight line in dollars cannot represent. The curvature in the residual smoother and the widening spread with fitted values suggest a specific failure in the fixed slope specification, and each subsequent model relaxes the assumption behind it.
 
@@ -479,12 +484,13 @@ sensitivity_df=pd.DataFrame({
 sensitivity_df["Change (%)"]=(sensitivity_df["Excluding Top 1%"]/sensitivity_df["Full Sample"]-1)*100
 ```
 
-A fourth diagnostic, Cook’s distance, evaluates whether any single county year disproportionately influences the level specification’s coefficients. None of the observations exceed the conventional threshold of 1.0, so no point warrants further investigation. The highest value recorded is 0.009. Figure 10 plots every county year by its leverage and standardized residual, with dashed curves tracing constant Cook’s distance. The conventional 0.5 and 1.0 contours fall well outside the plotted range, since reaching 1.0 at the highest observed leverage would require a standardized residual near `{python} f"{r_at_threshold:.0f}"`. The labeled points are the four county years with the largest standardized residuals. Loudoun and Stafford County, Virginia, are both high purchasing power counties located in the Washington D.C. exurbs. Williamson County, Tennessee, is a high purchasing power Nashville exurb. Apache County, Arizona, a low purchasing power county situated on the Navajo Nation, sits among the marked points at a lower residual. These counties are the same high-end outliers that Figure 9 already depicts in the purchasing power distribution.
+A fourth diagnostic, Cook’s distance, evaluates whether any single county year disproportionately influences the level specification’s coefficients. None of the observations exceed the conventional threshold of 1.0, so no point warrants further investigation. The highest value recorded is 0.009. Every county year appears in the plot of leverage against standardized residual, with dashed curves tracing constant Cook’s distance (@fig-influence). The conventional 0.5 and 1.0 contours fall well outside the plotted range, since reaching 1.0 at the highest observed leverage would require a standardized residual near `{python} f"{r_at_threshold:.0f}"`. The labeled points are the four county years with the largest standardized residuals. Loudoun and Stafford County, Virginia, are both high purchasing power counties located in the Washington D.C. exurbs. Williamson County, Tennessee, is a high purchasing power Nashville exurb. Apache County, Arizona, a low purchasing power county situated on the Navajo Nation, sits among the marked points at a lower residual. These counties are the same high-end outliers already visible in the purchasing power distribution (@fig-dists).
 
 ```{python}
 #| echo: false
 #| warning: false
-#| fig-cap: "**Figure 10. Residuals Against Leverage With Cook's Distance Contours, Level Specification.** Every county year in the panel, plotted by leverage (its hat value, unitless) and standardized residual (in standard deviations). The curves trace constant Cook's distance, mirrored above and below zero, with each branch carrying its own value. Because the conventional 0.5 and 1.0 contours fall far outside the observed data, the two drawn levels are the 99th percentile cutoff used for the sensitivity refit and the observed maximum. The fifteen most influential county years are marked, and the four with the largest standardized residuals are labeled with their county and year, through leader lines because their points sit too close together to label in place. Several counties appear in more than one marked year, which is why the marked points outnumber the labels."
+#| label: fig-influence
+#| fig-cap: "**Residuals Against Leverage With Cook's Distance Contours, Level Specification.** Every county year in the panel, plotted by leverage (its hat value, unitless) and standardized residual (in standard deviations). The curves trace constant Cook's distance, mirrored above and below zero, with each branch carrying its own value. Because the conventional 0.5 and 1.0 contours fall far outside the observed data, the two drawn levels are the 99th percentile cutoff used for the sensitivity refit and the observed maximum. The fifteen most influential county years are marked, and the four with the largest standardized residuals are labeled with their county and year, through leader lines because their points sit too close together to label in place. Several counties appear in more than one marked year, which is why the marked points outnumber the labels."
 %%R -i influence_pts -i influence_contours -i influence_marked -i influence_labels -i contour_labels -i r_at_threshold -w 9 -h 5.5 -u in -r 150 -b transparent
 x_min <- min(influence_pts$leverage); x_max <- max(influence_pts$leverage)
 y_min <- min(influence_pts$std_resid); y_max <- max(influence_pts$std_resid)
@@ -577,7 +583,7 @@ style_table(GT(sensitivity_df)
 
 ## Log respecification
 
-The level model indicated that a constant dollar association was insufficient to accurately describe the relationship. Logging purchasing power was tested to see whether the association was better represented proportionally, enabling a comparable shift in a task group to correspond to a larger dollar difference in counties with higher purchasing power. The Figure 11 visualization demonstrated how the transformation reduced the right skew in purchasing power and laid the groundwork for reevaluating the residual pattern.
+The level model indicated that a constant dollar association was insufficient to accurately describe the relationship. Logging purchasing power was tested to see whether the association was better represented proportionally, enabling a comparable shift in a task group to correspond to a larger dollar difference in counties with higher purchasing power. The transformation reduced the right skew in purchasing power and laid the groundwork for reevaluating the residual pattern (@fig-logtransform).
 
 ```{python}
 #| include: false
@@ -592,7 +598,8 @@ logt_df=pd.concat([
 ```{python}
 #| echo: false
 #| warning: false
-#| fig-cap: "**Figure 11. Distribution of Purchasing Power Before and After Log Transformation.** County year purchasing power across the analytical panel, shown as a kernel density. A) The original dollar scale is right skewed with a long upper tail, and the mean sits well above the median. B) On the natural log scale the tail pulls in and the two measures nearly coincide. Solid lines mark the median, dashed lines the mean; each panel reports its own skewness."
+#| label: fig-logtransform
+#| fig-cap: "**Distribution of Purchasing Power Before and After Log Transformation.** County year purchasing power across the analytical panel, shown as a kernel density. A) The original dollar scale is right skewed with a long upper tail, and the mean sits well above the median. B) On the natural log scale the tail pulls in and the two measures nearly coincide. Solid lines mark the median, dashed lines the mean; each panel reports its own skewness."
 %%R -i logt_df -i level_skew -i log_skew -w 11 -h 4.8 -u in -r 150 -b transparent
 
 lv <- subset(logt_df, dist=="level")$value
@@ -633,7 +640,7 @@ p_log   <- dens_panel(lg, "Log Scale", log_skew, "Log Purchasing Power", FALSE, 
   theme(panel.grid=element_blank())
 ```
 
-Refitting the same specification using log purchasing power resolved most of the problems identified in the level model. Figure 12 showed less systematic curvature in the residuals, while the QQ points followed the reference line more closely after the transformation. Some tail deviation remained, but residual skew declined from 1.01 to 0.09. The log linear specification therefore provided the baseline for evaluating the more flexible models that followed.
+Refitting the same specification using log purchasing power resolved most of the problems identified in the level model. Systematic curvature in the residuals lessened, while the QQ points followed the reference line more closely after the transformation (@fig-diagnostics). Some tail deviation remained, but residual skew declined from 1.01 to 0.09. The log linear specification therefore provided the baseline for evaluating the more flexible models that followed.
 
 ```{python}
 #| include: false
@@ -644,7 +651,8 @@ resid_log_df=reg[["fitted_log","resid_log"]].copy()
 ```{python}
 #| echo: false
 #| warning: false
-#| fig-cap: "**Figure 12. Regression Diagnostics, Level vs. Log Specification.** Columns are the diagnostic, rows are the specification. A) and B) show the level specification, in dollars. C) and D) show the log specification, in log dollars. Residuals are shown as binned density with a loess smoother, since individual points would overplot. The level specification shows systematic curvature and a heavy QQ tail, while the log specification is substantially flatter and tracks the reference line more closely."
+#| label: fig-diagnostics
+#| fig-cap: "**Regression Diagnostics, Level vs. Log Specification.** Columns are the diagnostic, rows are the specification. A) and B) show the level specification, in dollars. C) and D) show the log specification, in log dollars. Residuals are shown as binned density with a loess smoother, since individual points would overplot. The level specification shows systematic curvature and a heavy QQ tail, while the log specification is substantially flatter and tracks the reference line more closely."
 %%R -i resid_df -i resid_log_df -w 9 -h 7 -u in -r 150 -b transparent
 resid_df$std_resid <- as.numeric(scale(resid_df$resid))
 resid_log_df$std_resid <- as.numeric(scale(resid_log_df$resid_log))
@@ -692,7 +700,7 @@ p1 <- p1 + grid_off; p2 <- p2 + grid_off; p3 <- p3 + grid_off; p4 <- p4 + grid_o
                               plot.tag=element_text(face="bold", size=11, color="#0B0B0B")))
 ```
 
-Figure 13 presents the same comparison in the units of the outcome. On the level scale, the model closely tracks purchasing power throughout the middle of the distribution, where most counties are located. However, both tail bins deviate substantially from their predictions, coming in approximately \$8,000 to \$9,000 above the expected values. On the log scale, the points closely follow the line throughout the distribution.
+The same comparison also holds in the units of the outcome (@fig-binned). On the level scale, the model closely tracks purchasing power throughout the middle of the distribution, where most counties are located. However, both tail bins deviate substantially from their predictions, coming in approximately \$8,000 to \$9,000 above the expected values. On the log scale, the points closely follow the line throughout the distribution.
 
 ```{python}
 #| include: false
@@ -718,7 +726,8 @@ bins_df=pd.concat([
 ```{python}
 #| echo: false
 #| warning: false
-#| fig-cap: "**Figure 13. Binned Fit Accuracy, Level vs. Log Specification.** Fitted values are cut into twenty equal count bins, and each point compares a bin's mean prediction with its mean actual value; points on the black one to one line indicate no systematic bias in that range. A) On the level scale both tails sit above the line. B) On the log scale the points track it throughout."
+#| label: fig-binned
+#| fig-cap: "**Binned Fit Accuracy, Level vs. Log Specification.** Fitted values are cut into twenty equal count bins, and each point compares a bin's mean prediction with its mean actual value; points on the black one to one line indicate no systematic bias in that range. A) On the level scale both tails sit above the line. B) On the log scale the points track it throughout."
 %%R -i pts_df -i bins_df -w 10 -h 5 -u in -r 150 -b transparent
 dollar_axis <- function(v) ifelse(is.na(v), "", ifelse(v == 0, "$0",
   sprintf("%s$%s", ifelse(v < 0, "-", ""), formatC(abs(v), format="d", big.mark=","))))
@@ -793,7 +802,7 @@ model_df=df_ml.dropna(subset=feature_cols).reset_index(drop=True).copy()
 
 Each task group was defined based on its proportion of total employment, ensuring that the sum of the four values equaled one for each county and year. Since increasing one group inevitably reduced at least one of the others, all four proportions could not simultaneously enter the linear specification without perfect collinearity. Consequently, non-routine cognitive tasks were excluded as the reference group, aligning with the panel regression approach. This decision maintained consistency in interpreting the task group coefficients across both inferential and predictive analyses.
 
-State indicators also required a comparable reference category. Figure 14 illustrated the variation in mean purchasing power across states, identifying a state situated near the center of the distribution as the reference point. By selecting a state near the middle, comparisons were avoided to states with exceptionally high or low purchasing power, simplifying the interpretation of the resulting coefficients. While the choice of reference state did not affect the overall model fit, it influenced the expression of the state coefficients.
+State indicators also required a comparable reference category. Mean purchasing power varied widely across states, and a state situated near the center of that distribution served as the reference point (@fig-state-means). By selecting a state near the middle, comparisons were avoided to states with exceptionally high or low purchasing power, simplifying the interpretation of the resulting coefficients. While the choice of reference state did not affect the overall model fit, it influenced the expression of the state coefficients.
 
 #### Grouped train and test split
 
@@ -860,7 +869,7 @@ year_cols_model=list(year_dummies.columns)
 state_cols_model=list(state_dummies.columns)
 ```
 
-The reference state was `{python} reference_state_label`, whose mean purchasing power was close to the median of the state distribution depicted in Figure 14. By selecting a state near the center, we avoided anchoring comparisons to an unusually high or low purchasing power state, making the coefficients more interpretable. While most state coefficients remained within a few percent of the reference, the largest differences reached 17%. Once the economic controls and year indicators were included, as demonstrated by the permutation results below, state indicators contributed little to held-out performance.
+The reference state was `{python} reference_state_label`, whose mean purchasing power was close to the median of the state distribution (@fig-state-means). By selecting a state near the center, we avoided anchoring comparisons to an unusually high or low purchasing power state, making the coefficients more interpretable. While most state coefficients remained within a few percent of the reference, the largest differences reached 17%. Once the economic controls and year indicators were included, as demonstrated by the permutation results below, state indicators contributed little to held-out performance.
 
 ```{python}
 #| include: false
@@ -876,7 +885,8 @@ state_df["comparison"]=state_df["mean_pp"].ge(state_median).map({True:"Above Ave
 ```{python}
 #| echo: false
 #| warning: false
-#| fig-cap: "**Figure 14. Mean Purchasing Power by State.** Mean county year purchasing power for each state, 2008 to 2023 excluding 2020, in dollars at national average prices. Each segment runs from the median of the state means to that state's own mean, making its length a measure of distance from the median rather than absolute level, and the axis starts at \\$30,000. Shading separates states below the median from those above it, and the highlighted point marks the reference state the models hold out. States with fewer than five counties in the panel are pooled into a single bucket, which the ranking does not display but which does enter the median."
+#| label: fig-state-means
+#| fig-cap: "**Mean Purchasing Power by State.** Mean county year purchasing power for each state, 2008 to 2023 excluding 2020, in dollars at national average prices. Each segment runs from the median of the state means to that state's own mean, making its length a measure of distance from the median rather than absolute level, and the axis starts at \\$30,000. Shading separates states below the median from those above it, and the highlighted point marks the reference state the models hold out. States with fewer than five counties in the panel are pooled into a single bucket, which the ranking does not display but which does enter the median."
 %%R -i state_df -i state_median -i reference_state_label -w 8 -h 10 -u in -r 150 -b transparent
 state_df$state_label <- factor(state_df$state_label, levels=state_df$state_label)
 
@@ -941,7 +951,7 @@ ggplot(state_df, aes(x=mean_pp, y=state_label)) +
 
 #### Collinearity of the indicator blocks
 
-The reference group logic demonstrated in Figure 8 applies here as well. The additional concern was whether the year and state indicators introduced new collinearity after being added to the predictive specification. Figure 15 revealed that they did not, as all reported VIFs remained below the conventional threshold of 5. This confirmed that the indicator blocks could be retained without materially destabilizing the estimated coefficients.
+The reference group logic applies here as well (@fig-vif). The additional concern was whether the year and state indicators introduced new collinearity after being added to the predictive specification. They did not, as all reported VIFs remained below the conventional threshold of 5 (@fig-vif-indicators). This confirmed that the indicator blocks could be retained without materially destabilizing the estimated coefficients.
 
 ```{python}
 #| include: false
@@ -975,7 +985,8 @@ vif_tbl_df=vif_top[["Indicator","VIF"]].sort_values("VIF", ascending=False)
 ```{python}
 #| echo: false
 #| warning: false
-#| fig-cap: "**Figure 15. Variance Inflation Factors for the Indicator Blocks.** The ten highest values across the year and state indicator blocks, computed on the full feature matrix after dropping the reference task group. All ten are year indicators, labeled by year. The dotted vertical line marks the conventional threshold of 5, which no indicator approaches."
+#| label: fig-vif-indicators
+#| fig-cap: "**Variance Inflation Factors for the Indicator Blocks.** The ten highest values across the year and state indicator blocks, computed on the full feature matrix after dropping the reference task group. All ten are year indicators, labeled by year. The dotted vertical line marks the conventional threshold of 5, which no indicator approaches."
 %%R -i vif_tbl_df -w 8 -h 4 -u in -r 150 -b transparent
 vif_tbl_df$Indicator <- factor(vif_tbl_df$Indicator,
     levels=rev(vif_tbl_df$Indicator[order(-vif_tbl_df$VIF)]))
@@ -983,7 +994,7 @@ x_max <- max(5.6, max(vif_tbl_df$VIF) * 1.15)
 
 ggplot(vif_tbl_df, aes(x=VIF, y=Indicator)) +
   geom_col(fill="#1BAF7A", width=0.72) +
-  # threshold styled to match Figure 8, so the two VIF displays read as one language
+  # threshold styled to match the task specification VIF figure, so the two read as one language
   geom_vline(xintercept=5, linetype="dotted", linewidth=1.1, color="#0B0B0B") +
   annotate("text", x=5, y=Inf, label="VIF = 5", hjust=-0.15, vjust=1.4,
            color="#0B0B0B", size=3.1, fontface="bold") +
@@ -1039,11 +1050,11 @@ ols_model=sm.OLS(y_train, X_train_sm).fit()
 
 Adding year and state indicators increased the coefficient from 0.766 to 0.871, indicating that time and geography contributed to additional variation in purchasing power. The unemployment rate coefficient shifted from approximately in the baseline specification to in the full specification for each one percentage point increase in unemployment. This change in direction suggested that the baseline estimate accounted for geographic and temporal differences that were not previously considered. In contrast, the task group coefficients maintained their direction and relative ordering.
 
-Figure 12 demonstrated that residual curvature persisted even after the full level specification. This figure was important because the increase in the coefficient alone suggested that incorporating year and state indicators effectively improved the model. However, the diagnostics revealed that while these variables enhanced the overall fit, they failed to eliminate the systematic pattern in the residuals. This distinction indicated that the underlying issue was the functional form of purchasing power on its original dollar scale, rather than omitted time or geographic differences.
+Residual curvature persisted even after the full level specification (@fig-diagnostics). This figure was important because the increase in the coefficient alone suggested that incorporating year and state indicators effectively improved the model. However, the diagnostics revealed that while these variables enhanced the overall fit, they failed to eliminate the systematic pattern in the residuals. This distinction indicated that the underlying issue was the functional form of purchasing power on its original dollar scale, rather than omitted time or geographic differences.
 
 #### Full specification on the logged outcome
 
-Figure 13 showed that the level specification did not fit purchasing power evenly across its range. The largest departures occurred at the lower and upper ends of the distribution, where observed purchasing power was roughly \$8,000 to \$9,000 above the fitted values. This systematic pattern suggested that the remaining problem was related to the scale of purchasing power rather than omitted controls, providing a clear reason to test the outcome in logarithmic form.
+The level specification did not fit purchasing power evenly across its range (@fig-binned). The largest departures occurred at the lower and upper ends of the distribution, where observed purchasing power was roughly \$8,000 to \$9,000 above the fitted values. This systematic pattern suggested that the remaining problem was related to the scale of purchasing power rather than omitted controls, providing a clear reason to test the outcome in logarithmic form.
 
 ```{python}
 #| include: false
@@ -1063,7 +1074,7 @@ ols_log_test_r2=r2_score(y_test, y_pred_ols_log_dollars)
 ols_log_test_mae=mean_absolute_error(y_test, y_pred_ols_log_dollars)
 ```
 
-Logging purchasing power reduced the residual pattern observed in Figure 12 and enhanced the performance of the linear specification. After transforming the predictions back to dollars, the log linear model achieved an in-sample accuracy of 0.913 and a held-out R² of 0.896. This close agreement suggested that the model effectively generalized to counties not included in the training data.
+Logging purchasing power reduced the residual pattern observed in @fig-diagnostics and enhanced the performance of the linear specification. After transforming the predictions back to dollars, the log linear model achieved an in-sample accuracy of 0.913 and a held-out R² of 0.896. This close agreement suggested that the model effectively generalized to counties not included in the training data.
 
 #### Coefficient comparison
 
@@ -1212,7 +1223,8 @@ rf_resid_df=pd.DataFrame({"pred":y_pred_rf, "resid":y_test-y_pred_rf})
 ```{python}
 #| echo: false
 #| warning: false
-#| fig-cap: "**Figure 16. Random Forest Residuals vs. Predicted Values.** Residuals from the raw target random forest on the held out test counties, both axes in dollars. No systematic curve or trend is visible across the range of predictions."
+#| label: fig-rf-resid
+#| fig-cap: "**Random Forest Residuals vs. Predicted Values.** Residuals from the raw target random forest on the held out test counties, both axes in dollars. No systematic curve or trend is visible across the range of predictions."
 %%R -i rf_resid_df -w 7 -h 5 -u in -r 150 -b transparent
 # local dollar formatter, kept in the cell; the negative branch matters here
 # because the y axis is residuals
@@ -1235,7 +1247,7 @@ ggplot(rf_resid_df, aes(x=pred, y=resid)) +
         axis.minor.ticks.length=rel(0.5))
 ```
 
-Figure 16 demonstrated no systematic curvature or trend in the random forest residuals across the range of predicted values. This suggested that the random forest effectively captured the nonlinear structure that posed challenges for the level linear model without transforming purchasing power. However, the lower held-out R² value of 0.876 and the large gap between training and test performance indicated that this ability to capture the structure did not translate into improved generalization to unseen counties.
+No systematic curvature or trend appeared in the random forest residuals across the range of predicted values (@fig-rf-resid). This suggested that the random forest effectively captured the nonlinear structure that posed challenges for the level linear model without transforming purchasing power. However, the lower held-out R² value of 0.876 and the large gap between training and test performance indicated that this ability to capture the structure did not translate into improved generalization to unseen counties.
 
 ```{python}
 #| include: false
@@ -1429,7 +1441,8 @@ nn_reg_df=pd.DataFrame({
 ```{python}
 #| echo: false
 #| warning: false
-#| fig-cap: "**Figure 17. Training and Validation Loss, Initial vs. Regularized Network.** Loss is mean squared error on the standardized target; both panels share the same y axis. A) The initial network, where validation loss declines briefly then rises while training loss keeps falling, the signature of overfitting; the dashed line and marked point locate the epoch of minimum validation loss. B) The same network after adding L2 regularization, heavier dropout, and a shorter early stopping patience, where the two curves stay much closer together."
+#| label: fig-nn-loss
+#| fig-cap: "**Training and Validation Loss, Initial vs. Regularized Network.** Loss is mean squared error on the standardized target; both panels share the same y axis. A) The initial network, where validation loss declines briefly then rises while training loss keeps falling, the signature of overfitting; the dashed line and marked point locate the epoch of minimum validation loss. B) The same network after adding L2 regularization, heavier dropout, and a shorter early stopping patience, where the two curves stay much closer together."
 %%R -i nn_init_df -i nn_reg_df -w 10 -h 4.5 -u in -r 150 -b transparent
 ymax <- max(c(nn_init_df$loss, nn_reg_df$loss)) * 1.05
 # breaks run the whole axis rather than stopping at 0.8 and leaving the top of the
@@ -1502,7 +1515,7 @@ p1 + p2 +
         axis.ticks.length=unit(2.5, "pt"))
 ```
 
-Figure 17 demonstrated that regularization reduced the disparity between training and validation loss, yet the neural network still failed to surpass the random forest or the log linear model. On the same counties, the random forest achieved a held-out R² of 0.877, while the log linear model achieved 0.896. Consequently, the neural network’s additional flexibility did not offer any improvement over the simpler alternatives. Since the study aimed to elucidate the relationship between task groups and purchasing power, further increases in model complexity were deemed unnecessary. Therefore, the log linear and random forest models were retained for the subsequent comparisons.
+Regularization reduced the disparity between training and validation loss (@fig-nn-loss), yet the neural network still failed to surpass the random forest or the log linear model. On the same counties, the random forest achieved a held-out R² of 0.877, while the log linear model achieved 0.896. Consequently, the neural network’s additional flexibility did not offer any improvement over the simpler alternatives. Since the study aimed to elucidate the relationship between task groups and purchasing power, further increases in model complexity were deemed unnecessary. Therefore, the log linear and random forest models were retained for the subsequent comparisons.
 
 ### Cross validation
 

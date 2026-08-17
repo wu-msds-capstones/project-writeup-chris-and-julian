@@ -95,7 +95,7 @@ RPPs were adjusted for variations across regions but not for changes in the nati
 
 The analysis incorporated poverty rate, unemployment rate, and population as county-level covariates. Poverty and unemployment captured the economic distress mentioned in @sec-background, enabling the analysis to determine if task groups provided information beyond these measures. Median household income directly entered the purchasing power outcome, so it was not included as a control variable. Population accounted for variations in county size, which could otherwise affect the estimates.
 
-Figure 3 displayed the distributions of poverty rate, unemployment rate, population, and median household income across the same task group panel used in Figure 9. All four variables were right skewed, but population was the most extreme and therefore entered the analysis in logarithmic form. Poverty rate, unemployment rate, and median household income remained in their original units. This supported the log respecification in @sec-analysis as a response to the outcome's own distribution rather than a transformation applied across all variables.
+Poverty rate, unemployment rate, population, and median household income were all distributed across the same task group panel used in @fig-dists. All four variables were right skewed, but population was the most extreme and therefore entered the analysis in logarithmic form (@fig-baseline-dists). Poverty rate, unemployment rate, and median household income remained in their original units. This supported the log respecification in @sec-analysis as a response to the outcome's own distribution rather than a transformation applied across all variables.
 
 ```{python}
 #| label: baseline-dists-data
@@ -122,9 +122,10 @@ baseline_long["variable"]=baseline_long["variable"].map(baseline_names)
 ```
 
 ```{python}
+#| label: fig-baseline-dists
 #| echo: false
 #| warning: false
-#| fig-cap: "**Figure 3. Distribution of the Control Variables.** Across the 12,087 county year task group panel, shown as violin plots with an embedded box marking the median, interquartile range, and outliers. A) Poverty rate and B) unemployment rate are both right skewed, with unemployment the more extreme of the two; both are shown in percent. C) Population is plotted on a logarithmic scale because it spans several orders of magnitude, which is also why the models use its log form. D) Median household income, in dollars, is right skewed with a moderate upper tail."
+#| fig-cap: "**Distribution of the Control Variables.** Across the 12,087 county year task group panel, shown as violin plots with an embedded box marking the median, interquartile range, and outliers. A) Poverty rate and B) unemployment rate are both right skewed, with unemployment the more extreme of the two; both are shown in percent. C) Population is plotted on a logarithmic scale because it spans several orders of magnitude, which is also why the models use its log form. D) Median household income, in dollars, is right skewed with a moderate upper tail."
 
 %%R -i baseline_long -w 9 -h 7 -u in -r 150 -b transparent
 baseline_order <- c("Poverty Rate (%)","Unemployment Rate (%)","Population","Median Household Income ($)")
@@ -177,10 +178,11 @@ p_inc <- ggplot(subset(baseline_long, variable=="Median Household Income ($)"), 
 
 The data architecture separated raw source records from the tables used for analysis. Raw retrievals and intermediate results were stored in a PostgreSQL data lake containing 41 tables, which remained unnormalized to maintain traceability. Processed data were then written to an analytical warehouse containing eleven tables. In this warehouse, county identifiers were standardized, records were restricted to the study period, jurisdictions outside the panel were removed, and foreign key constraints were enforced.
 
-Figure 4 provided a diagram that summarized the path from federal sources through the data lake and warehouse to the analysis-ready tables.
+The full path ran from federal sources through the data lake and warehouse to the analysis-ready tables (@fig-erd).
 
 ```{python}
-#| fig-cap: "**Figure 4. Data Pipeline Architecture, Source to Analysis Ready Output.** Federal sources feed a raw data lake, which feeds the normalized warehouse, which feeds the analysis ready county year table. Node fill marks the publishing agency. Warehouse tables list their columns with primary and foreign keys marked, and the four task group proportions marked as generated columns derived from the group totals. Three supporting warehouse tables not used in the models are omitted."
+#| label: fig-erd
+#| fig-cap: "**Data Pipeline Architecture, Source to Analysis Ready Output.** Federal sources feed a raw data lake, which feeds the normalized warehouse, which feeds the analysis ready county year table. Node fill marks the publishing agency. Warehouse tables list their columns with primary and foreign keys marked, and the four task group proportions marked as generated columns derived from the group totals. Three supporting warehouse tables not used in the models are omitted."
 #| echo: false
 import graphviz
 

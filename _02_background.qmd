@@ -1,8 +1,11 @@
 # Background {#sec-background}
 
-Autor developed a task-based approach to measure the variation in automation risk across different types of work. Initially, @Autor2003 distinguished between routine and non-routine tasks by demonstrating that technology impacts tasks differently based on their potential to be formalized into explicit procedures. @AcemogluAutor2011 further expanded his framework by treating tasks as production units and analyzing how workers with varying skills are distributed among them. This progression laid the conceptual foundation for the four task groups depicted in Figure 1, linking technological advancements to shifts in the demand for different types of work.
+Autor developed a task-based approach to measure the variation in automation risk across different types of work. Initially, @Autor2003 distinguished between routine and non-routine tasks by demonstrating that technology impacts tasks differently based on their potential to be formalized into explicit procedures. @AcemogluAutor2011 further expanded his framework by treating tasks as production units and analyzing how workers with varying skills are distributed among them. This progression laid the conceptual foundation for the four task groups depicted in @fig-taskframework, linking technological advancements to shifts in the demand for different types of work.
 
-Building upon this framework, @AutorDorn2013 applied the task-based approach to local labor markets. Areas with higher initial concentrations of routine work experienced more pronounced employment polarization. Employment growth was observed at both the upper and lower ends of the wage distribution, while it declined in the middle. These patterns indicated that the local impacts of technological change varied depending on the types of tasks concentrated within each economy. This provided a foundation for exploring whether differences in county task groups were also linked to variations in purchasing power.
+Building upon this framework, @AutorDorn2013 applied the task-based approach to local labor markets. Their results showed that areas with higher initial concentrations of routine work experienced more pronounced employment polarization. Job growth occurred at both the upper and lower ends of the wage distribution while declining in the middle, suggesting that the local effects of technological change differed according to the task composition of each economy.
+These findings established a basis for examining whether differences in county task composition were also associated with household purchasing power.
+
+Classifying occupations by task content makes it possible to quantify differences in the composition of local employment. The occupational taxonomy developed by @AutorDorn2013 provided the basis for assigning employment to the four task groups used in this study. Their original measure scored occupations continuously using a routine task intensity index derived from ratings of occupational task content. We adapt this framework by grouping occupations according to their dominant task characteristics, as illustrated in @fig-taskframework. This classification allows differences in county task composition to be measured and compared across local economies.
 
 ```{python}
 #| label: taskframework-data
@@ -88,13 +91,16 @@ n_labeled=int(occ_df.label.notna().sum())
 ```
 
 ```{python}
+#| label: fig-taskframework
 #| echo: false
 #| warning: false
-#| fig-cap: "**Figure 1. Occupations in the Task Framework.** Every detailed occupation in the Standard Occupational Classification crosswalk behind the American Community Survey, placed in the task group it was assigned to. Routine tasks follow explicit rules a machine can be programmed to carry out; non-routine tasks require judgment, adaptability, or in person interaction. Cognitive tasks work primarily with information; manual tasks work with physical objects and people. The horizontal and vertical axes name these two distinctions rather than a scale: assignment follows Autor and Dorn (2013) and is categorical, so a point's position inside its quadrant is scatter for legibility and carries no measured value. Color and point shape both mark the task group, and a readable subset of occupations is drawn larger and labeled. Community and social service and military occupations are assigned to no group and are excluded from the measure. Non-routine cognitive is the reference group omitted from the regression."
+#| fig-cap: "**Occupations in the Task Framework.** Every detailed occupation in the Standard Occupational Classification crosswalk behind the American Community Survey, placed in the task group it was assigned to. Routine tasks follow explicit rules a machine can be programmed to carry out; non-routine tasks require judgment, adaptability, or in person interaction. Cognitive tasks work primarily with information; manual tasks work with physical objects and people. The horizontal and vertical axes name these two distinctions rather than a scale: assignment follows Autor and Dorn (2013) and is categorical, so a point's position inside its quadrant is scatter for legibility and carries no measured value. Color and point shape both mark the task group, and a readable subset of occupations is drawn larger and labeled. Community and social service and military occupations are assigned to no group and are excluded from the measure. Non-routine cognitive is the reference group omitted from the regression."
 %%R -i occ_df -w 10 -h 7 -u in -r 150 -b transparent
 # every occupation is one point; labeled points are the same points drawn larger.
 suppressWarnings(suppressMessages(library(ggrepel)))
 lab <- occ_df[!is.na(occ_df$label), ]
+# one label sits on a neighbor once repelled; nudge it down before repulsion runs
+lab$nudge_y <- ifelse(lab$label == "Civil Engineers", -0.22, 0)
 
 ggplot(occ_df, aes(x=x, y=y, color=group, shape=group)) +
   annotate("rect", xmin=-1.70, xmax=0, ymin=0, ymax=1.50, fill="#993F00", alpha=0.05) +
@@ -112,6 +118,7 @@ ggplot(occ_df, aes(x=x, y=y, color=group, shape=group)) +
   geom_text_repel(data=lab, aes(x=x, y=y, label=label), inherit.aes=FALSE,
                   size=2.3, fontface="bold", color="#0B0B0B", seed=510,
                   point.size=3, box.padding=0.45, point.padding=0.4,
+                  nudge_y=lab$nudge_y,
                   min.segment.length=0.2, segment.color="#8F8D87",
                   segment.size=0.25, max.overlaps=Inf) +
   scale_color_manual(values=c("Routine Cognitive"="#51C3CC", "Routine Manual"="#006666",
@@ -135,11 +142,9 @@ ggplot(occ_df, aes(x=x, y=y, color=group, shape=group)) +
   labs(title="Occupations in the Task Framework", x=NULL, y=NULL)
 ```
 
-Once occupations are categorized based on their task content, it becomes easier to measure differences across local economies. The occupation taxonomy developed by @AutorDorn2013 served as the foundation for assigning employment to the four task groups used in this study. Their own measure scored each occupation continuously on a single routine task intensity index built from ratings of its task content. @AcemogluAutor2011 provided economic significance to these differences by treating tasks as units of production supplied by workers possessing varying skills. Technological advancements can shift labor demand across different types of tasks. These differences in county task groups provide a way to examine whether local work structures are associated with purchasing power.
-
 Accurately measuring purchasing power requires accounting for differences in local price levels. Regional Price Parities (RPPs), published by the Bureau of Economic Analysis (BEA), offer a measure of these differences relative to the national average. A score of 100 in the RPP represents the national price level. Relative to this baseline, values above 100 indicate higher local price levels, while values below 100 indicate lower local price levels. The index combines prices for goods and services such as housing, food, transportation, medical care, education, and recreation. RPPs became an official BEA statistic in 2014, with estimates available back to 2008. However, BEA does not publish RPPs directly for individual counties. Instead, estimates are available for states, metropolitan areas, and nonmetropolitan portions of states, which can mask price differences among counties within the same region.
 
-Multiple indicators collectively capture different aspects of local economic conditions. Poverty measures the proportion of residents living below an established income threshold. Unemployment measures the share of the labor force actively seeking work. Median household income represents the midpoint of the household income distribution, and RPPs compare local price levels with the national average. Each captures a different dimension of local conditions, and the four produce distinct geographic patterns across counties (Figure 2).
+Multiple indicators collectively capture different aspects of local economic conditions. Poverty measures the proportion of residents living below an established income threshold. Unemployment measures the share of the labor force actively seeking work. Median household income represents the midpoint of the household income distribution, and RPPs compare local price levels with the national average. Each captures a different dimension of local conditions, and the four produce distinct geographic patterns across counties (@fig-county-context).
 
 ```{python}
 #| label: context-setup
@@ -198,9 +203,10 @@ merged_context[["fips", "poverty_rate", "unemployment_rate",
 ```
 
 ```{python}
+#| label: fig-county-context
 #| echo: false
 #| warning: false
-#| fig-cap: "**Figure 2. County Economic Conditions.** County patterns in 2023 are shown for A) poverty rate in percent, B) unemployment rate in percent, C) median household income in dollars, and D) RPP as an index on which 100 is the national average price level. Each indicator captures a distinct dimension of local economic conditions, producing geographic patterns that do not fully overlap across measures."
+#| fig-cap: "**County Economic Conditions.** County patterns in 2023 are shown for A) poverty rate in percent, B) unemployment rate in percent, C) median household income in dollars, and D) RPP as an index on which 100 is the national average price level. Each indicator captures a distinct dimension of local economic conditions, producing geographic patterns that do not fully overlap across measures."
 #|
 %%R -i pov_ctx_vmin -i pov_ctx_vmax -i unemp_ctx_vmin -i unemp_ctx_vmax -i inc_ctx_vmin -i inc_ctx_vmax -i rpp_ctx_vmin -i rpp_ctx_vmax -w 10 -h 9 -u in -r 150 -b transparent
 suppressMessages(library(sf))
@@ -260,4 +266,4 @@ p_rpp <- ggplot(context_sf) +
                               plot.tag=element_text(face="bold", size=11, color="#0B0B0B")))
 ```
 
-Geographic scale presented an additional measurement challenge because broader geographic units could obscure economic differences between nearby counties. Local prices and household resources varied within the same labor market, while earlier studies often combined several counties into a single regional measure. This aggregation could mask meaningful local variation that remained visible at the county level. @Curran2006 showed that accounting for geographic cost of living differences alters how places compare on economic wellbeing, which makes the choice of geographic unit consequential for any measure of household resources. By measuring purchasing power at the county level, we preserved more of this variation by incorporating both household income and local price levels. Additionally, we evaluated whether the association between purchasing power and county task groups was better represented in dollar terms or proportional terms. This approach addressed a gap in prior research, which examined task groups in relation to employment and wages without evaluating their association with purchasing power at the county level.
+Geographic scale presented an additional measurement challenge because broader units can obscure economic differences between nearby counties. Earlier studies often combined multiple counties into larger labor markets, potentially masking variation in local prices and household resources. @Curran2006 showed that accounting for geographic differences in the cost of living can alter comparisons of economic well being across places. We therefore measured purchasing power at the county level using household income adjusted for local price levels. We also tested whether its association with county task groups was better represented in dollar or proportional terms. This design extends prior research by examining task composition in relation to county level purchasing power rather than wages or employment alone.
