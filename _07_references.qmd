@@ -5,4 +5,4 @@
 
 ## Software
 
-Data processing, statistical modeling, and machine learning were conducted in Python using pandas, NumPy, SciPy, statsmodels, scikit-learn, TensorFlow, and GeoPandas [@pandas2010; @numpy2020; @scipy2020; @statsmodels2010; @sklearn2011; @tensorflow2016; @geopandas2020]. Figures were produced in R using ggplot2, patchwork, scales, and sf [@rcoreteam2024; @ggplot2_2016; @patchwork2024; @scales2023; @sf2018].
+Data processing, statistical modeling, and machine learning were conducted in Python using pandas, NumPy, SciPy, statsmodels, scikit-learn, TensorFlow, and GeoPandas [@pandas2010; @numpy2020; @scipy2020; @statsmodels2010; @sklearn2011; @tensorflow2016; @geopandas2020]. Figures were produced in R using ggplot2, patchwork, scales, sf, ggrepel, and ggbeeswarm [@rcoreteam2024; @ggplot2_2016; @patchwork2024; @scales2023; @sf2018; @ggrepel2026; @ggbeeswarm2025].

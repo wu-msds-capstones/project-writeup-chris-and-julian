@@ -1,6 +1,6 @@
 # Background {#sec-background}
 
-Autor developed a task-based approach to measure the variation in automation risk across different types of work. Initially, @Autor2003 distinguished between routine and non-routine tasks by demonstrating that technology impacts tasks differently based on their potential to be formalized into explicit procedures. @AcemogluAutor2011 further expanded his framework by treating tasks as production units and analyzing how workers with varying skills are distributed among them. This progression laid the conceptual foundation for the four task groups depicted in Figure 1, linking technological advancements to shifts in the demand for different types of work.
+Autor developed a task-based approach to measure the variation in automation risk across different types of work. Initially, @Autor2003 distinguished between routine and non-routine tasks by demonstrating that technology impacts tasks differently based on their potential to be formalized into explicit procedures. @AcemogluAutor2011 further expanded his framework by treating tasks as production units and analyzing how workers with varying skills are distributed among them. This progression laid the conceptual foundation for the four task groups depicted in @fig-taskframework, linking technological advancements to shifts in the demand for different types of work.
 
 Building upon this framework, @AutorDorn2013 applied the task-based approach to local labor markets. Areas with higher initial concentrations of routine work experienced more pronounced employment polarization. Employment growth was observed at both the upper and lower ends of the wage distribution, while it declined in the middle. These patterns indicated that the local impacts of technological change varied depending on the types of tasks concentrated within each economy. This provided a foundation for exploring whether differences in county task groups were also linked to variations in purchasing power.
 
@@ -88,13 +88,16 @@ n_labeled=int(occ_df.label.notna().sum())
 ```
 
 ```{python}
+#| label: fig-taskframework
 #| echo: false
 #| warning: false
-#| fig-cap: "**Figure 1. Occupations in the Task Framework.** Every detailed occupation in the Standard Occupational Classification crosswalk behind the American Community Survey, placed in the task group it was assigned to. Routine tasks follow explicit rules a machine can be programmed to carry out; non-routine tasks require judgment, adaptability, or in person interaction. Cognitive tasks work primarily with information; manual tasks work with physical objects and people. The horizontal and vertical axes name these two distinctions rather than a scale: assignment follows Autor and Dorn (2013) and is categorical, so a point's position inside its quadrant is scatter for legibility and carries no measured value. Color and point shape both mark the task group, and a readable subset of occupations is drawn larger and labeled. Community and social service and military occupations are assigned to no group and are excluded from the measure. Non-routine cognitive is the reference group omitted from the regression."
+#| fig-cap: "**Occupations in the Task Framework.** Every detailed occupation in the Standard Occupational Classification crosswalk behind the American Community Survey, placed in its assigned task group. Routine tasks follow explicit rules a machine can be programmed to carry out; cognitive tasks work with information rather than with physical objects and people. The axes name these two distinctions rather than measuring them: assignment follows Autor and Dorn (2013) and is categorical, so a point's position inside its quadrant is scatter for legibility and carries no measured value. A readable subset of occupations is drawn larger and labeled. Community and social service and military occupations are assigned to no group and are excluded from the measure."
 %%R -i occ_df -w 10 -h 7 -u in -r 150 -b transparent
 # every occupation is one point; labeled points are the same points drawn larger.
 suppressWarnings(suppressMessages(library(ggrepel)))
 lab <- occ_df[!is.na(occ_df$label), ]
+# one label sits on a neighbor once repelled; nudge it down before repulsion runs
+lab$nudge_y <- ifelse(lab$label == "Civil Engineers", -0.22, 0)
 
 ggplot(occ_df, aes(x=x, y=y, color=group, shape=group)) +
   annotate("rect", xmin=-1.70, xmax=0, ymin=0, ymax=1.50, fill="#993F00", alpha=0.05) +
@@ -112,6 +115,7 @@ ggplot(occ_df, aes(x=x, y=y, color=group, shape=group)) +
   geom_text_repel(data=lab, aes(x=x, y=y, label=label), inherit.aes=FALSE,
                   size=2.3, fontface="bold", color="#0B0B0B", seed=510,
                   point.size=3, box.padding=0.45, point.padding=0.4,
+                  nudge_y=lab$nudge_y,
                   min.segment.length=0.2, segment.color="#8F8D87",
                   segment.size=0.25, max.overlaps=Inf) +
   scale_color_manual(values=c("Routine Cognitive"="#51C3CC", "Routine Manual"="#006666",
@@ -139,7 +143,7 @@ Once occupations are categorized based on their task content, it becomes easier 
 
 Accurately measuring purchasing power requires accounting for differences in local price levels. Regional Price Parities (RPPs), published by the Bureau of Economic Analysis (BEA), offer a measure of these differences relative to the national average. A score of 100 in the RPP represents the national price level. Relative to this baseline, values above 100 indicate higher local price levels, while values below 100 indicate lower local price levels. The index combines prices for goods and services such as housing, food, transportation, medical care, education, and recreation. RPPs became an official BEA statistic in 2014, with estimates available back to 2008. However, BEA does not publish RPPs directly for individual counties. Instead, estimates are available for states, metropolitan areas, and nonmetropolitan portions of states, which can mask price differences among counties within the same region.
 
-Multiple indicators collectively capture different aspects of local economic conditions. Poverty measures the proportion of residents living below an established income threshold. Unemployment measures the share of the labor force actively seeking work. Median household income represents the midpoint of the household income distribution, and RPPs compare local price levels with the national average. Each captures a different dimension of local conditions, and the four produce distinct geographic patterns across counties (Figure 2).
+Multiple indicators collectively capture different aspects of local economic conditions. Poverty measures the proportion of residents living below an established income threshold. Unemployment measures the share of the labor force actively seeking work. Median household income represents the midpoint of the household income distribution, and RPPs compare local price levels with the national average. Each captures a different dimension of local conditions, and the four produce distinct geographic patterns across counties (@fig-county-context).
 
 ```{python}
 #| label: context-setup
@@ -198,9 +202,10 @@ merged_context[["fips", "poverty_rate", "unemployment_rate",
 ```
 
 ```{python}
+#| label: fig-county-context
 #| echo: false
 #| warning: false
-#| fig-cap: "**Figure 2. County Economic Conditions.** County patterns in 2023 are shown for A) poverty rate in percent, B) unemployment rate in percent, C) median household income in dollars, and D) RPP as an index on which 100 is the national average price level. Each indicator captures a distinct dimension of local economic conditions, producing geographic patterns that do not fully overlap across measures."
+#| fig-cap: "**County Economic Conditions.** County patterns in 2023 are shown for A) poverty rate in percent, B) unemployment rate in percent, C) median household income in dollars, and D) RPP as an index on which 100 is the national average price level. Each indicator captures a distinct dimension of local economic conditions, producing geographic patterns that do not fully overlap across measures."
 #|
 %%R -i pov_ctx_vmin -i pov_ctx_vmax -i unemp_ctx_vmin -i unemp_ctx_vmax -i inc_ctx_vmin -i inc_ctx_vmax -i rpp_ctx_vmin -i rpp_ctx_vmax -w 10 -h 9 -u in -r 150 -b transparent
 suppressMessages(library(sf))
@@ -216,7 +221,7 @@ bottom_guide <- guide_colorbar(direction="horizontal", title.position="bottom", 
 
 p_pov <- ggplot(context_sf) +
   geom_sf(aes(fill=poverty_rate), color="white", linewidth=0.05) +
-  scale_fill_gradient(low="#FCFCFB", high=ORANGE, limits=c(pov_ctx_vmin, pov_ctx_vmax),
+  scale_fill_gradient(low="#FCFCFB", high="#EB6834", limits=c(pov_ctx_vmin, pov_ctx_vmax),
                       oob=scales::squish, na.value="#EEEEEE", name="Poverty Rate (%)",
                       guide=bottom_guide) +
   coord_sf(crs=st_crs(5070), datum=NA) +
@@ -225,7 +230,7 @@ p_pov <- ggplot(context_sf) +
 
 p_unemp <- ggplot(context_sf) +
   geom_sf(aes(fill=unemployment_rate), color="white", linewidth=0.05) +
-  scale_fill_gradient(low="#FCFCFB", high=PINK, limits=c(unemp_ctx_vmin, unemp_ctx_vmax),
+  scale_fill_gradient(low="#FCFCFB", high="#C2255C", limits=c(unemp_ctx_vmin, unemp_ctx_vmax),
                       oob=scales::squish, na.value="#EEEEEE", name="Unemployment Rate (%)",
                       guide=bottom_guide) +
   coord_sf(crs=st_crs(5070), datum=NA) +
@@ -234,7 +239,7 @@ p_unemp <- ggplot(context_sf) +
 
 p_inc <- ggplot(context_sf) +
   geom_sf(aes(fill=median_household_income), color="white", linewidth=0.05) +
-  scale_fill_gradient(low="#FCFCFB", high=GREEN, limits=c(inc_ctx_vmin, inc_ctx_vmax),
+  scale_fill_gradient(low="#FCFCFB", high="#1BAF7A", limits=c(inc_ctx_vmin, inc_ctx_vmax),
                       oob=scales::squish, na.value="#EEEEEE",
                       labels=function(v) sprintf("$%.0fk", v/1000),
                       name="Median Household Income",
@@ -245,7 +250,7 @@ p_inc <- ggplot(context_sf) +
 
 p_rpp <- ggplot(context_sf) +
   geom_sf(aes(fill=rpp), color="white", linewidth=0.05) +
-  scale_fill_gradient(low="#FCFCFB", high=BLUE, limits=c(rpp_ctx_vmin, rpp_ctx_vmax),
+  scale_fill_gradient(low="#FCFCFB", high="#2A78D6", limits=c(rpp_ctx_vmin, rpp_ctx_vmax),
                       oob=scales::squish, na.value="#EEEEEE",
                       name="Regional Price Parity",
                       guide=bottom_guide) +
