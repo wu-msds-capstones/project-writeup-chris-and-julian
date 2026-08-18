@@ -1,6 +1,6 @@
 # Automation and Affordability in U.S. Counties
 
-**[Read the project](https://wu-msds-capstones.github.io/project-writeup-chris-and-julian/)**
+**[Read the project](https://wu-msds-capstones.github.io/automation-and-affordability-us-counties/)**
 
 DATA 510 Data Science Capstone, Willamette University | Summer 2026
 
